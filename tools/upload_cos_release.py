@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import os
 import re
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -13,6 +14,7 @@ from qcloud_cos import CosConfig, CosS3Client
 
 
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+UPLOAD_ATTEMPTS = 3
 
 
 def file_sha256(path: Path) -> str:
@@ -44,19 +46,43 @@ def main() -> int:
     object_key = f"releases/{args.version}/{args.file.name}"
     config = CosConfig(Region=args.region, SecretId=secret_id, SecretKey=secret_key)
     client = CosS3Client(config)
-    client.upload_file(
-        Bucket=args.bucket,
-        LocalFilePath=str(args.file),
-        Key=object_key,
-        PartSize=10,
-        MAXThread=5,
-        EnableMD5=True,
-    )
+    local_size = args.file.stat().st_size
+    remote_size = -1
+    try:
+        existing = client.head_object(Bucket=args.bucket, Key=object_key)
+        remote_size = int(existing.get("Content-Length", -1))
+    except Exception:
+        # A missing object is expected on the first publication. Upload below.
+        pass
+
+    if remote_size == local_size:
+        print(f"Reusing existing COS object with matching size: {object_key}")
+    else:
+        for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+            try:
+                client.upload_file(
+                    Bucket=args.bucket,
+                    LocalFilePath=str(args.file),
+                    Key=object_key,
+                    PartSize=20,
+                    MAXThread=2,
+                    EnableMD5=True,
+                )
+                break
+            except Exception as exc:
+                if attempt == UPLOAD_ATTEMPTS:
+                    raise
+                delay = attempt * 15
+                print(
+                    f"COS upload attempt {attempt}/{UPLOAD_ATTEMPTS} failed: {exc}. "
+                    f"Retrying in {delay}s...",
+                    flush=True,
+                )
+                time.sleep(delay)
     # The bucket stays private. Only this published archive is anonymously readable.
     client.put_object_acl(Bucket=args.bucket, Key=object_key, ACL="public-read")
     metadata = client.head_object(Bucket=args.bucket, Key=object_key)
     remote_size = int(metadata.get("Content-Length", -1))
-    local_size = args.file.stat().st_size
     if remote_size != local_size:
         raise SystemExit(f"COS verification failed: local={local_size}, remote={remote_size}")
 
