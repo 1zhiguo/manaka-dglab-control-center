@@ -12,7 +12,7 @@ ApplicationWindow {
     visible: true
     title: "Manaka / DG-LAB · " + backend.version
 
-    property int pageIndex: 0
+    property int pageIndex: initialPageIndex >= 0 ? initialPageIndex : 0
     property bool darkMode: backend.theme !== "light"
     property real wavePhase: 0
     property var pageTitles: ["实时仪表盘", "设备与游戏", "个性化范围", "波形工作台", "A/B 波形监视", "存档工具", "Mod 管理器", "事件记录"]

@@ -4,7 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/1zhiguo/manaka-dglab-control-center?display_name=tag)](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest)
 [![Non-commercial](https://img.shields.io/badge/license-non--commercial-ff65ac)](LICENSE.md)
 
-一个面向 **Secret Flasher Manaka × DG-LAB 3.0** 的 Windows 控制中心：读取游戏内心率与动作事件，在用户设置的安全上限内控制 A/B 通道，并提供实时波形、波形工作台、存档工具和安全的 Drop-in Mod 管理器。
+一个面向 **Secret Flasher Manaka × DG-LAB 3.0** 的 Windows 控制中心：连接 Manaka 与郊狼设备，并把心跳、游戏动作和 Climax 事件同步到不同通道。软件同时提供波形预览、经验/RP 修改和第三方 Mod 一站式加载。
 
 > 本项目是社区制作的第三方工具，与 DG-LAB、游戏作者或第三方 Mod 作者不存在官方隶属关系。
 
@@ -15,18 +15,17 @@
 - [提出问题](https://github.com/1zhiguo/manaka-dglab-control-center/issues)
 - [留言与讨论](https://github.com/1zhiguo/manaka-dglab-control-center/discussions)
 
-公开版**不包含游戏本体和第三方 Mod**。解压 Release ZIP 后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
+公开版**不包含游戏本体**，但支持用户导入和管理第三方 Mod。未取得明确再分发授权的第三方文件不会直接放入公开安装包。解压 Release ZIP 后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
 
 ## 核心功能
 
-- A 通道根据游戏心率平滑映射强度；B 通道响应游戏动作。
-- 用户可设置个性化心率范围、输出范围和最高安全上限。
-- 峰值事件同时驱动 A/B 通道，并限制为最近 5 秒最高值 + 15。
-- 一键暂停/继续输出；游戏暂停时自动停止输出。
-- 官方波形预览、自定义波形编辑与本地波形库。
-- DG-LAB 3.0 Socket 二维码连接向导。
-- 自动安装/检测 BepInEx 与本项目遥测插件。
-- Drop-in Mod 收件箱可识别 DLL、V1 JSON、V2 文件夹和 ZIP。
+- **心跳通道**：根据游戏内心率平滑调整 A 通道强度。
+- **动作同步通道**：把游戏动作事件同步到 B 通道。
+- **Climax 同步**：峰值事件同时驱动 A/B 通道，并受安全上限保护。
+- **波形预览**：查看内置波形效果，并管理自定义波形。
+- **Manaka 连接郊狼**：通过 DG-LAB 3.0 Socket 扫码完成连接。
+- **经验 / RP 修改**：在控制中心内调整游戏经验值和 RP。
+- **Mod 一站式加载**：导入、识别、启用、停用并检查第三方 Mod 依赖。
 
 ## 快速开始
 
@@ -67,7 +66,7 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 ## 第三方内容
 
-- 本仓库不发布游戏文件、游戏生成的 IL2CPP interop assemblies 或第三方 Mod。
+- 本仓库不发布游戏文件或游戏生成的 IL2CPP interop assemblies。软件支持导入第三方 Mod；只有获得明确再分发授权的第三方内容才可随公开包提供。
 - BepInEx 在构建阶段从其官方发布地址下载，并保留原许可证。
 - DG-LAB 协议与相关资料受其原始条款约束，未经授权请勿用于商业用途。
 
