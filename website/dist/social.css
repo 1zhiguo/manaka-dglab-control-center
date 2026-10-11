@@ -1,0 +1,128 @@
+.social-profile-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin: 0 0 20px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid #394158;
+  border-radius: 16px;
+  background: linear-gradient(115deg, rgba(255, 111, 174, .12), rgba(18, 23, 34, .96) 42%, rgba(98, 171, 255, .09));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .18);
+}
+
+.social-profile-card::after {
+  content: "";
+  position: absolute;
+  top: -110px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 111, 174, .16), transparent 68%);
+  pointer-events: none;
+}
+
+.social-avatar {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 104px;
+  height: 104px;
+  border: 2px solid rgba(255, 255, 255, .72);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 36%;
+  background: #e7cdd4;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .32);
+}
+
+.social-profile-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.social-kicker {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.social-profile-copy h3 {
+  margin: 0 0 7px;
+  font-size: 21px;
+}
+
+.social-profile-copy p {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.social-profile-copy strong {
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+.social-follow-button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 11px;
+  background: #f5f7fb;
+  color: #0b0d12;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.social-follow-button span {
+  font-size: 17px;
+}
+
+.social-follow-button b {
+  font-size: 13px;
+}
+
+.social-follow-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(255, 111, 174, .2);
+}
+
+@media (max-width: 720px) {
+  .social-profile-card {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .social-avatar {
+    width: 76px;
+    height: 76px;
+  }
+
+  .social-profile-copy h3 {
+    font-size: 18px;
+  }
+
+  .social-follow-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 2px;
+  }
+}
