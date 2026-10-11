@@ -2,9 +2,6 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -56,10 +53,3 @@ jobs:
           name: ManakaQmlControlCenter-v0.24.4-win64
           path: ManakaQmlControlCenter-v0.24.4-win64.zip
 
-      - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${{ github.ref_name }}" ManakaQmlControlCenter-v0.24.4-win64.zip --title "Manaka × DG-LAB v0.24.4" --notes "Windows 便携版。公开包不包含游戏本体；第三方 Mod 作为单独 Release 资源提供。首次使用请阅读软件内用户协议并从低强度开始。"
