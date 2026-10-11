@@ -15,7 +15,7 @@
 - [提出问题](https://github.com/1zhiguo/manaka-dglab-control-center/issues)
 - [留言与讨论](https://github.com/1zhiguo/manaka-dglab-control-center/discussions)
 
-公开版**不包含游戏本体**，但支持用户导入和管理第三方 Mod。未取得明确再分发授权的第三方文件不会直接放入公开安装包。解压 Release ZIP 后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
+公开版**不包含游戏本体**。Release 同时提供内含 Mod 仓库的 Windows 便携包，以及可单独下载的 Mod/Plugins 包；第三方内容的权利与许可仍由各自作者保留。解压便携包后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
 
 ## 核心功能
 
@@ -66,7 +66,7 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 ## 第三方内容
 
-- 本仓库不发布游戏文件或游戏生成的 IL2CPP interop assemblies。软件支持导入第三方 Mod；只有获得明确再分发授权的第三方内容才可随公开包提供。
+- 本仓库不发布游戏文件或游戏生成的 IL2CPP interop assemblies。Release 中的第三方 Mod 以独立资源或便携包内仓库形式提供，权利与许可仍由各自作者保留。
 - BepInEx 在构建阶段从其官方发布地址下载，并保留原许可证。
 - DG-LAB 协议与相关资料受其原始条款约束，未经授权请勿用于商业用途。
 

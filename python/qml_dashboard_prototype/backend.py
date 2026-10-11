@@ -36,7 +36,7 @@ from manaka_waveforms import (
 )
 
 
-APP_VERSION = "0.24.3-qml"
+APP_VERSION = "0.24.4-qml"
 AGREEMENT_VERSION = "2026-10-11-v2"
 UDP_HOST = "127.0.0.1"
 UDP_PORT = 45678

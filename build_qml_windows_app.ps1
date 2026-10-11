@@ -16,7 +16,7 @@ $guideAssets = Join-Path $root 'python\assets\dglab_guide'
 $modRepositories = Join-Path $root 'mod_repositories'
 $dropInTemplate = Join-Path $root 'dropin_mods'
 if (-not $DistPath) {
-    $DistPath = Join-Path $root 'release\build-v0.24.3-qml'
+    $DistPath = Join-Path $root 'release\build-v0.24.4-qml'
 }
 elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
     $DistPath = Join-Path $root $DistPath
