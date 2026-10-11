@@ -102,8 +102,10 @@ class ManakaTriggerEngine:
         self.output_b = 0.0
         self.has_baseline = False
         self.previous_orgasm = False
+        self.previous_game_over = False
         self.previous_action = "None"
         self.last_peak_event_ms = -10_000_000
+        self.last_failure_event_ms = -10_000_000
         self.peak_active_until_ms = -1
         self.was_peak_active = False
 
@@ -152,7 +154,8 @@ class ManakaTriggerEngine:
     @staticmethod
     def _slew(current: float, target: float, dt: float) -> float:
         # Faster release than attack. A real device adapter must still enforce
-        # an immediate zero for stale telemetry, disconnects, and game-over.
+        # an immediate zero for stale telemetry and disconnects. Game-over has
+        # one explicitly bounded failure pulse before entering safe idle.
         rate = 12.0 if target > current else 24.0
         step = max(0.0, dt) * rate
         if target > current:
@@ -164,17 +167,54 @@ class ManakaTriggerEngine:
         action_active = self._is_action_active(packet, action)
         stage = str(packet.get("stage", "None") or "None")
         game_over = bool(packet.get("gameOver"))
+        system_menu_open = bool(packet.get("systemMenuOpen"))
+        now_ms = int(packet.get("monotonicMs", 0) or 0)
         paused = (
             bool(packet.get("paused"))
-            or bool(packet.get("systemMenuOpen"))
+            or system_menu_open
             or float(packet.get("timeScale", 1.0) or 0.0) <= 0.001
             or float(packet.get("managedTimeScale", 1.0) or 0.0) <= 0.001
         )
+
+        # The game's GameOverEvent opens MissionFailedPanel, making the rising
+        # edge a reliable evacuation-failure signal.  It deliberately shares
+        # the normal two-hit climax path, so the UI's rolling +15 limiter and
+        # absolute hard cap still apply.  ESC/menu pause always wins.
+        failure_edge = (
+            self.has_baseline
+            and game_over
+            and not self.previous_game_over
+            and not system_menu_open
+            and stage not in {"", "None"}
+            and now_ms - self.last_failure_event_ms >= 5000
+        )
+        if failure_edge:
+            self.last_failure_event_ms = now_ms
+            self.peak_active_until_ms = max(self.peak_active_until_ms, now_ms + 1300)
+
+        failure_peak_active = game_over and now_ms < self.peak_active_until_ms
+        if failure_peak_active and not system_menu_open:
+            self.output_a = self.hard_cap
+            self.output_b = self.hard_cap
+            self.was_peak_active = True
+            self.previous_game_over = True
+            self.previous_orgasm = False
+            self.previous_action = action
+            events = ("evacuation-failed", "failure-climax") if failure_edge else ()
+            return TriggerFrame(
+                round(self.output_a, 1),
+                round(self.output_b, 1),
+                "peak",
+                "peak",
+                "evacuation-failed-punishment",
+                events,
+            )
 
         if paused or game_over or stage in {"", "None"}:
             self.output_a = 0.0
             self.output_b = 0.0
             self.previous_orgasm = False
+            self.previous_game_over = game_over
             self.previous_action = action
             self.peak_active_until_ms = -1
             self.was_peak_active = False
@@ -194,8 +234,6 @@ class ManakaTriggerEngine:
         rising_count = max(0, int(packet.get("risingNpcCount", 0) or 0))
         watching_count = max(0, int(packet.get("watchingNpcCount", 0) or 0))
         orgasm = bool(packet.get("orgasm"))
-        now_ms = int(packet.get("monotonicMs", 0) or 0)
-
         events: list[str] = []
         if not self.has_baseline:
             # Starting the controller in the middle of an encounter/action must
@@ -280,6 +318,7 @@ class ManakaTriggerEngine:
             reason = f"heart-below-threshold bpm={bpm:.1f}"
 
         self.previous_orgasm = orgasm
+        self.previous_game_over = game_over
         self.previous_action = action
         return TriggerFrame(
             round(self.output_a, 1),

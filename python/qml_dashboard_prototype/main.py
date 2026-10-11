@@ -26,6 +26,7 @@ PAGE_SCREENSHOT_NAMES = (
     "save-tools",
     "mods",
     "event-log",
+    "support",
 )
 
 

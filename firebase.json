@@ -8,19 +8,6 @@
     ],
     "headers": [
       {
-        "source": "/downloads/**",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public,max-age=31536000,immutable"
-          },
-          {
-            "key": "Content-Disposition",
-            "value": "attachment"
-          }
-        ]
-      },
-      {
         "source": "**/*.@(png|jpg|jpeg|gif|webp|svg|ico|woff2)",
         "headers": [
           {
@@ -44,6 +31,19 @@
           {
             "key": "Cache-Control",
             "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**/*.md",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          },
+          {
+            "key": "Content-Type",
+            "value": "text/markdown; charset=utf-8"
           }
         ]
       }

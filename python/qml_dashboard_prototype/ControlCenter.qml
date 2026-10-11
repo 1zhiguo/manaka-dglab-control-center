@@ -15,7 +15,7 @@ ApplicationWindow {
     property int pageIndex: initialPageIndex >= 0 ? initialPageIndex : 0
     property bool darkMode: backend.theme !== "light"
     property real wavePhase: 0
-    property var pageTitles: ["实时仪表盘", "设备与游戏", "个性化范围", "波形工作台", "A/B 波形监视", "存档工具", "Mod 管理器", "事件记录"]
+    property var pageTitles: ["实时仪表盘", "设备与游戏", "个性化范围", "波形工作台", "A/B 波形监视", "存档工具", "Mod 管理器", "事件记录", "联系与支持"]
     property var pageSubtitles: [
         "游戏状态、心率与设备输出总览",
         "安装游戏插件并使用 DG-LAB 3.0 扫码",
@@ -24,7 +24,8 @@ ApplicationWindow {
         "查看两个通道当前选择的波形和实际强度",
         "安全修改当前存档的经验值与游戏货币",
         "管理你已有的插件、V1 任务与 V2 功能包",
-        "检查连接、安全归零和游戏事件"
+        "检查连接、安全归零和游戏事件",
+        "加入交流群，或者请果果喝一杯柠檬茶"
     ]
 
     readonly property color bg: darkMode ? "#070A11" : "#EEF2F8"
@@ -295,6 +296,7 @@ ApplicationWindow {
                 NavItem { targetPage: 5; iconText: "✦"; label: "存档工具" }
                 NavItem { targetPage: 6; iconText: "⬡"; label: "Mod 管理器" }
                 NavItem { targetPage: 7; iconText: "◎"; label: "事件记录" }
+                NavItem { targetPage: 8; iconText: "♡"; label: "联系与支持" }
                 Item { Layout.fillHeight: true }
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredHeight: 98; radius: 17
@@ -803,7 +805,7 @@ ApplicationWindow {
                                         Text { Layout.fillWidth: true; text: "导入路径：incoming → dropin_mods\\repository → 开启后同步到游戏"; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
                                         Text { Layout.fillWidth: true; text: backend.dropInStatus + " · " + backend.dropInFolder; color: cyan; font.family: "Cascadia Mono"; font.pixelSize: 8; elide: Text.ElideMiddle }
                                         Item { Layout.fillHeight: true }
-                                        RowLayout { Layout.fillWidth: true; spacing: 8; AppButton { Layout.fillWidth: true; label: "打开收件箱"; onClicked: backend.openDropInFolder() } AppButton { Layout.fillWidth: true; label: "导入并扫描"; fillColor: cyan; labelColor: "#10151A"; onClicked: backend.importDropIns() } }
+                                        RowLayout { Layout.fillWidth: true; spacing: 8; AppButton { Layout.fillWidth: true; label: "打开收件箱"; onClicked: backend.openDropInFolder() } AppButton { Layout.fillWidth: true; label: "导入历史"; onClicked: backend.openDropInArchive() } AppButton { Layout.fillWidth: true; label: "导入并扫描"; fillColor: cyan; labelColor: "#10151A"; onClicked: backend.importDropIns() } }
                                     }
                                 }
                             }
@@ -812,11 +814,12 @@ ApplicationWindow {
                                 AppButton { Layout.preferredWidth: 142; label: "★ 推荐与前置"; fillColor: modPage.section === "recommended" ? accent : panel2; labelColor: modPage.section === "recommended" ? "#11151C" : root.fg; onClicked: modPage.section = "recommended" }
                                 AppButton { Layout.preferredWidth: 116; label: "全部 Mod"; fillColor: modPage.section === "all" ? violet : panel2; labelColor: modPage.section === "all" ? "#11151C" : root.fg; onClicked: modPage.section = "all" }
                                 AppButton { Layout.preferredWidth: 154; label: "⌖ V1 任务与地点"; fillColor: modPage.section === "v1guide" ? cyan : panel2; labelColor: modPage.section === "v1guide" ? "#11151C" : root.fg; onClicked: modPage.section = "v1guide" }
-                                Text { Layout.fillWidth: true; text: modPage.section === "recommended" ? "先启用基础前置，再启用对应任务或功能包" : modPage.section === "v1guide" ? "搜索任务名称、地图区域或触发位置" : "查看、搜索和切换来源库中的全部内容"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
+                                AppButton { Layout.preferredWidth: 126; label: "● 当前加载"; fillColor: modPage.section === "loaded" ? green : panel2; labelColor: modPage.section === "loaded" ? "#11151C" : root.fg; onClicked: { modPage.section = "loaded"; backend.scanMods() } }
+                                Text { Layout.fillWidth: true; text: modPage.section === "recommended" ? "先启用基础前置，再启用对应任务或功能包" : modPage.section === "v1guide" ? "搜索任务名称、地图区域或触发位置" : modPage.section === "loaded" ? "读取 BepInEx 本次或上次启动日志，不等同于来源库" : "查看、搜索和切换来源库中的全部内容"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
                             }
                             StackLayout {
                                 Layout.fillWidth: true; Layout.fillHeight: true
-                                currentIndex: modPage.section === "recommended" ? 0 : modPage.section === "all" ? 1 : 2
+                                currentIndex: modPage.section === "recommended" ? 0 : modPage.section === "all" ? 1 : modPage.section === "v1guide" ? 2 : 3
                                 AppCard {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                     ColumnLayout {
@@ -897,7 +900,16 @@ ApplicationWindow {
                                                             Text { Layout.fillWidth: true; visible: modelData.requiredPluginName && !modelData.dependencyReady; text: modelData.dependencyAvailable ? "⚠ 需要先启用 " + modelData.requiredPluginName : "⚠ 当前来源库缺少 " + modelData.requiredPluginName; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
                                                             Text { Layout.fillWidth: true; visible: modelData.warning.length > 0; text: "⚠ " + modelData.warning; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
                                                         }
-                                                        Switch { checked: modelData.enabled; enabled: modelData.available; onClicked: backend.setModEnabled(modelData.id, checked); palette.highlight: green }
+                                                        ColumnLayout {
+                                                            Layout.alignment: Qt.AlignTop; spacing: 8
+                                                            Switch { checked: modelData.enabled; enabled: modelData.available; onClicked: backend.setModEnabled(modelData.id, checked); palette.highlight: green }
+                                                            AppButton {
+                                                                visible: modelData.userImported
+                                                                Layout.preferredWidth: 58; Layout.preferredHeight: 30
+                                                                label: "删除"; fillColor: Qt.rgba(red.r,red.g,red.b,darkMode ? 0.18 : 0.10); labelColor: red
+                                                                onClicked: { modDeleteConfirm.entryId = modelData.id; modDeleteConfirm.modName = modelData.name; modDeleteConfirm.open() }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                                 ScrollBar.vertical: ScrollBar { contentItem: Rectangle { implicitWidth: 5; radius: 3; color: muted } background: Rectangle { color: "transparent" } }
@@ -958,8 +970,46 @@ ApplicationWindow {
                                         Text { Layout.fillWidth: true; visible: modPage.filteredV1Mods.length === 0; text: "没有找到匹配的 V1 Mod 或地点"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter }
                                     }
                                 }
+                                AppCard {
+                                    Layout.fillWidth: true; Layout.fillHeight: true
+                                    ColumnLayout {
+                                        anchors.fill: parent; anchors.margins: 14; spacing: 10
+                                        RowLayout {
+                                            Layout.fillWidth: true; spacing: 12
+                                            Rectangle { width: 46; height: 46; radius: 14; color: Qt.rgba(green.r,green.g,green.b,0.14); Text { anchors.centerIn: parent; text: "ON"; color: green; font.family: "Segoe UI"; font.pixelSize: 10; font.weight: Font.Bold } }
+                                            Column { Layout.fillWidth: true; spacing: 3; Text { text: "当前已启用的 Mod"; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: "按游戏目录中的文件状态筛选；不读取运行日志"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } }
+                                            AppButton { Layout.preferredWidth: 96; label: "重新扫描"; onClicked: backend.scanMods() }
+                                        }
+                                        GridView {
+                                            id: loadedModList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                                            model: backend.loadedModInventory
+                                            cellWidth: width / 2; cellHeight: 126
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                width: loadedModList.cellWidth - 7; height: 118; radius: 14
+                                                color: modelData.enabled ? (darkMode ? "#141E2F" : "#EDF2F8") : (darkMode ? "#111722" : "#E7EAF0")
+                                                border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.40) : Qt.rgba(muted.r,muted.g,muted.b,0.35)
+                                                opacity: modelData.enabled ? 1.0 : 0.72
+                                                RowLayout {
+                                                    anchors.fill: parent; anchors.margins: 13; spacing: 12
+                                                    Rectangle { width: 42; height: 42; radius: 13; color: Qt.rgba((modelData.enabled ? green : muted).r,(modelData.enabled ? green : muted).g,(modelData.enabled ? green : muted).b,0.13); Text { anchors.centerIn: parent; text: modelData.kind === "plugin" ? "DLL" : modelData.kind.toUpperCase(); color: modelData.enabled ? green : muted; font.family: "Segoe UI"; font.pixelSize: 9; font.weight: Font.Bold } }
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true; spacing: 4
+                                                        RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; font.weight: Font.DemiBold; wrapMode: Text.Wrap } Text { text: modelData.kindLabel; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } }
+                                                        Text { Layout.fillWidth: true; text: modelData.enabled ? "文件已启用 · 理论上会随游戏加载" : "本次会话已关闭 · 重新扫描后隐藏"; color: modelData.enabled ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; font.weight: Font.DemiBold }
+                                                        Text { Layout.fillWidth: true; text: modelData.description; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
+                                                        Text { Layout.fillWidth: true; visible: modelData.requiredPluginName && !modelData.dependencyReady; text: "⚠ 需要启用 " + modelData.requiredPluginName + " 才能实际加载"; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 8; wrapMode: Text.Wrap }
+                                                    }
+                                                    Switch { checked: modelData.enabled; enabled: modelData.available; onClicked: backend.setLoadedModEnabled(modelData.id, checked); palette.highlight: green }
+                                                }
+                                            }
+                                            ScrollBar.vertical: ScrollBar { contentItem: Rectangle { implicitWidth: 5; radius: 3; color: muted } background: Rectangle { color: "transparent" } }
+                                        }
+                                        Text { Layout.fillWidth: true; visible: backend.loadedModInventory.length === 0; text: "游戏目录中暂时没有处于启用位置的 Mod。"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter }
+                                    }
+                                }
                             }
-                            Text { Layout.fillWidth: true; text: "第三方文件不会被打包进本软件。停用内容会保存在游戏目录的 ManakaModManager\\disabled，V2 存档与配置不会删除。"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
+                            Text { Layout.fillWidth: true; text: "同名 Drop-in 会替换仓库版本，并在游戏关闭时同步已启用副本。删除按钮只会出现在用户导入的 Mod 上。"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
                         }
                     }
 
@@ -981,6 +1031,94 @@ ApplicationWindow {
                             }
                         }
                     }
+
+                    // Contact & support ----------------------------------------
+                    ColumnLayout {
+                        spacing: 12
+
+                        AppCard {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 128
+                            color: darkMode ? "#171322" : "#FFF4F8"
+                            Rectangle {
+                                anchors.right: parent.right; anchors.top: parent.top
+                                anchors.rightMargin: 20; anchors.topMargin: 16
+                                width: 48; height: 48; radius: 24
+                                color: Qt.rgba(amber.r, amber.g, amber.b, darkMode ? 0.14 : 0.18)
+                                Text { anchors.centerIn: parent; text: "🍋"; font.pixelSize: 23 }
+                            }
+                            ColumnLayout {
+                                anchors.fill: parent; anchors.margins: 18; anchors.rightMargin: 86; spacing: 5
+                                Text {
+                                    text: "哈喽哇！♡"
+                                    color: accent; font.family: "Microsoft YaHei UI"; font.pixelSize: 18; font.weight: Font.Bold
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: "如果你在思考宇宙尽头我们存在意义的时候，觉得我做的这个小玩具还不错，可不可以请我喝杯柠檬茶呀！"
+                                    color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11
+                                    lineHeight: 1.25; wrapMode: Text.Wrap
+                                }
+                                Text { text: "—— 果果的能量补给站 ✦"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true; Layout.preferredHeight: 360; spacing: 12
+
+                            AppCard {
+                                Layout.fillWidth: true; Layout.preferredHeight: 360
+                                ColumnLayout {
+                                    anchors.fill: parent; anchors.margins: 16; spacing: 6
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Rectangle { width: 34; height: 34; radius: 11; color: Qt.rgba(cyan.r, cyan.g, cyan.b, 0.14); Text { anchors.centerIn: parent; text: "Q"; color: cyan; font.family: "Segoe UI"; font.pixelSize: 15; font.weight: Font.Bold } }
+                                        Column { Layout.fillWidth: true; Text { text: "来群里找我们玩"; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: "交流群 · 技术问题 · 新版本消息"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } }
+                                    }
+                                    Item {
+                                        Layout.fillWidth: true; Layout.fillHeight: true
+                                        Rectangle {
+                                            width: Math.min(238, parent.width - 4, parent.height - 4); height: width
+                                            anchors.centerIn: parent; radius: 15; color: "#FFFFFF"; clip: true
+                                            Image {
+                                                anchors.fill: parent; anchors.margins: 9
+                                                source: "assets/qq_group.jpg"
+                                                sourceClipRect: Qt.rect(130, 725, 1024, 1120)
+                                                fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true
+                                            }
+                                        }
+                                    }
+                                    Text { Layout.fillWidth: true; text: "QQ群 1129729751"; color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
+                                }
+                            }
+
+                            AppCard {
+                                Layout.fillWidth: true; Layout.preferredHeight: 360
+                                ColumnLayout {
+                                    anchors.fill: parent; anchors.margins: 16; spacing: 6
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Rectangle { width: 34; height: 34; radius: 11; color: Qt.rgba(amber.r, amber.g, amber.b, 0.16); Text { anchors.centerIn: parent; text: "♡"; color: amber; font.pixelSize: 17; font.weight: Font.Bold } }
+                                        Column { Layout.fillWidth: true; Text { text: "请果果喝柠檬茶"; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: "感谢喵"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } }
+                                    }
+                                    Item {
+                                        Layout.fillWidth: true; Layout.fillHeight: true
+                                        Rectangle {
+                                            width: Math.min(238, parent.width - 4, parent.height - 4); height: width
+                                            anchors.centerIn: parent; radius: 15; color: "#FFFFFF"; clip: true
+                                            Image {
+                                                anchors.fill: parent; anchors.margins: 9
+                                                source: "assets/reward_code.jpg"
+                                                fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true
+                                            }
+                                        }
+                                    }
+                                    Text { Layout.fillWidth: true; text: "谢谢支持喵！"; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
+                                }
+                            }
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
                 }
             }
         }
@@ -994,6 +1132,14 @@ ApplicationWindow {
         contentItem: Text { text: "将把游戏货币修改为 " + progressPage.draftRp + "，经验值修改为 " + progressPage.draftExp + "。\n软件会先创建备份，再调用游戏自己的保存流程。\n\n请确认角色当前位于室外（非室内）。经验写入后，需要完成任意任务并回家触发结算，等级才会刷新。"; color: root.fg; font.family: "Microsoft YaHei UI"; padding: 18; wrapMode: Text.Wrap }
         background: Rectangle { color: panel; border.color: border; radius: 16 }
         onAccepted: backend.applyProgressValues(progressPage.draftRp, progressPage.draftExp)
+    }
+    Dialog {
+        id: modDeleteConfirm
+        property string entryId: ""
+        property string modName: ""
+        anchors.centerIn: parent; modal: true; title: "删除导入的 Mod"; standardButtons: Dialog.Yes | Dialog.No
+        contentItem: Text { text: "将从 Drop-in 仓库、游戏目录和停用隔离区删除：\n" + modDeleteConfirm.modName + "\n\n游戏必须完全退出。原始导入包仍保存在 dropin_mods\\archive，需要时可以重新放回收件箱。"; color: root.fg; font.family: "Microsoft YaHei UI"; padding: 18; wrapMode: Text.Wrap }
+        onAccepted: backend.deleteDropInMod(entryId)
     }
 
     Popup {

@@ -25,9 +25,10 @@ class DropInModImporter:
         self.v1 = self.repository / "CustomMissions1"
         self.v2 = self.repository / "CustomMissions2"
         self.staging = dropin_root / ".staging"
+        self.archive = dropin_root / "archive"
 
     def ensure_layout(self) -> None:
-        for directory in (self.incoming, self.plugins, self.v1, self.v2, self.staging):
+        for directory in (self.incoming, self.plugins, self.v1, self.v2, self.staging, self.archive):
             directory.mkdir(parents=True, exist_ok=True)
 
     def import_all(self) -> dict:
@@ -41,9 +42,20 @@ class DropInModImporter:
                 totals["sources"] += 1
                 for key in ("plugins", "v1", "v2"):
                     totals[key] += counts[key]
+                self._archive_source(source)
             except (DropInImportError, OSError, zipfile.BadZipFile) as error:
                 totals["errors"].append(f"{source.name}：{error}")
         return totals
+
+    def _archive_source(self, source: Path) -> None:
+        """Empty the inbox after success while retaining a recoverable original."""
+        target = self.archive / source.name
+        if target.exists():
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        shutil.move(str(source), str(target))
 
     def _import_source(self, source: Path) -> dict:
         if source.is_file() and source.suffix.casefold() == ".zip":
@@ -174,4 +186,27 @@ class DropInModImporter:
             raise DropInImportError("不接受符号链接目录")
         if any(path.is_symlink() for path in source.rglob("*")):
             raise DropInImportError("Mod 文件夹包含符号链接")
-        shutil.copytree(source, target, dirs_exist_ok=True, symlinks=False)
+        # A same-name import is a replacement, not a merge.  Merging left files
+        # removed by the new version in the repository, so a later scan could
+        # still load code and assets from the previous version.
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staged = target.with_name(target.name + ".importing")
+        backup = target.with_name(target.name + ".previous")
+        if staged.exists():
+            shutil.rmtree(staged)
+        if backup.exists():
+            shutil.rmtree(backup)
+        shutil.copytree(source, staged, symlinks=False)
+        try:
+            if target.exists():
+                target.replace(backup)
+            staged.replace(target)
+        except OSError:
+            if not target.exists() and backup.exists():
+                backup.replace(target)
+            raise
+        finally:
+            if staged.exists():
+                shutil.rmtree(staged)
+            if backup.exists():
+                shutil.rmtree(backup)

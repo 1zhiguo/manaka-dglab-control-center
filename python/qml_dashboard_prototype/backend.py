@@ -36,7 +36,21 @@ from manaka_waveforms import (
 )
 
 
-APP_VERSION = "0.24.4-qml"
+def _load_app_version() -> str:
+    """Read the build-time version while keeping source runs convenient."""
+
+    if getattr(sys, "frozen", False):
+        version_file = Path(getattr(sys, "_MEIPASS")) / "assets" / "VERSION"
+    else:
+        version_file = Path(__file__).with_name("VERSION")
+    try:
+        version = version_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        return "dev"
+    return version or "dev"
+
+
+APP_VERSION = _load_app_version()
 AGREEMENT_VERSION = "2026-10-11-v2"
 UDP_HOST = "127.0.0.1"
 UDP_PORT = 45678
@@ -381,6 +395,7 @@ class ControlCenterBackend(QObject):
         else:
             self.mod_source_folder_value = ""
         self.mod_inventory_value: list[dict] = []
+        self.loaded_mod_inventory_value: list[dict] = []
         self.recommended_mod_inventory_value: list[dict] = self._recommended_mods([])
         self.mod_status_value = "请选择已有 Mod 整合包的根目录"
         self.mod_summary_value = "尚未扫描"
@@ -626,6 +641,10 @@ class ControlCenterBackend(QObject):
         return list(self.mod_inventory_value)
 
     @Property("QVariantList", notify=configChanged)
+    def loadedModInventory(self) -> list[dict]:
+        return list(self.loaded_mod_inventory_value)
+
+    @Property("QVariantList", notify=configChanged)
     def recommendedModInventory(self) -> list[dict]:
         return list(self.recommended_mod_inventory_value)
 
@@ -825,7 +844,12 @@ class ControlCenterBackend(QObject):
     def scanMods(self) -> bool:
         return self.scan_mods(show_error=True)
 
-    def scan_mods(self, *, show_error: bool) -> bool:
+    def scan_mods(
+        self,
+        *,
+        show_error: bool,
+        retained_loaded_ids: tuple[str, ...] = (),
+    ) -> bool:
         game = Path(self.game_folder_value.strip())
         source = Path(self.mod_source_folder_value.strip())
         try:
@@ -838,6 +862,7 @@ class ControlCenterBackend(QObject):
         except (ModManagerError, OSError) as error:
             self.mod_manager = None
             self.mod_inventory_value = []
+            self.loaded_mod_inventory_value = []
             self.recommended_mod_inventory_value = self._recommended_mods([])
             self.mod_status_value = str(error)
             self.mod_summary_value = "扫描不可用"
@@ -847,6 +872,10 @@ class ControlCenterBackend(QObject):
             return False
         self.mod_manager = manager
         self.mod_inventory_value = inventory
+        # "当前加载" is intentionally a file-state filter, not a runtime-log
+        # claim. Items disabled from that tab remain as a grey session snapshot
+        # until the user explicitly rescans (or restarts the application).
+        self.loaded_mod_inventory_value = self._loaded_mods(inventory, retained_loaded_ids)
         self.recommended_mod_inventory_value = self._recommended_mods(inventory)
         counts = {
             kind: sum(1 for item in inventory if item.get("kind") == kind)
@@ -860,6 +889,24 @@ class ControlCenterBackend(QObject):
         self.mod_status_value = "扫描完成；修改前请完全退出游戏"
         self.configChanged.emit()
         return True
+
+    @staticmethod
+    def _enabled_mods(inventory: list[dict]) -> list[dict]:
+        """Return the file-state view used by the Current Enabled tab."""
+        return [dict(item) for item in inventory if item.get("enabled")]
+
+    @staticmethod
+    def _loaded_mods(
+        inventory: list[dict],
+        retained_ids: tuple[str, ...] = (),
+    ) -> list[dict]:
+        """Build the Current Loaded snapshot, retaining just-toggled cards."""
+        retained = set(retained_ids)
+        return [
+            dict(item, sessionDisabled=not bool(item.get("enabled")))
+            for item in inventory
+            if item.get("enabled") or item.get("id") in retained
+        ]
 
     @staticmethod
     def _annotate_v1_locations(inventory: list[dict]) -> None:
@@ -921,6 +968,15 @@ class ControlCenterBackend(QObject):
             return
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.dropin_importer.incoming)))
 
+    @Slot()
+    def openDropInArchive(self) -> None:
+        try:
+            self.dropin_importer.ensure_layout()
+        except OSError as error:
+            self._toast("无法创建 Drop-in 目录", str(error))
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.dropin_importer.archive)))
+
     @Slot(result=bool)
     def importDropIns(self) -> bool:
         try:
@@ -932,19 +988,67 @@ class ControlCenterBackend(QObject):
         summary = (
             f"插件 {result['plugins']} · V1 {result['v1']} · V2 {result['v2']}"
         )
+        self.scan_mods(show_error=False)
+        refreshed = 0
+        refresh_error = ""
+        if self.mod_manager is not None:
+            try:
+                refreshed = self.mod_manager.refresh_enabled_from_sources()
+            except (ModManagerError, OSError, shutil.Error) as error:
+                refresh_error = str(error)
+        if refreshed:
+            summary += f" · 已替换 {refreshed} 个启用项"
         if errors:
             self.dropin_status_value = f"{summary} · {len(errors)} 个文件未导入"
             self._toast("部分 Drop-in 未导入", errors[0])
+        elif refresh_error:
+            self.dropin_status_value = f"导入完成；{refresh_error}"
+            self._toast("仓库已更新", refresh_error)
         else:
             self.dropin_status_value = f"导入完成：{summary}"
             self._toast("Drop-in 导入完成", summary)
         self._log(f"Drop-in：{self.dropin_status_value}")
         self.scan_mods(show_error=False)
         self.configChanged.emit()
-        return not errors
+        return not errors and not refresh_error
+
+    @Slot(str, result=bool)
+    def deleteDropInMod(self, entry_id: str) -> bool:
+        if self.mod_manager is None and not self.scan_mods(show_error=True):
+            return False
+        assert self.mod_manager is not None
+        try:
+            status = self.mod_manager.delete_dropin(entry_id)
+        except (ModManagerError, OSError, shutil.Error) as error:
+            self._toast("无法删除 Mod", str(error))
+            self.mod_status_value = str(error)
+            self.configChanged.emit()
+            return False
+        self._log(f"Drop-in 删除：{entry_id} · {status}")
+        self.scan_mods(show_error=False)
+        self._toast("Mod 已删除", entry_id.split("|", 1)[-1])
+        return True
 
     @Slot(str, bool, result=bool)
     def setModEnabled(self, entry_id: str, enabled: bool) -> bool:
+        return self._set_mod_enabled(entry_id, enabled)
+
+    @Slot(str, bool, result=bool)
+    def setLoadedModEnabled(self, entry_id: str, enabled: bool) -> bool:
+        retained_ids = tuple(
+            str(item.get("id", ""))
+            for item in self.loaded_mod_inventory_value
+            if item.get("id")
+        )
+        return self._set_mod_enabled(entry_id, enabled, retained_loaded_ids=retained_ids)
+
+    def _set_mod_enabled(
+        self,
+        entry_id: str,
+        enabled: bool,
+        *,
+        retained_loaded_ids: tuple[str, ...] = (),
+    ) -> bool:
         if self.mod_manager is None and not self.scan_mods(show_error=True):
             return False
         assert self.mod_manager is not None
@@ -956,7 +1060,10 @@ class ControlCenterBackend(QObject):
             self.configChanged.emit()
             return False
         self._log(f"Mod 管理器：{entry_id} -> {status}")
-        self.scan_mods(show_error=False)
+        self.scan_mods(
+            show_error=False,
+            retained_loaded_ids=retained_loaded_ids,
+        )
         self._toast("Mod 状态已更新", f"{entry_id.split('|', 1)[-1]}：{status}")
         return True
 

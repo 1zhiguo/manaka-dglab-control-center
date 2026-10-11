@@ -10,6 +10,13 @@ node_modules/
 /release/
 /installer_payload/
 /SecretFlasherManaka/
+# 公共仓库只保留 Mod 仓库说明文件；实际 Mod/插件只进入发行包。
+mod_repositories/custommissions1/*
+mod_repositories/custommissions2/*
+mod_repositories/plugins/*
+!mod_repositories/custommissions1/README.md
+!mod_repositories/custommissions2/README.md
+!mod_repositories/plugins/README.md
 dropin_mods/incoming/*
 dropin_mods/repository/*
 !dropin_mods/incoming/.gitkeep
@@ -18,3 +25,5 @@ dropin_mods/repository/*
 *.local.json
 .DS_Store
 Thumbs.db
+website/dist/QUICKSTART_CN.md
+website/dist/FAQ_CN.md

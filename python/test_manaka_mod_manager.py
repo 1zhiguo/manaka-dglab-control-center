@@ -159,6 +159,77 @@ class ManakaModManagerTests(unittest.TestCase):
         self.assertTrue((self.game / "NPCBehaviorMod" / "config.txt").is_file())
         self.assertEqual((self.game / "NotoSerifSC-Regular.otf").read_bytes(), b"font")
 
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_same_name_dropin_refreshes_enabled_plugin(self, _running) -> None:
+        dropin = Path(self.temp.name) / "dropin" / "BepInEx" / "plugins"
+        dropin.mkdir(parents=True)
+        source = dropin / "Example.dll"
+        source.write_bytes(b"old")
+        manager = ManakaModManager(self.game, self.source, [dropin.parents[1]])
+        item = next(item for item in manager.scan() if item["name"] == "Example")
+        self.assertTrue(item["userImported"])
+        manager.set_enabled(item["id"], True)
+
+        source.write_bytes(b"new")
+        manager.scan()
+        self.assertEqual(manager.refresh_enabled_from_sources(), 1)
+        target = self.game / "BepInEx" / "plugins" / "Example.dll"
+        self.assertEqual(target.read_bytes(), b"new")
+
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_reenable_prefers_new_source_over_old_disabled_copy(self, _running) -> None:
+        dropin_root = Path(self.temp.name) / "dropin"
+        source = dropin_root / "BepInEx" / "plugins" / "Example.dll"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b"old")
+        manager = ManakaModManager(self.game, self.source, [dropin_root])
+        item = next(item for item in manager.scan() if item["name"] == "Example")
+        manager.set_enabled(item["id"], True)
+        manager.set_enabled(item["id"], False)
+
+        source.write_bytes(b"new")
+        item = next(item for item in manager.scan() if item["name"] == "Example")
+        manager.set_enabled(item["id"], True)
+        target = self.game / "BepInEx" / "plugins" / "Example.dll"
+        self.assertEqual(target.read_bytes(), b"new")
+        self.assertFalse(target.with_name("Example.dll.disabled").exists())
+
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_delete_dropin_removes_repository_and_game_copy(self, _running) -> None:
+        dropin_root = Path(self.temp.name) / "dropin"
+        source = dropin_root / "BepInEx" / "plugins" / "Example.dll"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b"plugin")
+        manager = ManakaModManager(self.game, self.source, [dropin_root])
+        item = next(item for item in manager.scan() if item["name"] == "Example")
+        manager.set_enabled(item["id"], True)
+        manager.delete_dropin(item["id"])
+
+        self.assertFalse(source.exists())
+        self.assertFalse((self.game / "BepInEx" / "plugins" / "Example.dll").exists())
+
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_same_name_dropin_replaces_enabled_v2_folder(self, _running) -> None:
+        dropin_root = Path(self.temp.name) / "dropin"
+        source = dropin_root / "CustomMissions2" / "ExampleV2"
+        source.mkdir(parents=True)
+        (source / "main.code").write_text("old", encoding="utf-8")
+        (source / "stale.code").write_text("stale", encoding="utf-8")
+        manager = ManakaModManager(self.game, self.source, [dropin_root])
+        item = next(item for item in manager.scan() if item["kind"] == "v2")
+        manager.set_enabled(item["id"], True)
+
+        (source / "main.code").write_text("new", encoding="utf-8")
+        (source / "stale.code").unlink()
+        (source / "added.code").write_text("added", encoding="utf-8")
+        manager.scan()
+        self.assertEqual(manager.refresh_enabled_from_sources(), 1)
+
+        active = self.game / "CustomMissions2" / "ExampleV2"
+        self.assertEqual((active / "main.code").read_text(encoding="utf-8"), "new")
+        self.assertTrue((active / "added.code").is_file())
+        self.assertFalse((active / "stale.code").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

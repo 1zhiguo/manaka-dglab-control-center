@@ -52,7 +52,8 @@ $response = @(
     "/nostdlib+",
     "/target:library",
     "/optimize+",
-    "/debug:portable",
+    # Do not embed the build machine's absolute source/PDB path in the public DLL.
+    "/debug-",
     "/langversion:latest",
     "/out:`"$outputDll`""
 )

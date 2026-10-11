@@ -74,6 +74,7 @@ class ModEntry:
     required_plugin_name: str = ""
     dependency_ready: bool = True
     dependency_available: bool = True
+    user_imported: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -91,6 +92,7 @@ class ModEntry:
             "requiredPluginName": self.required_plugin_name,
             "dependencyReady": self.dependency_ready,
             "dependencyAvailable": self.dependency_available,
+            "userImported": self.user_imported,
         }
 
 
@@ -229,9 +231,143 @@ class ManakaModManager:
         entries.extend(self._scan_plugins())
         entries.extend(self._scan_v1())
         entries.extend(self._scan_v2())
+        for entry in entries:
+            sources = [Path(entry.source)] if entry.source else []
+            sources.extend(Path(value) for value in entry.source_map.values())
+            entry.user_imported = any(self._dropin_root_for(path) is not None for path in sources)
         self._annotate_dependencies(entries)
         self.entries = {entry.id: entry for entry in entries}
         return [entry.as_dict() for entry in entries]
+
+    def _dropin_root_for(self, source: Path) -> Path | None:
+        resolved = source.resolve(strict=False)
+        for root in self.additional_source_roots:
+            root_resolved = root.resolve(strict=False)
+            if resolved == root_resolved or root_resolved in resolved.parents:
+                return root
+        return None
+
+    @staticmethod
+    def _replace_directory(source: Path, target: Path) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staged = target.with_name(target.name + ".updating")
+        backup = target.with_name(target.name + ".previous")
+        for temporary in (staged, backup):
+            if temporary.exists():
+                shutil.rmtree(temporary)
+        shutil.copytree(source, staged)
+        try:
+            if target.exists():
+                target.replace(backup)
+            staged.replace(target)
+        except OSError:
+            if not target.exists() and backup.exists():
+                backup.replace(target)
+            raise
+        finally:
+            if staged.exists():
+                shutil.rmtree(staged)
+            if backup.exists():
+                shutil.rmtree(backup)
+
+    def refresh_enabled_from_sources(self) -> int:
+        """Refresh enabled game copies after a same-name repository import."""
+        self._require_roots()
+        if game_is_running():
+            raise ModManagerError("仓库已更新；请完全退出游戏后再次点击“导入并扫描”以替换已启用版本")
+        if not self.entries:
+            self.scan()
+        refreshed = 0
+        for entry in tuple(self.entries.values()):
+            if not entry.enabled or not entry.user_imported:
+                continue
+            if entry.kind == "plugin":
+                source = Path(entry.source) if entry.source else Path()
+                target = _safe_child(self.game_root, Path(entry.target))
+                if entry.source and source.is_file() and target.is_file():
+                    shutil.copy2(source, target)
+                    self._copy_plugin_resources(target.stem, source)
+                    target.with_name(target.name + ".disabled").unlink(missing_ok=True)
+                    refreshed += 1
+            elif entry.kind == "v1":
+                changed = False
+                active_dir = self.game_root / "CustomMissions"
+                disabled_dir = self.disabled_root / "v1"
+                for name in entry.files:
+                    source_value = entry.source_map.get(name.casefold(), "")
+                    source = Path(source_value) if source_value else Path()
+                    active = _safe_child(active_dir, active_dir / name)
+                    if source_value and source.is_file() and active.is_file():
+                        shutil.copy2(source, active)
+                        (disabled_dir / name).unlink(missing_ok=True)
+                        changed = True
+                refreshed += int(changed)
+            else:
+                source = Path(entry.source) if entry.source else Path()
+                active = _safe_child(self.game_root / "CustomMissions2", Path(entry.target))
+                if entry.source and source.is_dir() and active.is_dir():
+                    self._replace_directory(source, active)
+                    disabled = self.disabled_root / "v2" / entry.files[0]
+                    if disabled.exists():
+                        shutil.rmtree(disabled)
+                    refreshed += 1
+        self.scan()
+        return refreshed
+
+    def delete_dropin(self, entry_id: str) -> str:
+        """Remove a user-imported item from repository, game, and isolation."""
+        self._require_roots()
+        if game_is_running():
+            raise ModManagerError("请完全退出游戏后再删除 Mod")
+        if entry_id not in self.entries:
+            self.scan()
+        entry = self.entries.get(entry_id)
+        if entry is None or not entry.user_imported:
+            raise ModManagerError("只能删除通过 Drop-in 收件箱导入的 Mod")
+
+        if entry.kind == "plugin":
+            source = Path(entry.source)
+            target = _safe_child(self.game_root, Path(entry.target))
+            target.unlink(missing_ok=True)
+            target.with_name(target.name + ".disabled").unlink(missing_ok=True)
+            if self._dropin_root_for(source) is not None:
+                source.unlink(missing_ok=True)
+                self._prune_empty_parents(source.parent, self._plugin_root_for(source))
+        elif entry.kind == "v1":
+            active_dir = self.game_root / "CustomMissions"
+            disabled_dir = self.disabled_root / "v1"
+            for name in entry.files:
+                (active_dir / name).unlink(missing_ok=True)
+                (disabled_dir / name).unlink(missing_ok=True)
+                source_value = entry.source_map.get(name.casefold(), "")
+                source = Path(source_value) if source_value else Path()
+                if source_value and self._dropin_root_for(source) is not None:
+                    source.unlink(missing_ok=True)
+        else:
+            source = Path(entry.source)
+            active = _safe_child(self.game_root / "CustomMissions2", Path(entry.target))
+            disabled = self.disabled_root / "v2" / entry.files[0]
+            for folder in (active, disabled):
+                if folder.exists():
+                    shutil.rmtree(folder)
+            if self._dropin_root_for(source) is not None and source.exists():
+                shutil.rmtree(source)
+
+        self.scan()
+        return "已从仓库和游戏目录删除"
+
+    @staticmethod
+    def _prune_empty_parents(folder: Path, stop: Path | None) -> None:
+        if stop is None:
+            return
+        stop_resolved = stop.resolve(strict=False)
+        current = folder
+        while current.resolve(strict=False) != stop_resolved:
+            try:
+                current.rmdir()
+            except OSError:
+                break
+            current = current.parent
 
     @staticmethod
     def _annotate_dependencies(entries: list[ModEntry]) -> None:
@@ -420,22 +556,21 @@ class ManakaModManager:
         disabled = target.with_name(target.name + ".disabled")
         target.parent.mkdir(parents=True, exist_ok=True)
         if enabled:
-            if disabled.is_file():
-                disabled.replace(target)
-                return
             source = Path(entry.source) if entry.source else None
-            if source is None or not source.is_file():
-                raise ModManagerError("来源库中缺少插件文件")
-            if source.name.endswith(".disabled"):
-                shutil.copy2(source, target)
-            else:
+            if source is not None and source.is_file():
+                disabled.unlink(missing_ok=True)
                 source_plugins = self._plugin_root_for(source)
                 if source_plugins is not None and source.parent != source_plugins and source.parent.name.casefold() != "save":
                     bundle_target = target.parent
                     shutil.copytree(source.parent, bundle_target, dirs_exist_ok=True)
                 else:
                     shutil.copy2(source, target)
-            self._copy_plugin_resources(target.stem, source)
+                self._copy_plugin_resources(target.stem, source)
+                return
+            if disabled.is_file():
+                disabled.replace(target)
+                return
+            raise ModManagerError("来源库中缺少插件文件")
         else:
             if target.is_file():
                 target.replace(disabled)
@@ -483,12 +618,13 @@ class ManakaModManager:
             disabled = _safe_child(disabled_dir, disabled_dir / name)
             source_value = entry.source_map.get(name.casefold(), "")
             source = Path(source_value) if source_value else Path()
-            if enabled and not active.exists():
-                if disabled.is_file():
-                    disabled.replace(active)
-                elif source_value and source.is_file():
+            if enabled:
+                if source_value and source.is_file():
                     shutil.copy2(source, active)
-                else:
+                    disabled.unlink(missing_ok=True)
+                elif not active.exists() and disabled.is_file():
+                    disabled.replace(active)
+                elif not active.exists():
                     raise ModManagerError(f"缺少任务文件：{name}")
             elif not enabled and active.is_file():
                 active.replace(disabled)
@@ -500,12 +636,14 @@ class ManakaModManager:
         disabled = _safe_child(self.disabled_root / "v2", self.disabled_root / "v2" / name)
         active.parent.mkdir(parents=True, exist_ok=True)
         disabled.parent.mkdir(parents=True, exist_ok=True)
-        if enabled and not active.exists():
-            if disabled.is_dir():
+        if enabled:
+            if entry.source and source.is_dir():
+                if disabled.exists():
+                    shutil.rmtree(disabled)
+                self._replace_directory(source, active)
+            elif not active.exists() and disabled.is_dir():
                 shutil.move(str(disabled), str(active))
-            elif entry.source and source.is_dir():
-                shutil.copytree(source, active)
-            else:
+            elif not active.exists():
                 raise ModManagerError("来源库中缺少该 V2 包")
         elif not enabled and active.is_dir():
             if disabled.exists():

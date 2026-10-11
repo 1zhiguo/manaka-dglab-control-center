@@ -36,5 +36,6 @@ DG-LAB device. Channel A follows the authoritative in-game heart rate; channel
 B represents action/ecstasy progression. NPC alert is telemetry-only and does
 not affect either output. The UI exposes personal BPM thresholds, minimum and
 maximum working strength, plus an independent 0..100 hard cap that defaults to
-30. Missing telemetry, game-over, and non-playable scenes force both proposed
-outputs to zero.
+30. Missing telemetry and non-playable scenes force both proposed outputs to
+zero. A game-over rising edge may produce one bounded two-hit failure climax;
+after that one-shot finishes, both channels return to zero.

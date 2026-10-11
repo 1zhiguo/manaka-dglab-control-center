@@ -19,14 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Add Windows download mirror
+      - name: Add Markdown documentation
         shell: bash
         run: |
-          mkdir -p website/dist/downloads
-          curl --fail --location --retry 3 \
-            --output website/dist/downloads/ManakaQmlControlCenter-v0.24.4-win64-with-mods.zip \
-            https://github.com/1zhiguo/manaka-dglab-control-center/releases/download/v0.24.4/ManakaQmlControlCenter-v0.24.4-win64-with-mods.zip
-          echo "DD0C09DFDAE832C48A08012A3F6A697F82F681DA81C0A0EA6E874A7938A3922F  website/dist/downloads/ManakaQmlControlCenter-v0.24.4-win64-with-mods.zip" | sha256sum --check
+          cp QUICKSTART_CN.md website/dist/QUICKSTART_CN.md
+          cp FAQ_CN.md website/dist/FAQ_CN.md
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:

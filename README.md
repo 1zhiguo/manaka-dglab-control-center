@@ -60,6 +60,8 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 构建 Windows 便携版还需要 `PyInstaller`，以及由官方来源取得的 BepInEx 6 IL2CPP x64 文件放在 `installer_payload/bepinex_v113`。GitHub Actions 会自动取得指定版本并创建 Release。
 
+维护者发布新版本时无需手工上传多个平台：首次配置完成后，在 GitHub Actions 中手动运行 `Build and publish release` 即可同步 GitHub Release、腾讯 COS 大陆镜像、SHA-256 下载清单和 Firebase 网站。详见 [RELEASING_CN.md](RELEASING_CN.md)。
+
 ## 安全与责任
 
 电刺激设备可能造成疼痛、皮肤刺激、肌肉痉挛或其他意外伤害。请在清醒、自愿且能立即停止的情况下使用，不要放置在头部、颈部、胸部或跨胸位置，也不要将本软件用于医疗用途。完整条款见 [USER_AGREEMENT_CN.md](USER_AGREEMENT_CN.md)。

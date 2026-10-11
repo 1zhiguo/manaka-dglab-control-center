@@ -8,6 +8,8 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = Join-Path $root 'python\.venv\Scripts\python.exe'
 $entry = Join-Path $root 'python\qml_dashboard_prototype\main.py'
 $qml = Join-Path $root 'python\qml_dashboard_prototype\ControlCenter.qml'
+$qmlAssets = Join-Path $root 'python\qml_dashboard_prototype\assets'
+$appVersionFile = Join-Path $root 'python\qml_dashboard_prototype\VERSION'
 $appIconPng = Join-Path $root 'python\qml_dashboard_prototype\assets\app_icon.png'
 $appIconIco = Join-Path $root 'python\qml_dashboard_prototype\assets\app_icon.ico'
 $plugin = Join-Path $root 'manaka_telemetry\bin\ManakaDGLabTelemetry.dll'
@@ -16,14 +18,16 @@ $guideAssets = Join-Path $root 'python\assets\dglab_guide'
 $modRepositories = Join-Path $root 'mod_repositories'
 $dropInTemplate = Join-Path $root 'dropin_mods'
 if (-not $DistPath) {
-    $DistPath = Join-Path $root 'release\build-v0.24.4-qml'
+    $buildVersion = (Get-Content -LiteralPath $appVersionFile -Raw).Trim()
+    if (-not $buildVersion) { throw 'VERSION must not be empty.' }
+    $DistPath = Join-Path $root "release\build-$buildVersion-qml"
 }
 elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
     $DistPath = Join-Path $root $DistPath
 }
 $portable = Join-Path $DistPath 'ManakaQmlControlCenter'
 
-foreach ($required in @($python, $entry, $qml, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $modRepositories, $dropInTemplate)) {
+foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $modRepositories, $dropInTemplate)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing build input: $required"
     }
@@ -49,7 +53,8 @@ try {
         --paths (Join-Path $root 'python') `
         --add-data "$qml;qml" `
         --add-data "$appIconPng;assets" `
-        --add-data "$appIconPng;qml\assets" `
+        --add-data "$appVersionFile;assets" `
+        --add-data "$qmlAssets;qml\assets" `
         --add-data "$plugin;assets" `
         --add-data "$bepinexPayload;assets\bepinex_v113" `
         --add-data "$guideAssets;assets\dglab_guide" `

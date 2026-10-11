@@ -111,12 +111,34 @@ class TriggerEngineTests(unittest.TestCase):
         )
         self.assertEqual(frame.events, ())
 
-    def test_game_over_is_immediate_safe_cut(self):
+    def test_game_over_rising_edge_triggers_one_failure_climax(self):
         engine = ManakaTriggerEngine()
-        engine.evaluate(packet(action="Test", ecstasy=1.0), dt=2.0)
+        engine.evaluate(packet(action="Test", ecstasy=1.0, monotonicMs=10000), dt=2.0)
         frame = engine.evaluate(packet(gameOver=True), dt=0.1)
+        self.assertFalse(frame.safe_cut)
+        self.assertEqual((frame.pattern_a, frame.pattern_b), ("peak", "peak"))
+        self.assertEqual(frame.events, ("evacuation-failed", "failure-climax"))
+
+        continuing = engine.evaluate(packet(gameOver=True, monotonicMs=11000), dt=0.1)
+        self.assertEqual((continuing.pattern_a, continuing.pattern_b), ("peak", "peak"))
+        self.assertEqual(continuing.events, ())
+
+        finished = engine.evaluate(packet(gameOver=True, monotonicMs=11400), dt=0.1)
+        self.assertTrue(finished.safe_cut)
+        self.assertEqual((finished.strength_a, finished.strength_b), (0.0, 0.0))
+
+    def test_starting_on_failure_screen_does_not_trigger_punishment(self):
+        frame = ManakaTriggerEngine().evaluate(packet(gameOver=True), dt=0.1)
         self.assertTrue(frame.safe_cut)
-        self.assertEqual((frame.strength_a, frame.strength_b), (0.0, 0.0))
+        self.assertEqual(frame.events, ())
+
+    def test_system_menu_blocks_failure_punishment(self):
+        engine = ManakaTriggerEngine()
+        engine.evaluate(packet(), dt=0.1)
+        frame = engine.evaluate(packet(gameOver=True, systemMenuOpen=True), dt=0.1)
+        self.assertTrue(frame.safe_cut)
+        self.assertEqual(frame.reason, "game-paused")
+        self.assertEqual(frame.events, ())
 
     def test_system_menu_is_immediate_safe_cut(self):
         engine = ManakaTriggerEngine()

@@ -30,6 +30,8 @@ class DropInImporterTests(unittest.TestCase):
         self.assertTrue((self.importer.plugins / "Example.dll").is_file())
         self.assertTrue((self.importer.v1 / "Mission.json").is_file())
         self.assertTrue((self.importer.v2 / "MyV2" / "main.code").is_file())
+        self.assertEqual(list(self.importer.incoming.iterdir()), [])
+        self.assertTrue((self.importer.archive / "Example.dll").is_file())
 
     def test_imports_wrapped_zip_layout(self) -> None:
         archive = self.importer.incoming / "pack.zip"
@@ -64,6 +66,24 @@ class DropInImporterTests(unittest.TestCase):
         manager.scan()
         entry = next(value for value in manager.entries.values() if value.name == "Example")
         self.assertEqual(Path(entry.source).read_bytes(), b"dropin")
+
+    def test_same_name_folder_import_replaces_instead_of_merging(self) -> None:
+        package = self.importer.incoming / "MyV2"
+        package.mkdir()
+        (package / "main.code").write_text("old", encoding="utf-8")
+        (package / "removed.code").write_text("stale", encoding="utf-8")
+        self.importer.import_all()
+
+        package = self.importer.incoming / "MyV2"
+        package.mkdir()
+        (package / "main.code").write_text("new", encoding="utf-8")
+        (package / "added.code").write_text("added", encoding="utf-8")
+        self.importer.import_all()
+
+        imported = self.importer.v2 / "MyV2"
+        self.assertEqual((imported / "main.code").read_text(encoding="utf-8"), "new")
+        self.assertTrue((imported / "added.code").is_file())
+        self.assertFalse((imported / "removed.code").exists())
 
 
 if __name__ == "__main__":
