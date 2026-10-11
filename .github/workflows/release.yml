@@ -48,13 +48,13 @@ jobs:
 
       - name: Create ZIP
         shell: pwsh
-        run: Compress-Archive -LiteralPath release/build-v0.24.2-qml/ManakaQmlControlCenter -DestinationPath ManakaQmlControlCenter-v0.24.2-win64.zip -CompressionLevel Optimal
+        run: Compress-Archive -LiteralPath release/build-v0.24.3-qml/ManakaQmlControlCenter -DestinationPath ManakaQmlControlCenter-v0.24.3-win64.zip -CompressionLevel Optimal
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ManakaQmlControlCenter-v0.24.2-win64
-          path: ManakaQmlControlCenter-v0.24.2-win64.zip
+          name: ManakaQmlControlCenter-v0.24.3-win64
+          path: ManakaQmlControlCenter-v0.24.3-win64.zip
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -62,4 +62,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" ManakaQmlControlCenter-v0.24.2-win64.zip --title "Manaka × DG-LAB v0.24.2" --notes "Windows 便携版。更新应用图标，并修复 Mod 卡片标题对齐与长说明显示。公开包不包含游戏本体或第三方 Mod。首次使用请阅读软件内用户协议并从低强度开始。"
+          gh release create "${{ github.ref_name }}" ManakaQmlControlCenter-v0.24.3-win64.zip --title "Manaka × DG-LAB v0.24.3" --notes "Windows 便携版。修复打包版本侧栏图片未加载的问题，并包含 Mod 卡片标题对齐与长说明显示优化。公开包不包含游戏本体或第三方 Mod。首次使用请阅读软件内用户协议并从低强度开始。"

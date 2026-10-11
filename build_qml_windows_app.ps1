@@ -16,7 +16,7 @@ $guideAssets = Join-Path $root 'python\assets\dglab_guide'
 $modRepositories = Join-Path $root 'mod_repositories'
 $dropInTemplate = Join-Path $root 'dropin_mods'
 if (-not $DistPath) {
-    $DistPath = Join-Path $root 'release\build-v0.24.2-qml'
+    $DistPath = Join-Path $root 'release\build-v0.24.3-qml'
 }
 elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
     $DistPath = Join-Path $root $DistPath
@@ -49,6 +49,7 @@ try {
         --paths (Join-Path $root 'python') `
         --add-data "$qml;qml" `
         --add-data "$appIconPng;assets" `
+        --add-data "$appIconPng;qml\assets" `
         --add-data "$plugin;assets" `
         --add-data "$bepinexPayload;assets\bepinex_v113" `
         --add-data "$guideAssets;assets\dglab_guide" `
