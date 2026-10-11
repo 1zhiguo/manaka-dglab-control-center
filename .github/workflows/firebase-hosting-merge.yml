@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "website/**"
-      - "firebase.json"
-      - ".firebaserc"
-      - ".github/workflows/firebase-hosting-merge.yml"
   workflow_dispatch:
 
 permissions:
