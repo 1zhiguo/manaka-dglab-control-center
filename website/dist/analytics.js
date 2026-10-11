@@ -37,9 +37,14 @@
     if (!link) return;
 
     const channel = link.dataset.download;
-    if (channel === "cos" || channel === "github") {
+    if (channel === "baidu" || channel === "cos" || channel === "github") {
       const release = window.MANAKA_DOWNLOADS || {};
-      track(channel === "cos" ? "download_cos" : "download_github", {
+      const eventNames = {
+        baidu: "download_baidu",
+        cos: "download_cos",
+        github: "download_github",
+      };
+      track(eventNames[channel], {
         download_channel: channel,
         file_name: release.fileName || "unknown",
         file_version: release.version || "unknown",

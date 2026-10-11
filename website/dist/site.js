@@ -3,7 +3,12 @@
   const links = document.querySelectorAll("[data-download]");
   for (const link of links) {
     const channel = link.dataset.download;
-    const url = channel === "cos" ? config.cosUrl : config.githubUrl;
+    const urls = {
+      baidu: config.baiduUrl,
+      cos: config.cosUrl,
+      github: config.githubUrl,
+    };
+    const url = urls[channel];
     if (url) {
       link.href = url;
       link.removeAttribute("aria-disabled");
@@ -49,5 +54,8 @@
   });
   document.querySelectorAll("[data-sha256]").forEach((node) => {
     node.textContent = config.sha256 || "发布时提供";
+  });
+  document.querySelectorAll("[data-baidu-code]").forEach((node) => {
+    node.textContent = config.baiduCode || "—";
   });
 })();
