@@ -1,0 +1,28 @@
+name: Deploy website to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "website/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/firebase-hosting-merge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_MANAKA_DGLAB }}"
+          channelId: live
+          projectId: manaka-dglab

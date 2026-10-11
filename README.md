@@ -11,7 +11,7 @@
 ## 下载
 
 - [下载最新 Windows 便携版](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest)
-- [访问项目网站](https://manaka-dglab.chenerdong0921.chatgpt.site)
+- [访问项目网站](https://manaka-dglab.web.app)
 - [提出问题](https://github.com/1zhiguo/manaka-dglab-control-center/issues)
 - [留言与讨论](https://github.com/1zhiguo/manaka-dglab-control-center/discussions)
 

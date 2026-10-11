@@ -277,9 +277,8 @@ ApplicationWindow {
                 Row {
                     Layout.fillWidth: true; Layout.bottomMargin: 22; spacing: 10
                     Rectangle {
-                        width: 40; height: 40; radius: 13
-                        gradient: Gradient { GradientStop { position: 0; color: accent } GradientStop { position: 1; color: violet } }
-                        Text { anchors.centerIn: parent; text: "M"; color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
+                        width: 40; height: 40; radius: 13; color: panel2; clip: true
+                        Image { anchors.fill: parent; source: "assets/app_icon.png"; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true }
                     }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
@@ -874,10 +873,10 @@ ApplicationWindow {
                                             GridView {
                                                 id: modList; anchors.fill: parent; anchors.margins: 10; clip: true
                                                 model: modPage.filteredInventory
-                                                cellWidth: width / 2; cellHeight: 140
+                                                cellWidth: width / 2; cellHeight: 190
                                                 delegate: Rectangle {
                                                     required property var modelData
-                                                    width: modList.cellWidth - 7; height: 132; radius: 15
+                                                    width: modList.cellWidth - 7; height: 182; radius: 15
                                                     color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.40) : border
                                                     RowLayout {
                                                         anchors.fill: parent; anchors.margins: 14; spacing: 12
@@ -887,11 +886,16 @@ ApplicationWindow {
                                                             Text { anchors.centerIn: parent; text: modelData.kind === "plugin" ? "DLL" : modelData.kind.toUpperCase(); color: modelData.kind === "plugin" ? violet : modelData.kind === "v1" ? cyan : accent; font.family: "Segoe UI"; font.pixelSize: 10; font.weight: Font.Bold }
                                                         }
                                                         ColumnLayout {
-                                                            Layout.fillWidth: true; spacing: 4
-                                                            RowLayout { Layout.fillWidth: true; Text { text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold } Rectangle { width: kindText.width+14; height: 22; radius: 7; color: panel2; Text { id: kindText; anchors.centerIn: parent; text: modelData.kindLabel + (modelData.fileCount > 1 ? " · " + modelData.fileCount : ""); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } } Item { Layout.fillWidth: true } Text { text: modelData.status; color: modelData.enabled ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; font.weight: Font.DemiBold } }
-                                                            Text { Layout.fillWidth: true; text: modelData.description; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; elide: Text.ElideRight }
-                                                            Text { Layout.fillWidth: true; visible: modelData.requiredPluginName && !modelData.dependencyReady; text: modelData.dependencyAvailable ? "⚠ 需要先启用 " + modelData.requiredPluginName : "⚠ 当前来源库缺少 " + modelData.requiredPluginName; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; elide: Text.ElideRight }
-                                                            Text { Layout.fillWidth: true; visible: modelData.warning.length > 0; text: "⚠ " + modelData.warning; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; elide: Text.ElideRight }
+                                                            Layout.fillWidth: true; Layout.alignment: Qt.AlignTop; spacing: 5
+                                                            RowLayout {
+                                                                Layout.fillWidth: true; Layout.alignment: Qt.AlignTop; spacing: 7
+                                                                Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
+                                                                Rectangle { width: kindText.width+14; height: 22; radius: 7; color: panel2; Text { id: kindText; anchors.centerIn: parent; text: modelData.kindLabel + (modelData.fileCount > 1 ? " · " + modelData.fileCount : ""); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } }
+                                                                Text { text: modelData.status; color: modelData.enabled ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; font.weight: Font.DemiBold }
+                                                            }
+                                                            Text { Layout.fillWidth: true; text: modelData.description; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap }
+                                                            Text { Layout.fillWidth: true; visible: modelData.requiredPluginName && !modelData.dependencyReady; text: modelData.dependencyAvailable ? "⚠ 需要先启用 " + modelData.requiredPluginName : "⚠ 当前来源库缺少 " + modelData.requiredPluginName; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
+                                                            Text { Layout.fillWidth: true; visible: modelData.warning.length > 0; text: "⚠ " + modelData.warning; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
                                                         }
                                                         Switch { checked: modelData.enabled; enabled: modelData.available; onClicked: backend.setModEnabled(modelData.id, checked); palette.highlight: green }
                                                     }
@@ -926,19 +930,25 @@ ApplicationWindow {
                                         GridView {
                                             id: v1LocationList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
                                             model: modPage.filteredV1Mods
-                                            cellWidth: width / 2; cellHeight: 142
+                                                cellWidth: width / 2; cellHeight: 198
                                             delegate: Rectangle {
                                                 required property var modelData
-                                                width: v1LocationList.cellWidth - 7; height: 134; radius: 14
+                                                width: v1LocationList.cellWidth - 7; height: 190; radius: 14
                                                 color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.42) : border
                                                 RowLayout {
                                                     anchors.fill: parent; anchors.margins: 13; spacing: 12
                                                     Rectangle { Layout.alignment: Qt.AlignTop; width: 42; height: 42; radius: 13; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.13); Text { anchors.centerIn: parent; text: "V1"; color: cyan; font.family: "Segoe UI"; font.pixelSize: 9; font.weight: Font.Bold } }
                                                     ColumnLayout {
-                                                        Layout.fillWidth: true; spacing: 3
-                                                        RowLayout { Layout.fillWidth: true; Text { text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; font.weight: Font.DemiBold } Rectangle { visible: modelData.hasLocationGuide; width: areaText.width + 14; height: 20; radius: 7; color: panel2; Text { id: areaText; anchors.centerIn: parent; text: modelData.locationArea; color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } } Rectangle { width: countText.width + 14; height: 20; radius: 7; color: panel2; Text { id: countText; anchors.centerIn: parent; text: modelData.fileCount + " 个 JSON"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } } Item { Layout.fillWidth: true } Text { text: modelData.status; color: modelData.enabled ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; font.weight: Font.DemiBold } }
-                                                        Text { Layout.fillWidth: true; text: modelData.hasLocationGuide ? "⌖ " + modelData.location : "整理文件中没有这项 Mod 的地点记录"; color: modelData.hasLocationGuide ? root.fg : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
-                                                        Text { Layout.fillWidth: true; visible: modelData.locationNote.length > 0; text: "⚠ " + modelData.locationNote; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 8; elide: Text.ElideRight }
+                                                        Layout.fillWidth: true; Layout.alignment: Qt.AlignTop; spacing: 4
+                                                        RowLayout {
+                                                            Layout.fillWidth: true; Layout.alignment: Qt.AlignTop; spacing: 7
+                                                            Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
+                                                            Rectangle { visible: modelData.hasLocationGuide; width: areaText.width + 14; height: 20; radius: 7; color: panel2; Text { id: areaText; anchors.centerIn: parent; text: modelData.locationArea; color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } }
+                                                            Rectangle { width: countText.width + 14; height: 20; radius: 7; color: panel2; Text { id: countText; anchors.centerIn: parent; text: modelData.fileCount + " 个 JSON"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } }
+                                                            Text { text: modelData.status; color: modelData.enabled ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; font.weight: Font.DemiBold }
+                                                        }
+                                                        Text { Layout.fillWidth: true; text: modelData.hasLocationGuide ? "⌖ " + modelData.location : "整理文件中没有这项 Mod 的地点记录"; color: modelData.hasLocationGuide ? root.fg : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
+                                                        Text { Layout.fillWidth: true; visible: modelData.locationNote.length > 0; text: "⚠ " + modelData.locationNote; color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 8; wrapMode: Text.Wrap }
                                                     }
                                                     Switch { checked: modelData.enabled; enabled: modelData.available; onClicked: backend.setModEnabled(modelData.id, checked); palette.highlight: green }
                                                 }

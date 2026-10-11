@@ -4,6 +4,7 @@ __pycache__/
 *.log
 .venv/
 node_modules/
+.firebase/
 /build/
 /dist/
 /release/
