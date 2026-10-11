@@ -1,0 +1,3 @@
+PySide6==6.12.0
+qrcode[pil]>=7.4,<9
+websockets>=12,<16

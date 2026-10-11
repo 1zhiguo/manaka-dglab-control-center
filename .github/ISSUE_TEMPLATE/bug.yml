@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible software problem
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "请勿上传游戏文件、第三方 Mod、私人存档、IP 地址或设备标识。"
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本
+      placeholder: v0.24.1
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请说明操作顺序、预期结果和实际结果。
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: 是否涉及异常强度或无法暂停？
+      description: 如果涉及，请先停止使用并断开设备。

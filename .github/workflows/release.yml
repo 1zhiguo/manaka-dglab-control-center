@@ -1,0 +1,65 @@
+name: Build Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: python/qml_dashboard_prototype/requirements.txt
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m venv python/.venv
+          python/.venv/Scripts/python.exe -m pip install --upgrade pip
+          python/.venv/Scripts/python.exe -m pip install -r python/qml_dashboard_prototype/requirements.txt pyinstaller
+
+      - name: Download BepInEx 6 IL2CPP x64
+        shell: pwsh
+        run: |
+          $url = "https://builds.bepinex.dev/projects/bepinex_be/735/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.735%2B5fef357.zip"
+          $archive = Join-Path $env:RUNNER_TEMP "bepinex.zip"
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          New-Item -ItemType Directory -Force -Path installer_payload/bepinex_v113 | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath installer_payload/bepinex_v113 -Force
+
+      - name: Run tests
+        shell: pwsh
+        working-directory: python
+        run: ./.venv/Scripts/python.exe -m unittest test_manaka_dropin_importer test_manaka_mod_manager test_manaka_trigger_engine test_manaka_wave_library test_manaka_waveforms test_qml_backend_helpers test_manaka_dglab_bridge.ProtocolEncodingTests
+
+      - name: Build portable application
+        shell: pwsh
+        run: ./build_qml_windows_app.ps1
+
+      - name: Create ZIP
+        shell: pwsh
+        run: Compress-Archive -LiteralPath release/build-v0.24.1-qml/ManakaQmlControlCenter -DestinationPath ManakaQmlControlCenter-v0.24.1-win64.zip -CompressionLevel Optimal
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ManakaQmlControlCenter-v0.24.1-win64
+          path: ManakaQmlControlCenter-v0.24.1-win64.zip
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" ManakaQmlControlCenter-v0.24.1-win64.zip --title "Manaka × DG-LAB v0.24.1" --notes "Windows 便携版。公开包不包含游戏本体或第三方 Mod。首次使用请阅读软件内用户协议并从低强度开始。"

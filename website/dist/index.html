@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b13">
+  <meta name="description" content="Manaka × DG-LAB：心率驱动、安全优先、可自定义波形的 Windows 控制中心。">
+  <title>Manaka × DG-LAB 控制中心</title>
+  <link rel="icon" href="assets/app-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <header class="site-header shell">
+    <a class="brand" href="#top" aria-label="返回顶部"><img src="assets/app-icon.png" alt="Manaka DG-LAB 图标"><span><strong>MANAKA</strong><small>DG-LAB CONTROL</small></span></a>
+    <nav aria-label="主导航"><a href="#features">功能</a><a href="#start">开始使用</a><a href="#download">下载</a><a href="#feedback">留言</a></nav>
+    <a class="ghost-button" href="https://github.com/1zhiguo/manaka-dglab-control-center" target="_blank" rel="noreferrer">GitHub ↗</a>
+  </header>
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> Windows · DG-LAB 3.0 · Secret Flasher Manaka</div>
+        <h1>让游戏心跳<br><em>真正有反馈。</em></h1>
+        <p>读取游戏内心率与动作事件，在明确的安全上限内驱动 A/B 通道。连接、波形、Mod 与存档工具，都收进一个现代化控制中心。</p>
+        <div class="hero-actions"><a class="primary-button" href="https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest">下载 Windows 版 <span>↓</span></a><a class="text-button" href="#start">查看 3 步连接方法 →</a></div>
+        <div class="hero-meta"><span><i class="status-dot"></i> 当前版本 v0.24.1</span><span>便携版 · 无需安装</span><span>开源发布</span></div>
+      </div>
+      <div class="control-visual" aria-label="控制中心功能预览">
+        <div class="visual-topline"><span>LIVE CONTROL</span><span class="live">● READY</span></div>
+        <div class="pulse-orbit"><div class="pulse-core"><strong>118</strong><small>BPM</small></div><svg viewBox="0 0 320 120" role="img" aria-label="心率波形示意"><path class="grid-line" d="M0 60H320M0 20H320M0 100H320"/><path class="wave" d="M0 70 L38 70 L48 54 L58 76 L70 70 L102 70 L112 42 L122 91 L136 70 L171 70 L182 28 L194 96 L208 70 L246 70 L258 49 L270 80 L282 70 L320 70"/></svg></div>
+        <div class="channel-grid"><article><span>A · 心跳 PULSE</span><strong>24</strong><div class="meter"><i style="width:40%"></i></div></article><article><span>B · 动作反馈</span><strong>16</strong><div class="meter cyan"><i style="width:27%"></i></div></article></div>
+        <div class="safety-strip"><span>安全上限</span><strong>60 / 100</strong><i>已锁定</i></div>
+      </div>
+    </section>
+    <section class="trust-strip shell" aria-label="软件原则"><span>LOCAL FIRST</span><span>USER-CONTROLLED LIMIT</span><span>ONE-CLICK PAUSE</span><span>DROP-IN MODS</span></section>
+    <section id="features" class="section shell">
+      <div class="section-heading"><div><span class="kicker">CONTROL, YOUR WAY</span><h2>不是一个开关，<br>而是一套体验工作台。</h2></div><p>把连接状态、心率映射、实时波形和 Mod 管理放在同一个视野里。默认设置适合第一次使用，细节仍然可以逐步调整。</p></div>
+      <div class="bento">
+        <article class="feature-card feature-wide"><span class="feature-index">01</span><h3>心率驱动 A 通道</h3><p>低、中、高三档个性化映射；用户设置自己的起始心率、输出范围与硬安全上限。</p><div class="range-demo"><span>85 BPM</span><i><b></b></i><span>160 BPM</span></div></article>
+        <article class="feature-card"><span class="feature-index cyan-text">02</span><h3>A/B 实时监视</h3><p>同时查看当前强度和发送波形，暂停游戏时自动停止输出。</p><div class="mini-wave">⌁⌁⌁⌁⌁</div></article>
+        <article class="feature-card"><span class="feature-index violet-text">03</span><h3>波形工作台</h3><p>预览官方预设，并保存自己命名的自定义波形。</p><div class="wave-chips"><span>呼吸</span><span>心跳</span><span>Climax ×2</span></div></article>
+        <article class="feature-card feature-wide mod-card"><div><span class="feature-index">04</span><h3>安全的 Mod 管理器</h3><p>Drop-in 自动识别 DLL、V1 JSON、V2 文件夹与 ZIP。导入先进入本地仓库，只有启用后才同步到游戏。</p></div><div class="mod-flow"><span>INBOX</span><b>→</b><span>REPOSITORY</span><b>→</b><span>GAME</span></div></article>
+      </div>
+    </section>
+    <section id="start" class="section shell start-section">
+      <div class="section-heading compact"><div><span class="kicker">QUICK START</span><h2>三步建立连接。</h2></div><p>电脑与手机需要位于同一个局域网。第一次使用请从较低强度开始，并确保随时可以暂停输出。</p></div>
+      <ol class="steps"><li><span>01</span><div><h3>启动控制中心</h3><p>解压下载包，运行 <code>ManakaQmlControlCenter.exe</code>，选择游戏根目录。</p></div></li><li><span>02</span><div><h3>连接 DG-LAB 3.0</h3><p>App 中打开“SOCKET 控制”，先连接设备，再点“连接服务器”。</p></div></li><li><span>03</span><div><h3>摄像头扫码</h3><p>扫描控制中心显示的二维码。连接成功后进入游戏，确认安全上限再启用输出。</p></div></li></ol>
+      <div class="warning"><strong>安全提醒</strong><p>本项目控制电刺激设备，存在疼痛、皮肤刺激及意外伤害风险。请阅读软件内用户协议；感到不适时立即暂停并断开设备。请勿用于医疗用途。</p></div>
+    </section>
+    <section id="download" class="download-section"><div class="shell download-grid"><div><span class="kicker">GET THE BUILD</span><h2>下载、解压、运行。</h2><p>公开版不包含游戏本体与第三方 Mod。你可以从自己合法获得的文件中，通过 Drop-in 收件箱导入。</p><div class="download-actions"><a class="primary-button" href="https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest">获取最新版本 <span>↓</span></a><a class="ghost-button" href="https://github.com/1zhiguo/manaka-dglab-control-center#readme">阅读完整说明</a></div></div><div class="qr-grid"><article><img src="assets/qr-download.png" alt="最新版本下载二维码"><strong>手机打开下载页</strong><small>GitHub Releases</small></article><article><img src="assets/qr-site.png" alt="官方网站二维码"><strong>分享这个网站</strong><small>扫码访问</small></article></div></div></section>
+    <section id="feedback" class="section shell feedback-section">
+      <div class="feedback-copy"><span class="kicker">COMMUNITY NOTES</span><h2>告诉我哪里好用，<br>哪里还需要改。</h2><p>留言会发布到 GitHub Discussions，方便跟踪、回复和整理。提交前你可以在 GitHub 页面再次检查内容。</p></div>
+      <form id="feedbackForm" class="feedback-form"><label>留言标题<input id="feedbackTitle" maxlength="80" required placeholder="例如：希望增加新的波形预设"></label><label>具体内容<textarea id="feedbackBody" maxlength="1200" required placeholder="描述你的体验、建议或遇到的问题…"></textarea></label><div class="form-footer"><span>需要 GitHub 账号</span><button type="submit">前往 GitHub 发布留言 ↗</button></div></form>
+    </section>
+    <section class="section shell faq-section"><span class="kicker">BEFORE YOU ASK</span><h2>常见问题</h2><details><summary>软件是否包含游戏或第三方 Mod？</summary><p>不包含。公开版只发布控制中心、我们自己的遥测插件与相关源码。游戏和第三方 Mod 需要用户自行合法取得。</p></details><details><summary>导入的 Mod 会立即写入游戏吗？</summary><p>不会。导入内容先进入软件的 drop-in repository，只有你主动启用时才会同步到当前游戏目录。</p></details><details><summary>需要安装 Python 或 Node.js 吗？</summary><p>使用 Windows 便携版不需要。开发者从源码运行时才需要相应环境。</p></details><details><summary>这是 DG-LAB 官方软件吗？</summary><p>不是。本项目是社区制作的第三方工具，与 DG-LAB、游戏作者及第三方 Mod 作者不存在官方隶属关系。</p></details></section>
+  </main>
+  <footer class="site-footer shell"><div class="brand"><img src="assets/app-icon.png" alt=""><span><strong>MANAKA</strong><small>DG-LAB CONTROL</small></span></div><p>Community project by <a href="https://github.com/1zhiguo">@1zhiguo</a>. Use responsibly.</p><div><a href="https://github.com/1zhiguo/manaka-dglab-control-center">Source</a><a href="https://github.com/1zhiguo/manaka-dglab-control-center/issues">Issues</a><a href="#top">Back to top ↑</a></div></footer>
+  <script src="app.js"></script>
+</body>
+</html>

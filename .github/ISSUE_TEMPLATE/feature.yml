@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest an improvement
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: 功能建议
+      description: 请描述使用场景和期望行为。
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: 安全影响
+      description: 这个功能是否会改变强度、波形、自动输出或暂停行为？

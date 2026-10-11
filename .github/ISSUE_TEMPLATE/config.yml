@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 留言与讨论
+    url: https://github.com/1zhiguo/manaka-dglab-control-center/discussions
+    about: 使用经验、波形分享与一般交流
