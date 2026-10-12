@@ -109,6 +109,7 @@ EN: dict[str, str] = {
     "智能分段": "Smart Mapping",
     "一键恢复默认": "Reset",
     "保存波形策略": "Save",
+    "游戏内 HUD": "In-game HUD",
     "波形预设与我的波形库": "Wave Library",
     "官方波形": "Official",
     "自定义波形": "Custom Wave",

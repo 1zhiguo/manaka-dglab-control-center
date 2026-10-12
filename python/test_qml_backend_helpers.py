@@ -3,12 +3,30 @@ import unittest
 from qml_dashboard_prototype.backend import (
     ControlCenterBackend,
     MOD_SOURCE_LINKS,
+    build_hud_packet,
     windows_network_repair_script,
 )
 from qml_dashboard_prototype.mod_catalog import USER9527_POST, build_mod_catalog
 
 
 class V1LocationGuideTests(unittest.TestCase):
+    def test_hud_packet_clamps_values_and_keeps_a_stable_shape(self) -> None:
+        packet = build_hud_packet(
+            12,
+            visible=True,
+            connected=True,
+            active=True,
+            strength_a=123,
+            strength_b=-4,
+            pulse_a=1.8,
+            pulse_b=-0.1,
+        )
+
+        self.assertEqual(
+            packet.decode("ascii"),
+            "MANAKA_HUD_V1|12|1|1|1|100.00|0.00|1.000|0.000|END",
+        )
+
     def test_repair_script_targets_selected_adapter_and_private_firewall_port(self) -> None:
         script = windows_network_repair_script("192.168.50.12", 9999)
 

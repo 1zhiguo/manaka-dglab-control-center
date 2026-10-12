@@ -39,7 +39,11 @@ $references = @(
     "BepInEx\interop\Assembly-CSharp.dll",
     "BepInEx\interop\Il2Cppmscorlib.dll",
     "BepInEx\interop\UnityEngine.dll",
-    "BepInEx\interop\UnityEngine.CoreModule.dll"
+    "BepInEx\interop\UnityEngine.CoreModule.dll",
+    "BepInEx\interop\UnityEngine.IMGUIModule.dll",
+    "BepInEx\interop\UnityEngine.TextRenderingModule.dll",
+    "BepInEx\interop\UnityEngine.UIModule.dll",
+    "BepInEx\interop\UnityEngine.UI.dll"
 ) | ForEach-Object { Join-Path $gameDir $_ }
 
 foreach ($reference in $references) {

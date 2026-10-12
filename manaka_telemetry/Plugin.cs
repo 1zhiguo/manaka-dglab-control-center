@@ -14,6 +14,7 @@ using ExposureUnnoticed2.ObjectUI.SystemMenu;
 using ExposureUnnoticed2.Scripts.Base;
 using ExposureUnnoticed2.Scripts.InGame;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ManakaDGLab.Telemetry
 {
@@ -22,7 +23,7 @@ namespace ManakaDGLab.Telemetry
     {
         public const string PluginGuid = "local.manaka.dglab.telemetry";
         public const string PluginName = "Manaka DG-LAB Telemetry";
-        public const string PluginVersion = "0.3.1-standalone";
+        public const string PluginVersion = "0.4.2-hud-compact";
 
         private Harmony _harmony;
         internal static ManualLogSource PluginLog;
@@ -32,12 +33,14 @@ namespace ManakaDGLab.Telemetry
             PluginLog = Log;
             TelemetryPublisher.Start();
             ProgressCommandServer.Start();
+            HudStatusReceiver.Start();
 
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(PlayerUpdatePatch));
 
             Log.LogInfo("Pilot telemetry enabled: UDP 127.0.0.1:45678");
             Log.LogInfo("Progress editor enabled: local-only UDP 127.0.0.1:45679");
+            Log.LogInfo("In-game A/B HUD listener enabled: local-only UDP 127.0.0.1:45680");
             Log.LogInfo("This plugin does not send any DG-LAB commands.");
         }
 
@@ -50,7 +53,393 @@ namespace ManakaDGLab.Telemetry
 
             TelemetryPublisher.Stop();
             ProgressCommandServer.Stop();
+            HudStatusReceiver.Stop();
+            HudCanvas.Destroy();
             return true;
+        }
+    }
+
+    internal sealed class HudStatus
+    {
+        internal bool Visible;
+        internal bool Connected;
+        internal bool Active;
+        internal float StrengthA;
+        internal float StrengthB;
+        internal float PulseA;
+        internal float PulseB;
+        internal long ReceivedAt;
+
+        internal HudStatus Copy()
+        {
+            return (HudStatus)MemberwiseClone();
+        }
+    }
+
+    internal static class HudStatusReceiver
+    {
+        private const int Port = 45680;
+        private static readonly object Gate = new object();
+        private static UdpClient _listener;
+        private static Thread _thread;
+        private static bool _running;
+        private static bool _loggedFirstPacket;
+        private static HudStatus _status = new HudStatus();
+
+        internal static void Start()
+        {
+            try
+            {
+                _listener = new UdpClient(new IPEndPoint(IPAddress.Loopback, Port));
+                _listener.Client.ReceiveTimeout = 500;
+                _running = true;
+                _thread = new Thread(ListenLoop)
+                {
+                    IsBackground = true,
+                    Name = "ManakaHudStatus"
+                };
+                _thread.Start();
+            }
+            catch (Exception error)
+            {
+                Plugin.PluginLog.LogWarning("HUD status listener unavailable: " + error.Message);
+            }
+        }
+
+        internal static void Stop()
+        {
+            _running = false;
+            if (_listener != null)
+            {
+                try { _listener.Close(); } catch { }
+                _listener = null;
+            }
+            lock (Gate)
+            {
+                _status = new HudStatus();
+            }
+        }
+
+        internal static HudStatus Snapshot()
+        {
+            lock (Gate)
+            {
+                return _status.Copy();
+            }
+        }
+
+        private static void ListenLoop()
+        {
+            IPEndPoint sender = new IPEndPoint(IPAddress.Loopback, 0);
+            while (_running && _listener != null)
+            {
+                try
+                {
+                    byte[] payload = _listener.Receive(ref sender);
+                    if (!IPAddress.IsLoopback(sender.Address) || payload.Length > 512)
+                    {
+                        continue;
+                    }
+
+                    HudStatus parsed;
+                    if (TryParse(Encoding.ASCII.GetString(payload), out parsed))
+                    {
+                        lock (Gate)
+                        {
+                            _status = parsed;
+                        }
+                        if (!_loggedFirstPacket)
+                        {
+                            _loggedFirstPacket = true;
+                            Plugin.PluginLog.LogInfo("First HUD status received from the control center.");
+                        }
+                    }
+                }
+                catch (SocketException)
+                {
+                    // Receive timeout keeps shutdown responsive.
+                }
+                catch (ObjectDisposedException)
+                {
+                    return;
+                }
+                catch (Exception error)
+                {
+                    Plugin.PluginLog.LogWarning("HUD status receive failed: " + error.Message);
+                }
+            }
+        }
+
+        private static bool TryParse(string value, out HudStatus status)
+        {
+            status = null;
+            string[] parts = (value ?? string.Empty).Split('|');
+            if (parts.Length != 10 || parts[0] != "MANAKA_HUD_V1" || parts[9] != "END")
+            {
+                return false;
+            }
+
+            long sequence;
+            float strengthA;
+            float strengthB;
+            float pulseA;
+            float pulseB;
+            if (!long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out sequence)
+                || !float.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out strengthA)
+                || !float.TryParse(parts[6], NumberStyles.Float, CultureInfo.InvariantCulture, out strengthB)
+                || !float.TryParse(parts[7], NumberStyles.Float, CultureInfo.InvariantCulture, out pulseA)
+                || !float.TryParse(parts[8], NumberStyles.Float, CultureInfo.InvariantCulture, out pulseB))
+            {
+                return false;
+            }
+
+            status = new HudStatus
+            {
+                Visible = parts[2] == "1",
+                Connected = parts[3] == "1",
+                Active = parts[4] == "1",
+                StrengthA = Mathf.Clamp(strengthA, 0f, 100f),
+                StrengthB = Mathf.Clamp(strengthB, 0f, 100f),
+                PulseA = Mathf.Clamp01(pulseA),
+                PulseB = Mathf.Clamp01(pulseB),
+                ReceivedAt = Environment.TickCount64
+            };
+            return true;
+        }
+    }
+
+    internal static class HudCanvas
+    {
+        private const int HistoryLength = 32;
+        private static readonly float[] HistoryA = new float[HistoryLength];
+        private static readonly float[] HistoryB = new float[HistoryLength];
+        private static readonly Image[] LinesA = new Image[HistoryLength - 1];
+        private static readonly Image[] LinesB = new Image[HistoryLength - 1];
+        private static GameObject _root;
+        private static GameObject _panel;
+        private static Text _strengthA;
+        private static Text _strengthB;
+        private static RectTransform _graphA;
+        private static RectTransform _graphB;
+        private static float _nextSampleAt;
+        private static bool _loggedVisible;
+
+        internal static void Tick()
+        {
+            EnsureCreated();
+            if (_panel == null)
+            {
+                return;
+            }
+
+            HudStatus status = HudStatusReceiver.Snapshot();
+            bool fresh = Environment.TickCount64 - status.ReceivedAt <= 1000;
+            bool visible = fresh && status.Visible;
+            if (_panel.activeSelf != visible)
+            {
+                _panel.SetActive(visible);
+            }
+            if (!visible)
+            {
+                return;
+            }
+
+            if (!_loggedVisible)
+            {
+                _loggedVisible = true;
+                Plugin.PluginLog.LogInfo("In-game A/B HUD canvas is visible at " + Screen.width + "x" + Screen.height + ".");
+            }
+
+            if (Time.unscaledTime >= _nextSampleAt)
+            {
+                _nextSampleAt = Time.unscaledTime + 0.1f;
+                Push(HistoryA, status.PulseA);
+                Push(HistoryB, status.PulseB);
+            }
+
+            _strengthA.text = Mathf.RoundToInt(status.StrengthA).ToString(CultureInfo.InvariantCulture);
+            _strengthB.text = Mathf.RoundToInt(status.StrengthB).ToString(CultureInfo.InvariantCulture);
+            Color inactive = new Color(0.48f, 0.53f, 0.62f, 0.82f);
+            UpdateWaveform(_graphA, LinesA, HistoryA, status.Active ? new Color(1f, 0.38f, 0.69f, 0.98f) : inactive);
+            UpdateWaveform(_graphB, LinesB, HistoryB, status.Active ? new Color(0.33f, 0.84f, 0.91f, 0.98f) : inactive);
+        }
+
+        internal static void Destroy()
+        {
+            if (_root != null)
+            {
+                UnityEngine.Object.Destroy(_root);
+                _root = null;
+                _panel = null;
+            }
+        }
+
+        private static void EnsureCreated()
+        {
+            if (_root != null)
+            {
+                return;
+            }
+
+            try
+            {
+                _root = new GameObject("ManakaDGLabHudCanvas");
+                UnityEngine.Object.DontDestroyOnLoad(_root);
+                Canvas canvas = _root.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 32000;
+                CanvasScaler scaler = _root.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = 0.5f;
+
+                Image panelImage = CreateImage("Panel", _root.transform, new Color(0.025f, 0.035f, 0.055f, 0.36f));
+                _panel = panelImage.gameObject;
+                RectTransform panelRect = panelImage.rectTransform;
+                panelRect.anchorMin = new Vector2(0.21f, 0f);
+                panelRect.anchorMax = new Vector2(0.59f, 0f);
+                panelRect.pivot = new Vector2(0.5f, 0f);
+                panelRect.anchoredPosition = new Vector2(0f, 24f);
+                panelRect.sizeDelta = new Vector2(0f, 68f);
+
+                Image topLine = CreateImage("TopLine", _panel.transform, new Color(0.5f, 0.65f, 0.9f, 0.20f));
+                SetRect(topLine.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 1f));
+
+                Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                CreateChannel(_panel.transform, "A", 0.012f, 0.492f, new Color(1f, 0.38f, 0.69f, 0.98f), font, out _strengthA, out _graphA, LinesA);
+                CreateChannel(_panel.transform, "B", 0.508f, 0.988f, new Color(0.33f, 0.84f, 0.91f, 0.98f), font, out _strengthB, out _graphB, LinesB);
+                _panel.SetActive(false);
+                Plugin.PluginLog.LogInfo("In-game A/B HUD canvas created.");
+            }
+            catch (Exception error)
+            {
+                Plugin.PluginLog.LogError("HUD canvas creation failed: " + error);
+                Destroy();
+            }
+        }
+
+        private static void CreateChannel(
+            Transform parent,
+            string label,
+            float left,
+            float right,
+            Color color,
+            Font font,
+            out Text strength,
+            out RectTransform graph,
+            Image[] lines)
+        {
+            Image holder = CreateImage("Channel" + label, parent, new Color(0.05f, 0.075f, 0.12f, 0.48f));
+            SetRect(holder.rectTransform, new Vector2(left, 0f), new Vector2(right, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+            Image accent = CreateImage("Accent", holder.transform, color);
+            SetRect(accent.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(2f, 0f));
+
+            Text channel = CreateText("Label", holder.transform, label, font, 15, color);
+            SetRect(channel.rectTransform, new Vector2(0.025f, 0.68f), new Vector2(0.10f, 1f), new Vector2(0f, 0.5f), new Vector2(4f, 0f), Vector2.zero);
+            strength = CreateText("Strength", holder.transform, "0", font, 13, Color.white);
+            strength.alignment = TextAnchor.MiddleRight;
+            SetRect(strength.rectTransform, new Vector2(0.82f, 0.68f), new Vector2(0.965f, 1f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
+
+            Image graphImage = CreateImage("Waveform", holder.transform, Color.clear);
+            graph = graphImage.rectTransform;
+            SetRect(graph, new Vector2(0.035f, 0.10f), new Vector2(0.965f, 0.70f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+            for (int gridIndex = 0; gridIndex < 3; gridIndex++)
+            {
+                float y = (gridIndex + 1f) / 4f;
+                Image grid = CreateImage("Grid" + gridIndex.ToString(CultureInfo.InvariantCulture), graph, new Color(color.r, color.g, color.b, 0.10f));
+                SetRect(grid.rectTransform, new Vector2(0f, y), new Vector2(1f, y), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 1f));
+            }
+
+            Image playhead = CreateImage("Playhead", graph, new Color(color.r, color.g, color.b, 0.28f));
+            SetRect(playhead.rectTransform, new Vector2(0.72f, 0f), new Vector2(0.72f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1f, 0f));
+
+            for (int index = 0; index < lines.Length; index++)
+            {
+                Image line = CreateImage("Line" + index.ToString(CultureInfo.InvariantCulture), graph, color);
+                line.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                line.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                line.rectTransform.pivot = new Vector2(0f, 0.5f);
+                lines[index] = line;
+            }
+        }
+
+        private static Image CreateImage(string name, Transform parent, Color color)
+        {
+            GameObject value = new GameObject(name);
+            value.transform.SetParent(parent, false);
+            Image image = value.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Text CreateText(string name, Transform parent, string value, Font font, int size, Color color)
+        {
+            GameObject child = new GameObject(name);
+            child.transform.SetParent(parent, false);
+            Text text = child.AddComponent<Text>();
+            text.text = value;
+            text.font = font;
+            text.fontSize = size;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.color = color;
+            text.raycastTarget = false;
+            return text;
+        }
+
+        private static void SetRect(RectTransform rect, Vector2 min, Vector2 max, Vector2 pivot, Vector2 position, Vector2 size)
+        {
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.pivot = pivot;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+        }
+
+        private static void UpdateWaveform(RectTransform graph, Image[] lines, float[] values, Color color)
+        {
+            if (graph == null)
+            {
+                return;
+            }
+
+            float width = Mathf.Max(10f, graph.rect.width);
+            float height = Mathf.Max(10f, graph.rect.height);
+            float left = -width * 0.5f;
+            float bottom = -height * 0.5f;
+            for (int index = 0; index < lines.Length; index++)
+            {
+                Image line = lines[index];
+                if (line == null)
+                {
+                    continue;
+                }
+
+                float x1 = left + width * index / (HistoryLength - 1f);
+                float x2 = left + width * (index + 1f) / (HistoryLength - 1f);
+                float y1 = bottom + height * (0.08f + 0.84f * values[index]);
+                float y2 = bottom + height * (0.08f + 0.84f * values[index + 1]);
+                float dx = x2 - x1;
+                float dy = y2 - y1;
+
+                line.color = color;
+                line.rectTransform.anchoredPosition = new Vector2(x1, y1);
+                line.rectTransform.sizeDelta = new Vector2(Mathf.Sqrt(dx * dx + dy * dy), 2.6f);
+                line.rectTransform.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg);
+            }
+        }
+
+        private static void Push(float[] values, float value)
+        {
+            for (int index = 1; index < values.Length; index++)
+            {
+                values[index - 1] = values[index];
+            }
+            values[values.Length - 1] = Mathf.Clamp01(value);
         }
     }
 
@@ -66,6 +455,7 @@ namespace ManakaDGLab.Telemetry
             }
 
             TelemetryPublisher.Sample(__instance.Pca.PlayerHeartBeat);
+            HudCanvas.Tick();
         }
     }
 

@@ -110,6 +110,7 @@ AGREEMENT_VERSION = "2026-10-11-v2"
 UDP_HOST = "127.0.0.1"
 UDP_PORT = 45678
 COMMAND_PORT = 45679
+HUD_PORT = 45680
 STALE_SECONDS = 0.75
 DEFAULT_CUSTOM_POINTS = [0, 18, 48, 82, 100, 58, 20, 0, 0, 25, 68, 45, 15, 0, 0, 0]
 RECOMMENDED_MODS = (
@@ -399,6 +400,34 @@ def update_config(values: dict) -> None:
     target.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def build_hud_packet(
+    sequence: int,
+    *,
+    visible: bool,
+    connected: bool,
+    active: bool,
+    strength_a: float,
+    strength_b: float,
+    pulse_a: float,
+    pulse_b: float,
+) -> bytes:
+    """Build the small local-only packet consumed by the in-game HUD plugin."""
+
+    values = (
+        "MANAKA_HUD_V1",
+        str(max(0, int(sequence))),
+        "1" if visible else "0",
+        "1" if connected else "0",
+        "1" if active else "0",
+        f"{clamp(float(strength_a), 0, 100):.2f}",
+        f"{clamp(float(strength_b), 0, 100):.2f}",
+        f"{clamp(float(pulse_a), 0, 1):.3f}",
+        f"{clamp(float(pulse_b), 0, 1):.3f}",
+        "END",
+    )
+    return "|".join(values).encode("ascii")
+
+
 def bundled_plugin_path() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS")) / "assets" / "ManakaDGLabTelemetry.dll"
@@ -497,6 +526,13 @@ class TelemetryWorker(threading.Thread):
 
 class ControlCenterBackend(QObject):
     stateChanged = Signal()
+    statusChanged = Signal()
+    vitalsChanged = Signal()
+    contextChanged = Signal()
+    outputChanged = Signal()
+    connectionChanged = Signal()
+    progressChanged = Signal()
+    waveChanged = Signal()
     configChanged = Signal()
     logsChanged = Signal()
     toastRequested = Signal(str, str)
@@ -528,6 +564,17 @@ class ControlCenterBackend(QObject):
         self.min_strength_value = int(self.engine.min_strength)
         self.output_max_value = int(self.engine.output_max)
         self.hard_cap_value = int(self.engine.hard_cap)
+        # HUD is enabled by default for the first run; the visible control-center
+        # switch persists an explicit opt-out.
+        self.game_hud_enabled_value = bool(self.saved.get("game_hud_enabled", True))
+        self.hud_sequence = 0
+        self.hud_last_sent = 0.0
+        self.ui_last_telemetry_emit = 0.0
+        self.ui_page_index = 0
+        try:
+            self.hud_socket: socket.socket | None = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except OSError:
+            self.hud_socket = None
 
         self.wave_mode_value = "fixed" if self.saved.get("wave_mode") == "fixed" else "smart"
         fixed = str(self.saved.get("fixed_wave", "official_heartbeat"))
@@ -757,87 +804,87 @@ class ControlCenterBackend(QObject):
     def language(self) -> str:
         return self.language_name
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=statusChanged)
     def telemetryOnline(self) -> bool:
         return self.demo_mode or (self.last_receive > 0 and time.monotonic() - self.last_receive < STALE_SECONDS)
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=statusChanged)
     def telemetryStatus(self) -> str:
         return self._t(self.telemetry_status_value)
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=statusChanged)
     def deviceConnected(self) -> bool:
         return self.device_connected_value
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=statusChanged)
     def outputPaused(self) -> bool:
         return self.device_connected_value and not self.auto_output_enabled
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=statusChanged)
     def safetyIdle(self) -> bool:
         return bool(self.safety_wait_reason)
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=statusChanged)
     def deviceStatus(self) -> str:
         return self._t(self.device_status_value)
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=connectionChanged)
     def serverReady(self) -> bool:
         return self.server_ready_value
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=connectionChanged)
     def lanAddress(self) -> str:
         return self.lan_address_value
 
-    @Property("QVariantList", notify=stateChanged)
+    @Property("QVariantList", notify=connectionChanged)
     def lanAddresses(self) -> list[str]:
         return list(self.lan_addresses_value)
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=connectionChanged)
     def qrSource(self) -> str:
         return self.qr_source_value
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=vitalsChanged)
     def heartRate(self) -> float:
         return self.heart_rate_value
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=vitalsChanged)
     def alertLevel(self) -> float:
         return self.alert_level_value
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=vitalsChanged)
     def excitement(self) -> float:
         return self.excitement_value
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=contextChanged)
     def stage(self) -> str:
         return self.stage_value
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=contextChanged)
     def action(self) -> str:
         return self.action_value
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=contextChanged)
     def actionDisplay(self) -> str:
         return action_label(self.action_value, self.language_name)
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=progressChanged)
     def currentRp(self) -> float:
         return self.current_rp_value
 
-    @Property(int, notify=stateChanged)
+    @Property(int, notify=progressChanged)
     def exposeExp(self) -> int:
         return self.expose_exp_value
 
-    @Property(int, notify=stateChanged)
+    @Property(int, notify=progressChanged)
     def currentSaveSlot(self) -> int:
         return self.current_save_slot_value
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=progressChanged)
     def progressEditorStatus(self) -> str:
         return self._t(self.progress_editor_status_value)
 
-    @Property(bool, notify=stateChanged)
+    @Property(bool, notify=progressChanged)
     def canEditProgress(self) -> bool:
         if self.demo_mode:
             return True
@@ -847,29 +894,33 @@ class ControlCenterBackend(QObject):
     def saveBackupFolder(self) -> str:
         return str(app_data_dir() / "save_backups")
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=outputChanged)
     def outputA(self) -> float:
         return self.current_output_a if self.auto_output_enabled and not self.safety_wait_reason else 0.0
 
-    @Property(float, notify=stateChanged)
+    @Property(float, notify=outputChanged)
     def outputB(self) -> float:
         return self.current_output_b if self.auto_output_enabled and not self.safety_wait_reason else 0.0
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=waveChanged)
     def waveAName(self) -> str:
         return self._t(self.current_wave_a.name if self.current_wave_a else "待机")
 
-    @Property(str, notify=stateChanged)
+    @Property(str, notify=waveChanged)
     def waveBName(self) -> str:
         return self._t(self.current_wave_b.name if self.current_wave_b else "待机")
 
-    @Property("QVariantList", notify=stateChanged)
+    @Property("QVariantList", notify=waveChanged)
     def waveAPoints(self) -> list[int]:
         return list(self.current_wave_a.amplitudes) if self.current_wave_a else [0, 0, 0, 0]
 
-    @Property("QVariantList", notify=stateChanged)
+    @Property("QVariantList", notify=waveChanged)
     def waveBPoints(self) -> list[int]:
         return list(self.current_wave_b.amplitudes) if self.current_wave_b else [0, 0, 0, 0]
+
+    @Property(bool, notify=configChanged)
+    def gameHudEnabled(self) -> bool:
+        return self.game_hud_enabled_value
 
     # ----- Settings properties ------------------------------------------------
     @Property(str, notify=configChanged)
@@ -1132,7 +1183,13 @@ class ControlCenterBackend(QObject):
         self.recommended_mod_inventory_value = self._recommended_mods(self.mod_inventory_value)
         update_config({"language": value})
         self.configChanged.emit()
-        self.stateChanged.emit()
+        self.statusChanged.emit()
+        self.vitalsChanged.emit()
+        self.contextChanged.emit()
+        self.outputChanged.emit()
+        self.connectionChanged.emit()
+        self.progressChanged.emit()
+        self.waveChanged.emit()
         self.logsChanged.emit()
 
     @Slot(str)
@@ -1143,6 +1200,17 @@ class ControlCenterBackend(QObject):
         self.theme_name = value
         update_config({"theme": value})
         self.configChanged.emit()
+
+    @Slot(bool)
+    def setGameHudEnabled(self, enabled: bool) -> None:
+        enabled = bool(enabled)
+        if enabled == self.game_hud_enabled_value:
+            return
+        self.game_hud_enabled_value = enabled
+        update_config({"game_hud_enabled": enabled})
+        self._publish_game_hud(force=True)
+        self.configChanged.emit()
+        self._log("游戏内 A/B HUD 已开启" if enabled else "游戏内 A/B HUD 已关闭")
 
     @Slot()
     def acceptAgreement(self) -> None:
@@ -1173,7 +1241,29 @@ class ControlCenterBackend(QObject):
         )
         self.worker.start()
         self.bridge.start()
-        self.stateChanged.emit()
+        self.statusChanged.emit()
+        self.connectionChanged.emit()
+
+    @Slot(int)
+    def setActivePage(self, index: int) -> None:
+        self.ui_page_index = max(0, min(8, int(index)))
+        # Values continue updating while a page is hidden. Emit one snapshot on
+        # entry so the newly visible page catches up without background churn.
+        self.statusChanged.emit()
+        self.connectionChanged.emit()
+        if self.ui_page_index == 0:
+            self.vitalsChanged.emit()
+            self.contextChanged.emit()
+            self.outputChanged.emit()
+            self.waveChanged.emit()
+        elif self.ui_page_index == 3:
+            self.contextChanged.emit()
+            self.waveChanged.emit()
+        elif self.ui_page_index == 4:
+            self.outputChanged.emit()
+            self.waveChanged.emit()
+        elif self.ui_page_index == 5:
+            self.progressChanged.emit()
 
     @Slot(str, result=bool)
     def selectLanAddress(self, address: str) -> bool:
@@ -1624,7 +1714,7 @@ class ControlCenterBackend(QObject):
                 "appVersion": APP_VERSION,
                 "gameBuild": build_detail,
                 "bepInExVersion": "6.0.0-be.735+5fef357",
-                "telemetryVersion": "0.3.1-standalone",
+                "telemetryVersion": "0.4.2-hud-compact",
                 "runtimeInstalledByApp": runtime_owned,
                 "pluginSha256": sha256_file(plugin_target),
                 "ownedRootItems": [
@@ -1672,7 +1762,8 @@ class ControlCenterBackend(QObject):
         if self.demo_mode:
             self.auto_output_enabled = not self.auto_output_enabled
             self.device_status_value = "演示输出已暂停" if not self.auto_output_enabled else "演示输出中"
-            self.stateChanged.emit()
+            self.statusChanged.emit()
+            self.outputChanged.emit()
             return
         if not self.device_connected_value:
             self._toast("尚未连接", "请先使用 DG-LAB App 扫描二维码")
@@ -1691,7 +1782,8 @@ class ControlCenterBackend(QObject):
             self.safety_wait_reason = self.current_frame.reason if self.current_frame.safe_cut else ""
             self._show_frame(self.current_frame)
             self._log("继续输出：已恢复 A 心率与 B 动作驱动")
-        self.stateChanged.emit()
+        self.statusChanged.emit()
+        self.outputChanged.emit()
 
     @Slot(int, int, int, int, int, bool, result=bool)
     def savePersonalSettings(
@@ -1959,7 +2051,7 @@ class ControlCenterBackend(QObject):
             self.current_rp_value = rp
             self.expose_exp_value = exp
             self.progress_editor_status_value = "演示修改完成（未写入真实存档）"
-            self.stateChanged.emit()
+            self.progressChanged.emit()
             self._toast("演示修改完成", "演示模式不会接触真实游戏存档")
             return True
         if not self.telemetryOnline:
@@ -1995,7 +2087,7 @@ class ControlCenterBackend(QObject):
         self.progress_editor_status_value = "正在由游戏写入并保存…"
         self._log(f"修改前存档已备份：{backup.name}")
         self._log(f"已请求写入 RP={rp:.0f}，经验={exp}，槽位={self.current_save_slot_value}")
-        self.stateChanged.emit()
+        self.progressChanged.emit()
         return True
 
     @Slot(result=bool)
@@ -2048,12 +2140,17 @@ class ControlCenterBackend(QObject):
 
     # ----- Runtime -------------------------------------------------------------
     def _poll(self) -> None:
-        changed = False
+        status_changed = False
+        vitals_changed = False
+        context_changed = False
+        output_changed = False
+        connection_changed = False
+        progress_changed = False
         try:
             while True:
                 kind, payload = self.messages.get_nowait()
-                changed = True
                 if kind == "listener":
+                    status_changed = True
                     if payload == "ready":
                         self.telemetry_status_value = "等待游戏数据"
                         self._log("遥测监听已启动；设备输出保持锁定")
@@ -2061,11 +2158,55 @@ class ControlCenterBackend(QObject):
                         self.telemetry_status_value = str(payload)
                         self._log(str(payload))
                 elif kind == "telemetry":
+                    previous_status = (
+                        bool(self.last_receive),
+                        self.telemetry_status_value,
+                        self.device_connected_value,
+                        self.auto_output_enabled,
+                        self.safety_wait_reason,
+                        self.device_status_value,
+                    )
+                    previous_vitals = (self.heart_rate_value, self.alert_level_value, self.excitement_value)
+                    previous_context = (self.stage_value, self.action_value)
+                    previous_output = (self.current_output_a, self.current_output_b)
+                    previous_progress = (
+                        self.current_rp_value,
+                        self.expose_exp_value,
+                        self.current_save_slot_value,
+                        self.progress_editor_status_value,
+                        bool(self.last_packet.get("paused", False)),
+                    )
                     self._on_telemetry(payload)
+                    status_changed |= previous_status != (
+                        bool(self.last_receive),
+                        self.telemetry_status_value,
+                        self.device_connected_value,
+                        self.auto_output_enabled,
+                        self.safety_wait_reason,
+                        self.device_status_value,
+                    )
+                    vitals_changed |= previous_vitals != (
+                        self.heart_rate_value,
+                        self.alert_level_value,
+                        self.excitement_value,
+                    )
+                    context_changed |= previous_context != (self.stage_value, self.action_value)
+                    output_changed |= previous_output != (self.current_output_a, self.current_output_b)
+                    progress_changed |= previous_progress != (
+                        self.current_rp_value,
+                        self.expose_exp_value,
+                        self.current_save_slot_value,
+                        self.progress_editor_status_value,
+                        bool(self.last_packet.get("paused", False)),
+                    )
                 elif kind == "progress_result":
                     self._on_progress_result(payload)
+                    progress_changed = True
                 elif kind == "dglab":
                     self._handle_dglab_event(payload)
+                    status_changed = True
+                    output_changed = True
+                    connection_changed = True
         except queue.Empty:
             pass
 
@@ -2077,22 +2218,89 @@ class ControlCenterBackend(QObject):
             if self.auto_output_enabled:
                 self.current_output_a = 18 + math.sin(self.demo_phase * 0.67) * 4
                 self.current_output_b = 7 + math.sin(self.demo_phase * 0.49) * 3
-            changed = True
+            vitals_changed = True
+            output_changed = True
         elif self.last_receive and time.monotonic() - self.last_receive >= STALE_SECONDS and not self.stale_reported:
             self.stale_reported = True
             self.telemetry_status_value = "等待游戏数据"
             self._enter_safety_idle("telemetry-stale")
             self._show_frame(self.engine.force_safe_cut("telemetry-stale"))
             self._log("安全归零：遥测中断")
-            changed = True
+            status_changed = True
+            output_changed = True
+            progress_changed = True
         if self.pending_progress_id and time.monotonic() >= self.pending_progress_deadline:
             self.pending_progress_id = ""
             self.progress_editor_status_value = "写入超时；未确认存档是否变化"
             self._log("存档修改响应超时，请检查插件版本并重新读取数值")
             self._toast("写入超时", "游戏插件没有在 5 秒内确认，请勿连续点击")
-            changed = True
-        if changed:
-            self.stateChanged.emit()
+            progress_changed = True
+        self._publish_game_hud()
+        if status_changed:
+            self.statusChanged.emit()
+        if connection_changed:
+            self.connectionChanged.emit()
+        if progress_changed and self.ui_page_index == 5:
+            self.progressChanged.emit()
+
+        now = time.monotonic()
+        live_due = now - self.ui_last_telemetry_emit >= 0.2
+        emitted_live = False
+        if self.ui_page_index == 0 and live_due:
+            if vitals_changed:
+                self.vitalsChanged.emit()
+                emitted_live = True
+            if context_changed:
+                self.contextChanged.emit()
+                emitted_live = True
+            if output_changed:
+                self.outputChanged.emit()
+                emitted_live = True
+        elif self.ui_page_index == 3 and context_changed:
+            self.contextChanged.emit()
+        elif self.ui_page_index == 4 and output_changed and live_due:
+            self.outputChanged.emit()
+            emitted_live = True
+        if emitted_live:
+            self.ui_last_telemetry_emit = now
+
+    @staticmethod
+    def _wave_pulse(wave: WaveformPreset | None, output: float, now: float) -> float:
+        if wave is None or output <= 0 or not wave.amplitudes:
+            return 0.0
+        index = int(now * 10.0) % len(wave.amplitudes)
+        return clamp(float(wave.amplitudes[index]) / 100.0, 0.0, 1.0)
+
+    def _publish_game_hud(self, *, force: bool = False) -> None:
+        if self.hud_socket is None:
+            return
+        now = time.monotonic()
+        if not force and now - self.hud_last_sent < 0.1:
+            return
+        self.hud_last_sent = now
+        self.hud_sequence += 1
+        active = bool(
+            self.auto_output_enabled
+            and self.device_connected_value
+            and not self.safety_wait_reason
+        )
+        strength_a = self.current_output_a if active else 0.0
+        strength_b = self.current_output_b if active else 0.0
+        packet = build_hud_packet(
+            self.hud_sequence,
+            visible=self.game_hud_enabled_value,
+            connected=self.device_connected_value,
+            active=active,
+            strength_a=strength_a,
+            strength_b=strength_b,
+            pulse_a=self._wave_pulse(self.current_wave_a, strength_a, now),
+            pulse_b=self._wave_pulse(self.current_wave_b, strength_b, now),
+        )
+        try:
+            self.hud_socket.sendto(packet, (UDP_HOST, HUD_PORT))
+        except OSError:
+            # HUD is optional and must never interrupt output or telemetry.
+            pass
 
     def _handle_dglab_event(self, payload: dict) -> None:
         event = str(payload.get("event", ""))
@@ -2194,6 +2402,8 @@ class ControlCenterBackend(QObject):
 
     def _show_frame(self, frame: TriggerFrame) -> None:
         self.current_frame = frame
+        previous_wave_a = self.current_wave_a.key if self.current_wave_a else ""
+        previous_wave_b = self.current_wave_b.key if self.current_wave_b else ""
         custom = self._custom_waveform()
         wave_a = self.wave_selector.select(
             "A", frame.pattern_a, self.wave_mode_value, self.fixed_wave_value, self.wave_map_value, custom
@@ -2208,6 +2418,8 @@ class ControlCenterBackend(QObject):
             )
         self.current_wave_a = wave_a
         self.current_wave_b = wave_b
+        if previous_wave_a != (wave_a.key if wave_a else "") or previous_wave_b != (wave_b.key if wave_b else ""):
+            self.waveChanged.emit()
         self.current_output_a = frame.strength_a * wave_a.feel_scale if wave_a else 0.0
         self.current_output_b = frame.strength_b * wave_b.feel_scale if wave_b else 0.0
         if frame.safe_cut:
@@ -2291,6 +2503,14 @@ class ControlCenterBackend(QObject):
     def shutdown(self) -> None:
         self.poll_timer.stop()
         self.auto_output_enabled = False
+        self.game_hud_enabled_value = False
+        self._publish_game_hud(force=True)
+        if self.hud_socket is not None:
+            try:
+                self.hud_socket.close()
+            except OSError:
+                pass
+            self.hud_socket = None
         if self.worker is not None:
             self.worker.stop()
         if self.bridge is not None:

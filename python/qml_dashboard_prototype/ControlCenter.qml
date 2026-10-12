@@ -13,8 +13,9 @@ ApplicationWindow {
     title: "Manaka / DG-LAB · " + backend.version
 
     property int pageIndex: initialPageIndex >= 0 ? initialPageIndex : 0
+    onPageIndexChanged: backend.setActivePage(pageIndex)
     property bool darkMode: backend.theme !== "light"
-    property real wavePhase: 0
+    property url guidePreviewSource: ""
     function t(source) {
         const languageDependency = backend.language
         return backend.translate(source)
@@ -290,7 +291,6 @@ ApplicationWindow {
             Rectangle {
                 height: parent.height; radius: 4; color: metric.barColor
                 width: Math.max(metric.value <= 0 ? 0 : 6, parent.width * Math.max(0, Math.min(metric.maximum, metric.value)) / metric.maximum)
-                Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
             }
         }
     }
@@ -300,11 +300,27 @@ ApplicationWindow {
         property var points: []
         property color waveColor: accent
         property bool animated: true
+        function effectivelyVisible() {
+            if (!root.visible || root.visibility === Window.Minimized)
+                return false
+            let item = wave
+            while (item) {
+                if (!item.visible || item.opacity <= 0)
+                    return false
+                item = item.parent
+            }
+            return width > 0 && height > 0
+        }
         antialiasing: true
         clip: true
         onPointsChanged: requestPaint()
         onWaveColorChanged: requestPaint()
-        Connections { target: root; function onWavePhaseChanged() { if (wave.animated) wave.requestPaint() } function onDarkModeChanged() { wave.requestPaint() } }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        Connections {
+            target: root
+            function onDarkModeChanged() { wave.requestPaint() }
+        }
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
@@ -327,19 +343,16 @@ ApplicationWindow {
                 if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
             }
             ctx.stroke()
-            if (animated) {
-                const cursor = (wavePhase % 1) * (total - 1)
-                const sampleIndex = Math.floor(cursor)
-                const nextIndex = Math.min(total - 1, sampleIndex + 1)
-                const fraction = cursor - sampleIndex
-                const firstSample = points[sampleIndex % points.length] / 100
-                const nextSample = points[nextIndex % points.length] / 100
-                const sample = firstSample + (nextSample - firstSample) * fraction
-                const playX = 4 + cursor / (total - 1) * Math.max(0, w - 8)
-                const playY = h * 0.82 - sample * h * 0.64
-                ctx.fillStyle = waveColor
-                ctx.beginPath(); ctx.arc(playX, playY, 4, 0, Math.PI * 2); ctx.fill()
-            }
+        }
+        Rectangle {
+            id: playhead
+            property real phase: 0
+            visible: wave.animated && wave.effectivelyVisible() && wave.points && wave.points.length >= 2
+            width: 2
+            height: wave.height
+            color: Qt.rgba(wave.waveColor.r, wave.waveColor.g, wave.waveColor.b, 0.58)
+            x: phase * Math.max(0, wave.width - width)
+            Timer { interval: 33; repeat: true; running: playhead.visible; onTriggered: playhead.phase=(playhead.phase+0.006)%1 }
         }
     }
 
@@ -422,6 +435,46 @@ ApplicationWindow {
                         Text { text: pageSubtitles[pageIndex]; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 }
                     }
                     Rectangle {
+                        id: hudToggle
+                        Layout.preferredWidth: 94; Layout.preferredHeight: 38; radius: 19
+                        property bool checked: backend.gameHudEnabled
+                        color: checked ? Qt.rgba(cyan.r, cyan.g, cyan.b, darkMode ? 0.17 : 0.13) : panel2
+                        border.color: checked ? Qt.rgba(cyan.r, cyan.g, cyan.b, 0.55) : border
+                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                        Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                        Row {
+                            anchors.centerIn: parent; spacing: 7
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "HUD"; color: hudToggle.checked ? cyan : muted
+                                font.family: "Segoe UI"; font.pixelSize: 10; font.weight: Font.Bold
+                                Behavior on color { ColorAnimation { duration: 180 } }
+                            }
+                            Rectangle {
+                                width: 32; height: 18; radius: 9
+                                color: hudToggle.checked ? cyan : track
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on color { ColorAnimation { duration: 180 } }
+                                Rectangle {
+                                    width: 12; height: 12; radius: 6; y: 3
+                                    x: hudToggle.checked ? parent.width - width - 3 : 3
+                                    color: hudToggle.checked ? "#0C2630" : root.fg
+                                    Behavior on x { NumberAnimation { duration: 190; easing.type: Easing.OutBack } }
+                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                }
+                            }
+                        }
+                        SequentialAnimation {
+                            id: hudTogglePress
+                            NumberAnimation { target: hudToggle; property: "scale"; to: 0.94; duration: 70; easing.type: Easing.OutQuad }
+                            NumberAnimation { target: hudToggle; property: "scale"; to: 1.0; duration: 130; easing.type: Easing.OutBack }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { hudTogglePress.restart(); backend.setGameHudEnabled(!hudToggle.checked) }
+                        }
+                    }
+                    Rectangle {
                         Layout.preferredWidth: 158; Layout.preferredHeight: 38; radius: 19
                         color: Qt.rgba((backend.deviceConnected ? green : amber).r, (backend.deviceConnected ? green : amber).g, (backend.deviceConnected ? green : amber).b, darkMode ? 0.10 : 0.09)
                         border.color: Qt.rgba((backend.deviceConnected ? green : amber).r, (backend.deviceConnected ? green : amber).g, (backend.deviceConnected ? green : amber).b, 0.26)
@@ -454,7 +507,7 @@ ApplicationWindow {
                                             const ratio=Math.max(0,Math.min(1,(backend.heartRate-60)/120)); const grad=ctx.createLinearGradient(0,height,width,0); grad.addColorStop(0,violet); grad.addColorStop(1,accent)
                                             ctx.strokeStyle=grad; ctx.beginPath(); ctx.arc(cx,cy,r,start,start+sweep*ratio); ctx.stroke()
                                         }
-                                        Connections { target: backend; function onStateChanged(){ gauge.requestPaint() } }
+                                        Connections { target: backend; function onVitalsChanged(){ if(root.pageIndex===0) gauge.requestPaint() } }
                                         Connections { target: root; function onDarkModeChanged(){ gauge.requestPaint() } }
                                     }
                                     Column { anchors.centerIn: parent; spacing: -4; Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(backend.heartRate); color: root.fg; font.family: "Segoe UI Variable Display"; font.pixelSize: 56; font.weight: Font.Bold } Text { anchors.horizontalCenter: parent.horizontalCenter; text: "BPM"; color: accent; font.pixelSize: 10; font.weight: Font.Bold; font.letterSpacing: 2.2 } }
@@ -547,12 +600,29 @@ ApplicationWindow {
                                         Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
                                         Repeater {
                                             model: backend.guideSources
-                                            delegate: Rectangle {
+                                             delegate: Rectangle {
                                                 required property var modelData
                                                 required property int index
+                                                 id: guideThumb
                                                 Layout.fillWidth: true; Layout.fillHeight: true; radius: 14; color: panel2; border.color: border
-                                                Image { anchors.fill: parent; anchors.margins: 8; source: modelData; fillMode: Image.PreserveAspectFit; asynchronous: true }
+                                                 clip: true
+                                                 Image {
+                                                     anchors.fill: parent; anchors.margins: 8; source: modelData
+                                                     fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true; mipmap: true
+                                                     scale: guideHit.containsMouse ? 1.025 : 1.0
+                                                     Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                                                 }
                                                 Rectangle { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 8; width: 26; height: 26; radius: 13; color: accent; Text { anchors.centerIn: parent; text: index+1; color: "#11151C"; font.weight: Font.Bold } }
+                                                 Rectangle {
+                                                     anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 10
+                                                     width: 30; height: 30; radius: 15
+                                                     color: Qt.rgba(0.03, 0.05, 0.09, guideHit.containsMouse ? 0.82 : 0.58)
+                                                     Text { anchors.centerIn: parent; text: "↗"; color: "white"; font.pixelSize: 15; font.weight: Font.Bold }
+                                                 }
+                                                 MouseArea {
+                                                     id: guideHit; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                     onClicked: { root.guidePreviewSource = modelData; guidePreviewDialog.open() }
+                                                 }
                                             }
                                         }
                                     }
@@ -813,9 +883,18 @@ ApplicationWindow {
                                     Layout.fillWidth: true; Layout.fillHeight: true; radius: 16; color: darkMode ? "#090F1B" : "#F1F5FA"; border.color: cyan
                                     Canvas {
                                         id: editorCanvas; anchors.fill: parent; anchors.margins: 18; antialiasing: true
-                                        onPaint: { const ctx=getContext("2d");ctx.reset();const p=wavePage.draftPoints;ctx.strokeStyle=darkMode?"#29364E":"#D7DFEA";ctx.lineWidth=1;for(let i=0;i<=4;i++){let y=height*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}for(let i=0;i<16;i++){let x=width*i/15;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke()}if(!p||p.length<2)return;ctx.strokeStyle=cyan;ctx.lineWidth=4;ctx.lineJoin="round";ctx.beginPath();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;ctx.fillStyle=root.fg;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()}let playX=(root.wavePhase%1)*width;ctx.strokeStyle=Qt.rgba(cyan.r,cyan.g,cyan.b,0.55);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(playX,0);ctx.lineTo(playX,height);ctx.stroke() }
+                                        onPaint: { const ctx=getContext("2d");ctx.reset();const p=wavePage.draftPoints;ctx.strokeStyle=darkMode?"#29364E":"#D7DFEA";ctx.lineWidth=1;for(let i=0;i<=4;i++){let y=height*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}for(let i=0;i<16;i++){let x=width*i/15;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke()}if(!p||p.length<2)return;ctx.strokeStyle=cyan;ctx.lineWidth=4;ctx.lineJoin="round";ctx.beginPath();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;ctx.fillStyle=root.fg;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()} }
                                         Connections { target: wavePage; function onDraftPointsChanged(){editorCanvas.requestPaint()} }
-                                        Connections { target: root; function onWavePhaseChanged(){if(waveformEditor.visible)editorCanvas.requestPaint()} function onDarkModeChanged(){editorCanvas.requestPaint()} }
+                                        Connections { target: root; function onDarkModeChanged(){editorCanvas.requestPaint()} }
+                                        Rectangle {
+                                            id: editorPlayhead
+                                            property real phase: 0
+                                            visible: waveformEditor.visible
+                                            width: 2; height: parent.height
+                                            color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.55)
+                                            x: phase * Math.max(0,editorCanvas.width-width)
+                                            Timer { interval: 33; repeat: true; running: editorPlayhead.visible; onTriggered: editorPlayhead.phase=(editorPlayhead.phase+0.006)%1 }
+                                        }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.CrossCursor; function paint(mouse){let i=Math.round(Math.max(0,Math.min(1,mouse.x/width))*15);let v=(1-Math.max(0,Math.min(1,mouse.y/height)))*100;wavePage.setPoint(i,v)} onPressed: mouse=>paint(mouse); onPositionChanged: mouse=>{if(pressed)paint(mouse)}; onReleased: wavePage.commitEditHistory() }
                                     }
                                 }
@@ -1496,6 +1575,39 @@ ApplicationWindow {
     }
 
     Dialog {
+        id: guidePreviewDialog
+        anchors.centerIn: parent
+        width: Math.min(1120, root.width - 64)
+        height: Math.min(720, root.height - 54)
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 14
+        background: Rectangle {
+            color: darkMode ? "#090E18" : "#F8FAFD"
+            border.color: accent; border.width: 1; radius: 20
+        }
+        contentItem: Item {
+            Image {
+                anchors.fill: parent; anchors.margins: 8
+                source: root.guidePreviewSource
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true; smooth: true; mipmap: true
+            }
+            Rectangle {
+                anchors.right: parent.right; anchors.top: parent.top
+                width: 38; height: 38; radius: 19
+                color: closeGuideHit.pressed ? Qt.darker(panel2, 1.12) : panel2
+                border.color: border
+                Text { anchors.centerIn: parent; text: "×"; color: root.fg; font.pixelSize: 23 }
+                MouseArea {
+                    id: closeGuideHit; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: guidePreviewDialog.close()
+                }
+            }
+        }
+    }
+
+    Dialog {
         id: pack9527Wizard
         property int step: 0
         property bool confirmed: false
@@ -1712,7 +1824,6 @@ ApplicationWindow {
             }
         }
     }
-    Component.onCompleted: { if (!backend.agreementAccepted) agreementDialog.open() }
+    Component.onCompleted: { backend.setActivePage(pageIndex); if (!backend.agreementAccepted) agreementDialog.open() }
 
-    Timer { interval: 33; running: true; repeat: true; onTriggered: root.wavePhase=(root.wavePhase+0.006)%1 }
 }

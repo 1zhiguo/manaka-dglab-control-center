@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import sys
 import subprocess
+import ctypes
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 
@@ -62,6 +63,21 @@ def main() -> int:
     app = QGuiApplication(sys.argv)
     app.setApplicationDisplayName("Manaka × DG-LAB Control Center")
     app.setOrganizationName("ManakaDGLab")
+
+    lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation)) / "manaka-dglab-control-center.lock"
+    instance_lock = QLockFile(str(lock_path))
+    instance_lock.setStaleLockTime(3000)
+    if not instance_lock.tryLock(0):
+        if sys.platform == "win32":
+            ctypes.windll.user32.MessageBoxW(
+                0,
+                "Manaka × DG-LAB 控制中心已经在运行。\n请切换到已有窗口，不需要重复启动。",
+                "Manaka × DG-LAB",
+                0x40,
+            )
+        else:
+            print("Manaka × DG-LAB Control Center is already running.", file=sys.stderr)
+        return 0
 
     if getattr(sys, "frozen", False):
         icon_file = Path(sys._MEIPASS) / "assets" / "app_icon.png"

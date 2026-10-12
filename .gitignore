@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 *.pdb
+manaka_telemetry/bin/compiler.rsp
 *.log
 .venv/
 node_modules/
