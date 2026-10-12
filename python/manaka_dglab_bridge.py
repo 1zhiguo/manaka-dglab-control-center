@@ -9,6 +9,7 @@ Socket mode.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import queue
 import socket
@@ -51,22 +52,42 @@ def pulse_message(channel: str, frames: Iterable[str]) -> str:
     return f"pulse-{channel_name}:{json.dumps(clean, separators=(',', ':'))}"
 
 
-def discover_lan_ip() -> str:
-    """Return the preferred LAN address without sending internet traffic."""
+def discover_lan_ips() -> tuple[str, ...]:
+    """Return usable IPv4 addresses, with the default-route address first."""
+    candidates: list[str] = []
+
+    def add(address: str) -> None:
+        try:
+            parsed = ipaddress.ip_address(str(address))
+        except ValueError:
+            return
+        if not isinstance(parsed, ipaddress.IPv4Address) or parsed.is_loopback or parsed.is_link_local:
+            return
+        value = str(parsed)
+        if value not in candidates:
+            candidates.append(value)
+
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         probe.connect(("8.8.8.8", 80))
-        address = probe.getsockname()[0]
-        if address and not address.startswith("127."):
-            return address
+        add(probe.getsockname()[0])
     except OSError:
         pass
     finally:
         probe.close()
+
     try:
-        return socket.gethostbyname(socket.gethostname())
+        for result in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            add(result[4][0])
     except OSError:
-        return "127.0.0.1"
+        pass
+    return tuple(candidates)
+
+
+def discover_lan_ip() -> str:
+    """Return the preferred LAN address without sending internet traffic."""
+    candidates = discover_lan_ips()
+    return candidates[0] if candidates else "127.0.0.1"
 
 
 @dataclass(frozen=True)
@@ -83,11 +104,17 @@ class BridgeSnapshot:
 class DGLabBridge:
     """Own a local Socket server and one internal controller connection."""
 
-    def __init__(self, events: queue.Queue, *, port: int = DEFAULT_PORT) -> None:
+    def __init__(self, events: queue.Queue, *, port: int = DEFAULT_PORT, lan_ip: str = "") -> None:
         self.events = events
         self.requested_port = int(port)
         self.port = int(port)
-        self.lan_ip = discover_lan_ip()
+        self.available_lan_ips = discover_lan_ips()
+        requested_ip = str(lan_ip).strip()
+        self.lan_ip = (
+            requested_ip
+            if requested_ip in self.available_lan_ips
+            else self.available_lan_ips[0] if self.available_lan_ips else "127.0.0.1"
+        )
         self.controller_id = ""
         self.target_id = ""
         self.qr_url = ""
@@ -107,6 +134,29 @@ class DGLabBridge:
         self._desired_frames: dict[str, tuple[str, ...]] = {"A": (), "B": ()}
         self._desired_wave_key = {"A": "", "B": ""}
         self._hard_cap = 30
+
+    def set_lan_ip(self, address: str) -> bool:
+        """Regenerate the QR URL for another local adapter without restarting."""
+        value = str(address).strip()
+        if value not in self.available_lan_ips:
+            return False
+        self.lan_ip = value
+        if self.controller_id:
+            self.qr_url = self._build_qr_url()
+            self._emit(
+                "ready",
+                qr_url=self.qr_url,
+                lan_ip=self.lan_ip,
+                port=self.port,
+                controller_id=self.controller_id,
+            )
+        return True
+
+    def _build_qr_url(self) -> str:
+        return (
+            "https://www.dungeon-lab.com/app-download.php#"
+            f"DGLAB-SOCKET#ws://{self.lan_ip}:{self.port}/{self.controller_id}"
+        )
 
     def snapshot(self) -> BridgeSnapshot:
         return BridgeSnapshot(
@@ -326,10 +376,7 @@ class DGLabBridge:
                 self._controller_ws = websocket
                 hello = json.loads(await websocket.recv())
                 self.controller_id = str(hello.get("clientId", ""))
-                self.qr_url = (
-                    "https://www.dungeon-lab.com/app-download.php#"
-                    f"DGLAB-SOCKET#ws://{self.lan_ip}:{self.port}/{self.controller_id}"
-                )
+                self.qr_url = self._build_qr_url()
                 self._emit(
                     "ready",
                     qr_url=self.qr_url,

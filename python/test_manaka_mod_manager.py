@@ -65,6 +65,28 @@ class ManakaModManagerTests(unittest.TestCase):
         self.assertEqual(len(list((self.game / "ManakaModManager" / "disabled" / "v1").glob("*.json"))), 2)
 
     @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_nested_v1_pack_is_scanned_and_toggled_with_folder_preserved(self, _running) -> None:
+        active = self.game / "CustomMissions" / "challenges"
+        active.mkdir(parents=True)
+        (active / "challenges.json").write_text("{}", encoding="utf-8")
+        (active / "bonus.json").write_text("{}", encoding="utf-8")
+
+        manager = ManakaModManager(self.game, self.source)
+        item = next(item for item in manager.scan() if item["name"] == "challenges")
+        self.assertEqual(item["fileCount"], 2)
+        self.assertEqual(item["status"], "已启用")
+
+        manager.set_enabled(item["id"], False)
+        self.assertFalse((active / "challenges.json").exists())
+        self.assertTrue(
+            (self.game / "ManakaModManager" / "disabled" / "v1" / "challenges" / "challenges.json").is_file()
+        )
+
+        item = next(item for item in manager.scan() if item["name"] == "challenges")
+        manager.set_enabled(item["id"], True)
+        self.assertTrue((active / "challenges.json").is_file())
+
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
     def test_v2_folder_toggle_preserves_contents(self, _running) -> None:
         source = self.source / "CustomMissions2" / "HideAndSeek"
         source.mkdir(parents=True)
@@ -113,6 +135,47 @@ class ManakaModManagerTests(unittest.TestCase):
 
         inventory = ManakaModManager(self.game, self.source).scan()
         self.assertEqual({item["kind"] for item in inventory}, {"plugin", "v1", "v2"})
+
+    def test_9527_usage_categories_are_exposed_for_filters(self) -> None:
+        plugin_root = self.source / "BepInEx" / "plugins"
+        plugin_root.mkdir(parents=True)
+        for name in ("SFM_custom_mission.dll", "BetterCompass.dll"):
+            (plugin_root / name).write_bytes(b"plugin")
+        v1 = self.source / "CustomMissions" / "admirer.json"
+        v1.parent.mkdir(parents=True)
+        v1.write_text("{}", encoding="utf-8")
+        for name in ("blackmailV2", "Moaning3", "HideAndSeek"):
+            folder = self.source / "CustomMissions2" / name
+            folder.mkdir(parents=True)
+            (folder / "main.code").write_text("code", encoding="utf-8")
+
+        inventory = ManakaModManager(self.game, self.source).scan()
+        categories = {item["name"].casefold(): item["category"] for item in inventory}
+
+        self.assertEqual(categories["sfm_custom_mission"], "core")
+        self.assertEqual(categories["bettercompass"], "utility")
+        self.assertEqual(categories["admirer"], "v1")
+        self.assertEqual(categories["blackmailv2"], "v2_story")
+        self.assertEqual(categories["moaning3"], "media")
+        self.assertEqual(categories["hideandseek"], "gameplay")
+
+    def test_v2_category_uses_folder_name_instead_of_localized_meta_title(self) -> None:
+        folder = self.source / "CustomMissions2" / "blackmailV2"
+        folder.mkdir(parents=True)
+        (folder / "main.code").write_text("code", encoding="utf-8")
+        (folder / "meta.json").write_text(
+            '{"title":{"Sc":"本地化后的任意标题"},"description":{"Sc":"剧情任务"}}',
+            encoding="utf-8",
+        )
+
+        item = next(
+            item for item in ManakaModManager(self.game, self.source).scan()
+            if item["kind"] == "v2"
+        )
+
+        self.assertEqual(item["name"], "本地化后的任意标题")
+        self.assertEqual(item["classificationKey"], "blackmailV2")
+        self.assertEqual(item["category"], "v2_story")
 
     @patch("manaka_mod_manager.game_is_running", return_value=False)
     def test_mission_entries_report_their_loader_dependency(self, _running) -> None:

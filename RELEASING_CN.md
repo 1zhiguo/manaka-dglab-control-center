@@ -4,10 +4,10 @@
 
 ## 发布内容规则
 
-- 公共 Git 仓库不提交 CustomMission V1、CustomMission V2 或 Plugins 的实际文件，只保留说明文件和加载代码。
-- GitHub Release 与腾讯 COS 中提供给用户的 Windows 便携包必须包含上述 Mod/插件资源。
-- 日常本地预览必须运行完整打包目录中的 `ManakaQmlControlCenter.exe`，不得用公共仓库的轻量构建冒充发行版。
-- 发布前必须检查压缩包内存在 `mod_repositories/custommissions1`、`mod_repositories/custommissions2` 和 `mod_repositories/plugins` 的实际内容；缺少任意一项就终止发布。
+- 公共 Git 仓库、GitHub Release 与腾讯 COS 均不包含第三方 Mod 或任务文件。
+- Windows 便携包只携带已验证的 BepInEx 运行环境、本项目的 DG-LAB 遥测插件、界面资源和 Drop-in 空目录。
+- 日常本地预览与公开发行版使用同一套轻量构建，便于准确验证最终用户体验。
+- 发布前必须检查 ZIP 中不存在 `mod_repositories`，并确认包含 `ManakaQmlControlCenter.exe`、快速开始文档和第三方声明。
 
 ## 首次设置（只做一次）
 
@@ -24,14 +24,14 @@ COS 桶本身保持私有。发布流程只把最终 ZIP 对象设为 `public-re
 
 ## 每次发布
 
-1. 在维护者电脑的完整工程中运行测试并构建 Windows 便携包；此工程包含不进入公共 Git 仓库的 Mod/插件资源。
-2. 检查 ZIP 内确实包含三个 `mod_repositories` 子目录，并生成同名 `.sha256` 文件。
+1. 在维护者电脑运行测试并构建轻量 Windows 便携包。
+2. 检查 ZIP 不含第三方 Mod 或 `mod_repositories`，然后生成同名 `.sha256` 文件。
 3. 把完整 ZIP 与 `.sha256` 上传到对应的 GitHub Release。
 4. 确认公共源码已经推送到 `main` 后，打开 GitHub Actions。
 5. 选择 `Publish prebuilt release`，输入相同版本号并运行。
-6. 工作流会下载刚上传的完整包，复核哈希和 Mod 目录，随后上传腾讯 COS、更新网页下载清单并部署 Firebase。
+6. 工作流会下载刚上传的便携包，复核哈希和必要文件，随后上传腾讯 COS、更新网页下载清单并部署 Firebase。
 
-同一版本可以安全重跑镜像部署；工作流不会从不含 Mod 的公共源码重新构建发行包。
+同一版本可以安全重跑镜像部署；工作流不会在 Linux runner 上重新构建 Windows 包。
 
 ## 自动生成的发布地址
 

@@ -25,8 +25,8 @@ PAGE_SCREENSHOT_NAMES = (
     "channels",
     "save-tools",
     "mods",
+    "workshop",
     "event-log",
-    "support",
 )
 
 
@@ -60,7 +60,7 @@ def main() -> int:
     capture_page = int(capture_page_value) if capture_page_value else -1
     capture_file = Path(capture_file_value).resolve() if capture_file_value else None
     app = QGuiApplication(sys.argv)
-    app.setApplicationDisplayName("Manaka DG-LAB 控制中心")
+    app.setApplicationDisplayName("Manaka × DG-LAB Control Center")
     app.setOrganizationName("ManakaDGLab")
 
     if getattr(sys, "frozen", False):
@@ -70,7 +70,11 @@ def main() -> int:
     app.setWindowIcon(QIcon(str(icon_file)))
 
     demo = "--demo" in sys.argv
-    backend = ControlCenterBackend(demo=demo)
+    language_override = option_value("--language=").lower()
+    backend = ControlCenterBackend(
+        demo=demo,
+        language=language_override if language_override in {"zh", "en"} else None,
+    )
     if capture_file is not None:
         backend.agreement_accepted_value = True
     app.aboutToQuit.connect(backend.shutdown)

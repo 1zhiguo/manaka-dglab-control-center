@@ -44,6 +44,7 @@ For a clean game copy, choose **Install and Launch Game**. The control center in
 6. Wait until the desktop app shows **DG-LAB connected**.
 
 If the QR code does not connect, confirm that the phone and PC are on the same LAN and that Windows Firewall allows the control center on private networks.
+On the **Device & Game** page, choose **Can't connect?** to switch the LAN IP used by the QR code or run the administrator network repair on a trusted home network.
 
 ## 5. Safe first test
 
@@ -64,7 +65,24 @@ Pausing the game with Esc should also place output in safety idle. If the teleme
 
 ## 7. Mod Manager
 
-The bundled public repository does not include the game. Release archives may include a separate third-party Mod repository.
+Release archives do not redistribute third-party Mods. They include only the verified BepInEx runtime and this project's DG-LAB telemetry plugin. The manager handles three local content types: BepInEx plugins, CustomMission 1 JSON missions, and CustomMission 2 packages.
+
+**Local Mods** always scans the selected game folder. Open **Workshop** for original F95Zone source links, use the Drop-in inbox for individual files, or open route 2 and run the dedicated user9527 importer. The Mod Manager no longer switches between separate repositories.
+
+### Import the user9527 Chinese pack
+
+1. Select the game root under **Device & Game** and install the BepInEx runtime first.
+2. Fully close the game, open **Mod Manager**, and choose **Import 9527 Pack**.
+3. Select the extracted folder that directly contains `BepInEx`, `CustomMissions`,
+   `CustomMissions2`, and the required readme files.
+4. Review the detected plugin and mission counts, read the author's instructions, and confirm the plan.
+5. The wizard backs up every file it will replace, imports configuration and supporting assets,
+   then enables only `SFM_custom_mission.dll` and `SFM_custom_mission_v2.dll`. Other third-party
+   DLLs and all V1/V2 content start in `ManakaModManager/disabled`.
+6. Enable only the missions you want under **Local Mods**. The DG-LAB telemetry plugin remains enabled.
+
+Backups are stored under `ManakaModManager/backups/9527-timestamp` in the game folder. The wizard
+does not execute or upload EXE, BAT, or script files from the downloaded pack.
 
 To import external content, place a plugin DLL, V1 JSON file, V2 folder, or supported ZIP in:
 

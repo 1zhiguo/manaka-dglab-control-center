@@ -23,6 +23,16 @@ class ProtocolEncodingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             pulse_message("A", ["not-a-frame"])
 
+    def test_lan_address_can_refresh_the_qr_without_restarting(self):
+        events: queue.Queue = queue.Queue()
+        bridge = DGLabBridge(events, port=9999)
+        bridge.available_lan_ips = ("192.168.1.20", "192.168.50.20")
+        bridge.controller_id = "controller-id"
+
+        self.assertTrue(bridge.set_lan_ip("192.168.50.20"))
+        self.assertIn("ws://192.168.50.20:9999/controller-id", bridge.qr_url)
+        self.assertFalse(bridge.set_lan_ip("203.0.113.5"))
+
 
 class LocalSocketIntegrationTests(unittest.TestCase):
     def test_bind_output_and_emergency_zero(self):

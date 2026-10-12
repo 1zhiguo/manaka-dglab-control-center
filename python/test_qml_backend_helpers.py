@@ -1,9 +1,72 @@
 import unittest
 
-from qml_dashboard_prototype.backend import ControlCenterBackend
+from qml_dashboard_prototype.backend import (
+    ControlCenterBackend,
+    MOD_SOURCE_LINKS,
+    windows_network_repair_script,
+)
+from qml_dashboard_prototype.mod_catalog import USER9527_POST, build_mod_catalog
 
 
 class V1LocationGuideTests(unittest.TestCase):
+    def test_repair_script_targets_selected_adapter_and_private_firewall_port(self) -> None:
+        script = windows_network_repair_script("192.168.50.12", 9999)
+
+        self.assertIn("$targetIp = '192.168.50.12'", script)
+        self.assertIn("ManakaDGLab-TCP-9999", script)
+        self.assertIn("-LocalPort $port -Profile Private", script)
+        self.assertIn("Set-NetConnectionProfile -InterfaceIndex", script)
+
+    def test_repair_script_rejects_non_lan_address(self) -> None:
+        with self.assertRaises(ValueError):
+            windows_network_repair_script("127.0.0.1", 9999)
+
+    def test_external_author_links_are_https_and_allowlisted(self) -> None:
+        allowed = [
+            "https://f95zone.to/threads/example",
+            "https://github.com/PeanutsZheng/ModManager/releases",
+            "https://mega.nz/folder/example",
+            "https://t.me/example",
+        ]
+        for value in allowed:
+            with self.subTest(value=value):
+                self.assertTrue(ControlCenterBackend._is_allowed_external_url(value))
+
+        blocked = [
+            "http://f95zone.to/threads/example",
+            "https://f95zone.to.evil.example/threads/example",
+            "file:///C:/Windows/System32/cmd.exe",
+            "javascript:alert(1)",
+        ]
+        for value in blocked:
+            with self.subTest(value=value):
+                self.assertFalse(ControlCenterBackend._is_allowed_external_url(value))
+
+        self.assertTrue(MOD_SOURCE_LINKS)
+        self.assertTrue(
+            all(ControlCenterBackend._is_allowed_external_url(item["url"]) for item in MOD_SOURCE_LINKS)
+        )
+
+    def test_bilingual_catalog_is_complete_and_pinned(self) -> None:
+        chinese = build_mod_catalog("zh")
+        english = build_mod_catalog("en")
+
+        self.assertEqual(len(chinese), 133)
+        self.assertEqual(len(english), 133)
+        self.assertEqual([item["category"] for item in chinese[:2]], ["core", "core"])
+        self.assertTrue(all(item["pinned"] for item in chinese[:2]))
+        self.assertIn("任务加载器", chinese[0]["displayName"])
+        self.assertIn("V1 Loader", english[0]["displayName"])
+        self.assertTrue(
+            all(ControlCenterBackend._is_allowed_external_url(item["url"]) for item in chinese)
+        )
+
+    def test_user9527_uses_the_exact_post_link(self) -> None:
+        matches = [item for item in build_mod_catalog("zh") if item["reference"] == "#978"]
+
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["url"], USER9527_POST)
+
     def test_current_enabled_inventory_is_a_file_state_filter(self) -> None:
         inventory = [
             {"id": "plugin|Enabled.dll", "enabled": True, "name": "Enabled"},

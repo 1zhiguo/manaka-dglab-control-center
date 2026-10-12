@@ -15,7 +15,6 @@ $appIconIco = Join-Path $root 'python\qml_dashboard_prototype\assets\app_icon.ic
 $plugin = Join-Path $root 'manaka_telemetry\bin\ManakaDGLabTelemetry.dll'
 $bepinexPayload = Join-Path $root 'installer_payload\bepinex_v113'
 $guideAssets = Join-Path $root 'python\assets\dglab_guide'
-$modRepositories = Join-Path $root 'mod_repositories'
 $dropInTemplate = Join-Path $root 'dropin_mods'
 if (-not $DistPath) {
     $buildVersion = (Get-Content -LiteralPath $appVersionFile -Raw).Trim()
@@ -27,7 +26,7 @@ elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
 }
 $portable = Join-Path $DistPath 'ManakaQmlControlCenter'
 
-foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $modRepositories, $dropInTemplate)) {
+foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $dropInTemplate)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing build input: $required"
     }
@@ -111,20 +110,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'USER_AGREEMENT_CN.md') -Destination (Join-Path $portable 'USER_AGREEMENT_CN.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'MOD_CONTENT_NOTICE_CN.md') -Destination (Join-Path $portable 'MOD_CONTENT_NOTICE_CN.md') -Force
 
-    # Ship the three repository worktrees beside the EXE, without local Git
-    # history. Keeping them visible makes ownership and later replacement clear.
-    $portableModHub = Join-Path $portable 'mod_repositories'
-    New-Item -ItemType Directory -Force -Path $portableModHub | Out-Null
-    Copy-Item -LiteralPath (Join-Path $modRepositories 'README.md') -Destination $portableModHub -Force
-    Copy-Item -LiteralPath (Join-Path $modRepositories '原始整合包说明.txt') -Destination $portableModHub -Force
-    foreach ($repoName in @('custommissions1', 'custommissions2', 'plugins')) {
-        $sourceRepo = Join-Path $modRepositories $repoName
-        $targetRepo = Join-Path $portableModHub $repoName
-        New-Item -ItemType Directory -Force -Path $targetRepo | Out-Null
-        Get-ChildItem -LiteralPath $sourceRepo -Force |
-            Where-Object { $_.Name -ne '.git' } |
-            Copy-Item -Destination $targetRepo -Recurse -Force
-    }
+    # Third-party plugins and missions are intentionally not redistributed.
+    # Users can select an extracted F95Zone pack or import individual files via
+    # the Drop-in inbox; the portable build contains only our telemetry plugin.
     Copy-Item -LiteralPath $dropInTemplate -Destination $portable -Recurse -Force
 
     $smokeProcess = Start-Process -FilePath (Join-Path $portable 'ManakaQmlControlCenter.exe') `

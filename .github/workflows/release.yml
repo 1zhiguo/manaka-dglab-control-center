@@ -45,7 +45,7 @@ jobs:
             echo "Invalid version: $VERSION" >&2
             exit 1
           fi
-          FILE_NAME="ManakaQmlControlCenter-${VERSION}-win64-with-mods.zip"
+          FILE_NAME="ManakaQmlControlCenter-${VERSION}-win64.zip"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "file_name=$FILE_NAME" >> "$GITHUB_OUTPUT"
 
@@ -63,7 +63,7 @@ jobs:
             --pattern "$FILE_NAME.sha256" \
             --dir release-payload
 
-      - name: Verify package checksum and required Mod payload
+      - name: Verify package checksum and portable payload
         id: package
         shell: bash
         env:
@@ -74,14 +74,18 @@ jobs:
           sha256sum --check --strict "$FILE_NAME.sha256"
           SHA256="$(sha256sum "$FILE_NAME" | awk '{print toupper($1)}')"
           for required in \
-            ManakaQmlControlCenter/mod_repositories/custommissions1/ \
-            ManakaQmlControlCenter/mod_repositories/custommissions2/ \
-            ManakaQmlControlCenter/mod_repositories/plugins/; do
+            ManakaQmlControlCenter/ManakaQmlControlCenter.exe \
+            ManakaQmlControlCenter/QUICKSTART_CN.md \
+            ManakaQmlControlCenter/THIRD_PARTY_NOTICES.md; do
             if ! unzip -Z1 "$FILE_NAME" | grep -F "$required" >/dev/null; then
               echo "Missing required release payload: $required" >&2
               exit 1
             fi
           done
+          if unzip -Z1 "$FILE_NAME" | grep -F 'ManakaQmlControlCenter/mod_repositories/' >/dev/null; then
+            echo "Third-party Mod repository must not be bundled." >&2
+            exit 1
+          fi
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
 
       - name: Install Tencent COS SDK

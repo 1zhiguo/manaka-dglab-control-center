@@ -15,7 +15,7 @@
 - [提出问题](https://github.com/1zhiguo/manaka-dglab-control-center/issues)
 - [留言与讨论](https://github.com/1zhiguo/manaka-dglab-control-center/discussions)
 
-公开版**不包含游戏本体**。Release 同时提供内含 Mod 仓库的 Windows 便携包，以及可单独下载的 Mod/Plugins 包；第三方内容的权利与许可仍由各自作者保留。解压便携包后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
+公开版**不包含游戏本体或第三方 Mod**。Release 仅携带已验证的 BepInEx 运行环境和本项目的 DG-LAB 遥测插件；用户可从原作者页面取得 Mod 后，通过控制中心管理插件、CustomMission 1 和 CustomMission 2。解压便携包后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
 
 ## 核心功能
 
@@ -68,9 +68,9 @@ python/.venv/Scripts/python.exe -m pip install -r python/qml_dashboard_prototype
 python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 ```
 
-构建 Windows 便携版还需要 `PyInstaller`，以及由官方来源取得的 BepInEx 6 IL2CPP x64 文件放在 `installer_payload/bepinex_v113`。GitHub Actions 会自动取得指定版本并创建 Release。
+构建 Windows 便携版还需要 `PyInstaller`，以及由官方来源取得的 BepInEx 6 IL2CPP x64 文件放在 `installer_payload/bepinex_v113`。
 
-维护者发布新版本时无需手工上传多个平台：首次配置完成后，在 GitHub Actions 中手动运行 `Build and publish release` 即可同步 GitHub Release、腾讯 COS 大陆镜像、SHA-256 下载清单和 Firebase 网站。详见 [RELEASING_CN.md](RELEASING_CN.md)。
+维护者发布新版本时无需手工上传多个平台：先在 Windows 本机生成便携包并上传 GitHub Release，再手动运行 `Publish prebuilt release`，即可同步腾讯 COS、SHA-256 下载清单和 Firebase 网站。详见 [RELEASING_CN.md](RELEASING_CN.md)。
 
 ## 安全与责任
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import ctypes
 import hashlib
 import io
 import json
@@ -19,11 +20,12 @@ import time
 from pathlib import Path
 
 import qrcode
-from PySide6.QtCore import QObject, Property, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, Property, QLocale, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
 from manaka_dglab_bridge import DEFAULT_PORT, DGLabBridge
 from manaka_dropin_importer import DropInModImporter
+from manaka_9527_importer import Pack9527Error, Pack9527Importer
 from manaka_mod_manager import ManakaModManager, ModManagerError
 from manaka_trigger_engine import ManakaTriggerEngine, RollingPeakLimiter, TriggerFrame, clamp
 from manaka_waveforms import (
@@ -34,6 +36,55 @@ from manaka_waveforms import (
     WaveformSelector,
     sanitize_wave_map,
 )
+try:
+    from .i18n import translate
+    from .mod_catalog import build_mod_catalog
+except ImportError:  # Direct source/packaged entry point.
+    from i18n import translate
+    from mod_catalog import build_mod_catalog
+
+
+def windows_network_repair_script(lan_ip: str, port: int) -> str:
+    """Build the narrowly scoped, user-confirmed Windows network repair script."""
+    import ipaddress
+
+    address = ipaddress.ip_address(str(lan_ip).strip())
+    if not isinstance(address, ipaddress.IPv4Address) or address.is_loopback or address.is_link_local:
+        raise ValueError("当前二维码没有可修复的局域网 IPv4 地址")
+    safe_port = int(port)
+    if not 1 <= safe_port <= 65535:
+        raise ValueError("Socket 端口无效")
+    rule_name = f"ManakaDGLab-TCP-{safe_port}"
+    return f"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName PresentationFramework
+try {{
+    $targetIp = '{address}'
+    $port = {safe_port}
+    $config = Get-NetIPConfiguration | Where-Object {{
+        $_.IPv4Address.IPAddress -contains $targetIp
+    }} | Select-Object -First 1
+    if ($null -eq $config) {{ throw '找不到二维码对应的 Windows 网卡 / The selected network adapter is unavailable.' }}
+    $profile = Get-NetConnectionProfile -InterfaceIndex $config.InterfaceIndex
+    if ($profile.NetworkCategory -ne 'DomainAuthenticated') {{
+        Set-NetConnectionProfile -InterfaceIndex $config.InterfaceIndex -NetworkCategory Private
+    }}
+    $rule = Get-NetFirewallRule -Name '{rule_name}' -ErrorAction SilentlyContinue
+    if ($null -eq $rule) {{
+        New-NetFirewallRule -Name '{rule_name}' -DisplayName 'Manaka DG-LAB TCP {safe_port}' `
+            -Direction Inbound -Action Allow -Protocol TCP -LocalPort $port -Profile Private | Out-Null
+    }} else {{
+        Set-NetFirewallRule -Name '{rule_name}' -Enabled True -Action Allow -Profile Private
+    }}
+    [System.Windows.MessageBox]::Show(
+        '网络权限已修复，请返回 DG-LAB App 重新扫码。 / Network access repaired. Scan the QR code again.',
+        'Manaka DG-LAB'
+    ) | Out-Null
+}} catch {{
+    [System.Windows.MessageBox]::Show($_.Exception.Message, 'Manaka DG-LAB') | Out-Null
+    exit 1
+}}
+""".strip()
 
 
 def _load_app_version() -> str:
@@ -69,22 +120,8 @@ RECOMMENDED_MODS = (
         "id": "plugin|SFM_custom_mission_v2.dll",
         "displayName": "CustomMission 2",
         "role": "V2 基础前置",
-        "summary": "负责加载 CustomMissions2 目录中的脚本包。Moaning2 与 Aftermath & StageLock 都依赖它。",
+        "summary": "负责加载 CustomMissions2 目录中的 .code 脚本包。启用任何 V2 包前，应先启用它。",
         "accent": "violet",
-    },
-    {
-        "id": "v2|Moaning2",
-        "displayName": "Moaning2",
-        "role": "推荐 V2 功能包",
-        "summary": "根据角色状态播放对应语音，并提供高潮动画延长等设置。需要 CustomMission 2。",
-        "accent": "accent",
-    },
-    {
-        "id": "v2|Aftermath&StageLock",
-        "displayName": "Aftermath & StageLock",
-        "role": "推荐 V2 功能包 · 谨慎启用",
-        "summary": "扩展互动后的后果与场景锁定功能。与其他 Aftermath 变体互斥，且兼容性风险较高。",
-        "accent": "amber",
     },
 )
 V1_MISSION_LOCATIONS = (
@@ -172,6 +209,122 @@ V1_LOCATION_RULES = (
     (r"^xposure$", ("Xposure 0–3",)),
     (r"^yakuza's punishment$", ("Yakuza's Punishment",)),
 )
+F95_CUSTOM_MISSIONS_THREAD = (
+    "https://f95zone.to/threads/"
+    "secret-flasher-manaka-custom-missions-1-2-1-version-2-4-0.263276/"
+)
+MOD_SOURCE_LINKS = (
+    {
+        "group": "内置任务来源",
+        "name": "Custom Missions 原帖索引",
+        "author": "F95Zone 社区作者",
+        "reference": "主帖",
+        "url": F95_CUSTOM_MISSIONS_THREAD,
+        "summary": "CustomMission 1/2、任务与功能包的原始发布讨论入口。需要登录 F95Zone。",
+    },
+    {
+        "group": "内置任务来源",
+        "name": "Park Accident / admirer",
+        "author": "请以原帖署名为准",
+        "reference": "原帖索引",
+        "url": F95_CUSTOM_MISSIONS_THREAD,
+        "summary": "整理清单没有给出这两项的可靠作者链接，因此只提供原帖索引，不擅自署名。",
+    },
+    {
+        "group": "内置任务来源",
+        "name": "Slave To Fate",
+        "author": "Tghyt",
+        "reference": "F95 #147",
+        "url": F95_CUSTOM_MISSIONS_THREAD + "page-8",
+        "summary": "当前内置 V1 文件名为 SlaveToFate1；链接打开原帖对应页附近。",
+    },
+    {
+        "group": "内置任务来源",
+        "name": "Auto Brightness",
+        "author": "Suzutsuki117",
+        "reference": "F95 #2014",
+        "url": F95_CUSTOM_MISSIONS_THREAD + "page-101",
+        "summary": "按地图调整亮度的 V2 功能包。",
+    },
+    {
+        "group": "内置任务来源",
+        "name": "Exposure Urges",
+        "author": "raptorr64",
+        "reference": "F95 #2279",
+        "url": F95_CUSTOM_MISSIONS_THREAD + "page-114",
+        "summary": "当前内置目录名为 ExhibUrges；链接打开原始任务条目附近。",
+    },
+    {
+        "group": "中文用户资源",
+        "name": "user9527 中文汉化整合",
+        "author": "user9527",
+        "reference": "仅在 F95Zone 发布",
+        "url": F95_CUSTOM_MISSIONS_THREAD + "post-20360819",
+        "summary": "请登录原帖查找 user9527 的发布内容；本软件不转载、不镜像该整合包。",
+    },
+    {
+        "group": "中文用户资源",
+        "name": "user9527 作者下载目录",
+        "author": "user9527",
+        "reference": "Mega",
+        "url": "https://mega.nz/folder/QAEiCThB#V3T3H3c60jmQ_Pqm2R2eRA",
+        "summary": "作者在原帖说明中提供的目录；使用与更新规则仍以 F95Zone 原帖为准。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "地图导入器",
+        "author": "F95Zone 作者",
+        "reference": "原帖",
+        "url": "https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/post-20766048",
+        "summary": "第三方地图导入工具；请在原帖确认版本与依赖。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "lrlVIbe",
+        "author": "F95Zone 作者",
+        "reference": "原帖",
+        "url": "https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-1-1.263276/post-20537701",
+        "summary": "成人玩具外设插件；本软件仅提供作者页面入口。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "SecretFlasherManakaVR",
+        "author": "F95Zone 作者",
+        "reference": "原帖",
+        "url": "https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-1-1.263276/post-20565081",
+        "summary": "VR 外设插件；本软件仅提供作者页面入口。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "任务管理 / 提示器",
+        "author": "F95Zone 作者",
+        "reference": "原帖",
+        "url": "https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/post-20924939",
+        "summary": "任务管理与提示工具；请在原帖查看最新兼容信息。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "PeanutsZheng ModManager",
+        "author": "PeanutsZheng",
+        "reference": "GitHub",
+        "url": "https://github.com/PeanutsZheng/ModManager/releases",
+        "summary": "另一款开源插件管理器；适合希望比较不同管理方案的用户。",
+    },
+    {
+        "group": "扩展入口",
+        "name": "中文开发者 Telegram 群组",
+        "author": "社区",
+        "reference": "Telegram",
+        "url": "https://t.me/+jpMci4Z4pdRjZGE1",
+        "summary": "原说明中列出的第三方开发讨论群组。",
+    },
+)
+ALLOWED_EXTERNAL_HOSTS = {
+    "f95zone.to",
+    "github.com",
+    "mega.nz",
+    "t.me",
+}
 SUPPORTED_GAME_HASHES = {
     "GameAssembly.dll": "6003033049ac32e8712dc4101382534e21d65b97100c167ebec6bbca1462c18d",
     "SecretFlasherManaka_Data/il2cpp_data/Metadata/global-metadata.dat": "457203754abe77b346fd98086a5c787bd41088d808cc81b1d4e2cae5b85c72c8",
@@ -191,6 +344,22 @@ USER_AGREEMENT = """Manaka × DG-LAB 使用协议与风险知情确认
 6. 本软件按现状提供。在适用法律允许的范围内，开发者不对因用户设置、第三方硬件或软件、网络、游戏修改、错误操作或违反说明而产生的损失承担责任。
 
 7. 点击“我已阅读并同意”表示你已理解上述风险并自愿承担在正确使用范围内仍可能存在的风险。不同意请直接退出应用，软件不会启动遥测监听或 DG-LAB Socket 服务。"""
+
+USER_AGREEMENT_EN = """Manaka × DG-LAB User Agreement and Risk Acknowledgement
+
+1. This software is intended only for consenting adults with full legal capacity. It converts game events into control commands for a third-party electrical stimulation device. It is not a medical device and does not provide medical advice.
+
+2. Electrical stimulation may cause pain, skin irritation or burns, involuntary muscle contraction, shock, falls, and other known or unknown injury. Wireless networks, Bluetooth, game plugins, the operating system, or third-party apps may introduce latency, duplicated or lost packets, incorrect detection, or failure of a stop command.
+
+3. Before use, read and follow the official instructions for the DG-LAB controller, electrodes, and app. Do not use if you have a cardiac or neurological condition, an implanted electronic device, are pregnant, have impaired sensation or broken skin, or are unsure about your health, unless a qualified medical professional has explicitly approved use.
+
+4. Start at low strength and keep the physical controller and power disconnect within immediate reach. Do not use while driving, standing, bathing, sleeping, unconscious, intoxicated, or after taking substances that impair judgment. Do not place electrodes in locations prohibited by the device instructions.
+
+5. The “safety hard cap” only limits software commands. It is not a medically safe value and does not replace physical device protections. Re-test at low strength after raising the cap, using a custom waveform, or allowing another person to control the device. Stop and disconnect immediately if you experience pain, numbness, burning, dizziness, palpitations, or other discomfort, and seek medical help when appropriate.
+
+6. This software is provided as-is. To the maximum extent permitted by applicable law, the developer is not liable for loss arising from user settings, third-party hardware or software, networks, game modifications, misuse, or failure to follow instructions.
+
+7. Clicking “I Have Read and Agree” confirms that you understand these risks and voluntarily accept risks that may remain during proper use. If you disagree, exit the application. Telemetry listening and DG-LAB Socket services will not start."""
 
 
 def app_data_dir() -> Path:
@@ -242,12 +411,6 @@ def bundled_guide_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS")) / "assets" / "dglab_guide"
     return Path(__file__).resolve().parents[1] / "assets" / "dglab_guide"
-
-
-def bundled_mod_repositories_path() -> Path:
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / "mod_repositories"
-    return Path(__file__).resolve().parents[2] / "mod_repositories"
 
 
 def dropin_mods_path() -> Path:
@@ -335,12 +498,16 @@ class ControlCenterBackend(QObject):
     toastRequested = Signal(str, str)
     exitRequested = Signal()
 
-    def __init__(self, *, demo: bool = False, parent: QObject | None = None) -> None:
+    def __init__(self, *, demo: bool = False, language: str | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.demo_mode = bool(demo)
         self.messages: queue.Queue = queue.Queue()
         self.saved = load_config()
         self.theme_name = "light" if self.saved.get("theme") == "light" else "dark"
+        saved_language = str(language or self.saved.get("language", "")).lower()
+        if saved_language not in {"zh", "en"}:
+            saved_language = "zh" if QLocale.system().name().lower().startswith("zh") else "en"
+        self.language_name = saved_language
         self.agreement_accepted_value = bool(
             demo or self.saved.get("agreement_version") == AGREEMENT_VERSION
         )
@@ -380,26 +547,21 @@ class ControlCenterBackend(QObject):
         saved_folder = str(self.saved.get("game_folder", ""))
         self.game_folder_value = saved_folder if Path(saved_folder).is_dir() else ""
         self.game_status_value = "尚未检查"
-        saved_mod_source = str(self.saved.get("mod_source_folder", ""))
-        bundled_mod_source = bundled_mod_repositories_path()
-        prefer_external = self.saved.get("mod_source_mode") == "external"
-        if prefer_external and Path(saved_mod_source).is_dir():
-            self.mod_source_folder_value = saved_mod_source
-        elif bundled_mod_source.is_dir():
-            self.mod_source_folder_value = str(bundled_mod_source)
-        elif self.game_folder_value and (
-            (Path(self.game_folder_value) / "CustomMissions1").is_dir()
-            or (Path(self.game_folder_value) / "CustomMissions2").is_dir()
-        ):
-            self.mod_source_folder_value = self.game_folder_value
-        else:
-            self.mod_source_folder_value = ""
+        # The manager now has one clear scope: the selected game's installed
+        # and disabled files. External packs enter through Drop-in or a guided
+        # importer instead of becoming a second scan source.
+        self.mod_source_folder_value = self.game_folder_value
         self.mod_inventory_value: list[dict] = []
         self.loaded_mod_inventory_value: list[dict] = []
         self.recommended_mod_inventory_value: list[dict] = self._recommended_mods([])
-        self.mod_status_value = "请选择已有 Mod 整合包的根目录"
+        self.mod_status_value = "选择游戏目录后即可管理本地 Mod"
         self.mod_summary_value = "尚未扫描"
         self.mod_manager: ManakaModManager | None = None
+        self.pack9527_importer = Pack9527Importer()
+        self.pack9527_folder_value = ""
+        self.pack9527_status_value = "尚未选择 9527 整合包"
+        self.pack9527_analysis_value: dict = {}
+        self.pack9527_backup_value = ""
         self.dropin_importer = DropInModImporter(dropin_mods_path())
         self.dropin_status_value = "把 Mod 放进 incoming，然后点击导入"
         try:
@@ -412,6 +574,7 @@ class ControlCenterBackend(QObject):
         self.auto_output_enabled = bool(demo)
         self.server_ready_value = bool(demo)
         self.lan_address_value = "192.168.x.x:9999" if demo else "正在准备…"
+        self.lan_addresses_value = ["192.168.x.x"] if demo else []
         self.qr_source_value = ""
 
         self.heart_rate_value = 128.0 if demo else 0.0
@@ -482,8 +645,8 @@ class ControlCenterBackend(QObject):
                     "id": path.name,
                     "key": "library:" + path.stem,
                     "name": name,
-                    "description": "保存的 16 点自定义包络",
-                    "bestFor": "载入后可编辑并用于固定或智能策略",
+                    "description": self._t("保存的 16 点自定义包络"),
+                    "bestFor": self._t("载入后可编辑并用于固定或智能策略"),
                     "color": "#59DCE7",
                     "points": clean_points,
                     "frequency": frequency,
@@ -509,13 +672,17 @@ class ControlCenterBackend(QObject):
     def agreementAccepted(self) -> bool:
         return self.agreement_accepted_value
 
-    @Property(str, constant=True)
+    @Property(str, notify=configChanged)
     def agreementText(self) -> str:
-        return USER_AGREEMENT
+        return USER_AGREEMENT_EN if self.language_name == "en" else USER_AGREEMENT
 
     @Property(str, notify=configChanged)
     def theme(self) -> str:
         return self.theme_name
+
+    @Property(str, notify=configChanged)
+    def language(self) -> str:
+        return self.language_name
 
     @Property(bool, notify=stateChanged)
     def telemetryOnline(self) -> bool:
@@ -523,7 +690,7 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=stateChanged)
     def telemetryStatus(self) -> str:
-        return self.telemetry_status_value
+        return self._t(self.telemetry_status_value)
 
     @Property(bool, notify=stateChanged)
     def deviceConnected(self) -> bool:
@@ -539,7 +706,7 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=stateChanged)
     def deviceStatus(self) -> str:
-        return self.device_status_value
+        return self._t(self.device_status_value)
 
     @Property(bool, notify=stateChanged)
     def serverReady(self) -> bool:
@@ -548,6 +715,10 @@ class ControlCenterBackend(QObject):
     @Property(str, notify=stateChanged)
     def lanAddress(self) -> str:
         return self.lan_address_value
+
+    @Property("QVariantList", notify=stateChanged)
+    def lanAddresses(self) -> list[str]:
+        return list(self.lan_addresses_value)
 
     @Property(str, notify=stateChanged)
     def qrSource(self) -> str:
@@ -587,7 +758,7 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=stateChanged)
     def progressEditorStatus(self) -> str:
-        return self.progress_editor_status_value
+        return self._t(self.progress_editor_status_value)
 
     @Property(bool, notify=stateChanged)
     def canEditProgress(self) -> bool:
@@ -609,11 +780,11 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=stateChanged)
     def waveAName(self) -> str:
-        return self.current_wave_a.name if self.current_wave_a else "待机"
+        return self._t(self.current_wave_a.name if self.current_wave_a else "待机")
 
     @Property(str, notify=stateChanged)
     def waveBName(self) -> str:
-        return self.current_wave_b.name if self.current_wave_b else "待机"
+        return self._t(self.current_wave_b.name if self.current_wave_b else "待机")
 
     @Property("QVariantList", notify=stateChanged)
     def waveAPoints(self) -> list[int]:
@@ -630,7 +801,7 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=configChanged)
     def gameStatus(self) -> str:
-        return self.game_status_value
+        return self._t(self.game_status_value)
 
     @Property(str, notify=configChanged)
     def modSourceFolder(self) -> str:
@@ -648,21 +819,21 @@ class ControlCenterBackend(QObject):
     def recommendedModInventory(self) -> list[dict]:
         return list(self.recommended_mod_inventory_value)
 
+    @Property("QVariantList", notify=configChanged)
+    def modSourceLinks(self) -> list[dict]:
+        return build_mod_catalog(self.language_name)
+
     @Property("QVariantList", constant=True)
     def v1MissionLocations(self) -> list[dict]:
         return [dict(item) for item in V1_MISSION_LOCATIONS]
 
     @Property(str, notify=configChanged)
     def modStatus(self) -> str:
-        return self.mod_status_value
+        return self._t(self.mod_status_value)
 
     @Property(str, notify=configChanged)
     def modSummary(self) -> str:
-        return self.mod_summary_value
-
-    @Property(bool, constant=True)
-    def bundledModsAvailable(self) -> bool:
-        return bundled_mod_repositories_path().is_dir()
+        return self._t(self.mod_summary_value)
 
     @Property(str, constant=True)
     def dropInFolder(self) -> str:
@@ -670,7 +841,27 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=configChanged)
     def dropInStatus(self) -> str:
-        return self.dropin_status_value
+        return self._t(self.dropin_status_value)
+
+    @Property(str, notify=configChanged)
+    def pack9527Folder(self) -> str:
+        return self.pack9527_folder_value
+
+    @Property(str, notify=configChanged)
+    def pack9527Status(self) -> str:
+        return self._t(self.pack9527_status_value)
+
+    @Property("QVariantMap", notify=configChanged)
+    def pack9527Analysis(self) -> dict:
+        return dict(self.pack9527_analysis_value)
+
+    @Property(bool, notify=configChanged)
+    def pack9527Ready(self) -> bool:
+        return bool(self.pack9527_analysis_value.get("ready"))
+
+    @Property(str, notify=configChanged)
+    def pack9527Backup(self) -> str:
+        return self.pack9527_backup_value
 
     @Property(int, notify=configChanged)
     def triggerBpm(self) -> int:
@@ -721,13 +912,13 @@ class ControlCenterBackend(QObject):
         values = [
             {
                 "key": preset.key,
-                "name": preset.name,
-                "description": preset.description,
-                "bestFor": preset.best_for,
+                "name": self._t(preset.name),
+                "description": self._t(preset.description),
+                "bestFor": self._t(preset.best_for),
                 "color": preset.color,
                 "points": list(preset.amplitudes),
                 "frequency": int(round(sum(preset.frequency_codes) / len(preset.frequency_codes))),
-                "source": preset.source,
+                "source": self._t(preset.source),
                 "feelScale": int(round(preset.feel_scale * 100)),
             }
             for preset in PRESETS.values()
@@ -736,12 +927,12 @@ class ControlCenterBackend(QObject):
             {
                 "key": "custom",
                 "name": self.custom_name_value,
-                "description": "自定义 16 点包络",
-                "bestFor": "由用户自行分配",
+                "description": self._t("自定义 16 点包络"),
+                "bestFor": self._t("由用户自行分配"),
                 "color": "#59DCE7",
                 "points": list(self.custom_points_value),
                 "frequency": self.custom_frequency_value,
-                "source": "用户自定义",
+                "source": self._t("用户自定义"),
                 "feelScale": 100,
             }
         )
@@ -749,7 +940,7 @@ class ControlCenterBackend(QObject):
 
     @Property("QVariantList", notify=configChanged)
     def officialPresets(self) -> list[dict]:
-        return [value for value in self.presets if value.get("source") == "DG-LAB 官方"]
+        return [value for value in self.presets if str(value.get("key", "")).startswith("official_")]
 
     @Property("QVariantList", notify=configChanged)
     def waveformCatalog(self) -> list[dict]:
@@ -773,9 +964,53 @@ class ControlCenterBackend(QObject):
 
     @Property("QVariantList", notify=logsChanged)
     def logs(self) -> list[str]:
-        return list(self.log_lines)
+        values: list[str] = []
+        for line in self.log_lines:
+            if "  " in line:
+                stamp, message = line.split("  ", 1)
+                values.append(f"{stamp}  {self._t(message)}")
+            else:
+                values.append(self._t(line))
+        return values
 
     # ----- QML actions ---------------------------------------------------------
+    def _t(self, source: str) -> str:
+        return translate(str(source), self.language_name)
+
+    @Slot(str, result=str)
+    def translate(self, source: str) -> str:
+        return self._t(source)
+
+    @staticmethod
+    def _is_allowed_external_url(value: str) -> bool:
+        url = QUrl(str(value).strip())
+        host = url.host().lower().rstrip(".")
+        return (
+            url.isValid()
+            and url.scheme().lower() == "https"
+            and any(host == allowed or host.endswith("." + allowed) for allowed in ALLOWED_EXTERNAL_HOSTS)
+        )
+
+    @Slot(str, result=bool)
+    def openExternalUrl(self, value: str) -> bool:
+        if not self._is_allowed_external_url(value):
+            self.toastRequested.emit(self._t("无法打开链接"), self._t("这个地址不在允许的作者来源列表中。"))
+            return False
+        return bool(QDesktopServices.openUrl(QUrl(value)))
+
+    @Slot(str)
+    def setLanguage(self, value: str) -> None:
+        value = "en" if value == "en" else "zh"
+        if value == self.language_name:
+            return
+        self.language_name = value
+        self.custom_wave_library_value = self._read_custom_wave_library()
+        self.recommended_mod_inventory_value = self._recommended_mods(self.mod_inventory_value)
+        update_config({"language": value})
+        self.configChanged.emit()
+        self.stateChanged.emit()
+        self.logsChanged.emit()
+
     @Slot(str)
     def setTheme(self, value: str) -> None:
         value = "light" if value == "light" else "dark"
@@ -807,38 +1042,144 @@ class ControlCenterBackend(QObject):
         self.telemetry_status_value = "正在准备监听…"
         self.device_status_value = "等待手机扫码"
         self.worker = TelemetryWorker(self.messages)
-        self.bridge = DGLabBridge(self.messages, port=int(self.saved.get("socket_port", DEFAULT_PORT)))
+        self.bridge = DGLabBridge(
+            self.messages,
+            port=int(self.saved.get("socket_port", DEFAULT_PORT)),
+            lan_ip=str(self.saved.get("socket_lan_ip", "")),
+        )
         self.worker.start()
         self.bridge.start()
         self.stateChanged.emit()
+
+    @Slot(str, result=bool)
+    def selectLanAddress(self, address: str) -> bool:
+        if self.demo_mode:
+            return True
+        if self.bridge is None or not self.bridge.set_lan_ip(address):
+            self._toast("无法切换地址", "所选地址已失效，请重新连接网络后重启软件")
+            return False
+        update_config({"socket_lan_ip": str(address)})
+        self._log(f"二维码已切换到局域网地址：{address}:{self.bridge.port}")
+        self._toast("二维码已更新", "请使用 DG-LAB App 扫描新的二维码")
+        return True
+
+    @Slot(result=bool)
+    def repairNetworkAccess(self) -> bool:
+        if os.name != "nt":
+            self._toast("当前系统不支持", "自动网络修复仅适用于 Windows")
+            return False
+        if self.bridge is None or not self.server_ready_value:
+            self._toast("Socket 尚未就绪", "请等待二维码和局域网地址显示后再试")
+            return False
+        try:
+            script = windows_network_repair_script(self.bridge.lan_ip, self.bridge.port)
+            parameters = subprocess.list2cmdline(["-NoProfile", "-Command", script])
+            result = ctypes.windll.shell32.ShellExecuteW(
+                None,
+                "runas",
+                "powershell.exe",
+                parameters,
+                None,
+                1,
+            )
+        except (OSError, ValueError) as error:
+            self._toast("无法启动网络修复", str(error))
+            return False
+        if int(result) <= 32:
+            self._toast("未执行网络修复", "管理员授权已取消或 PowerShell 无法启动")
+            return False
+        self._log(f"已请求管理员修复网络：{self.bridge.lan_ip}:{self.bridge.port}")
+        self._toast("请确认管理员授权", "修复完成后回到 DG-LAB App 重新扫码")
+        return True
 
     @Slot(str)
     def setGameFolder(self, value: str) -> None:
         url = QUrl(value)
         path = url.toLocalFile() if url.isLocalFile() else value
         self.game_folder_value = str(Path(path)) if path else ""
-        update_config({"game_folder": self.game_folder_value})
+        self.mod_source_folder_value = self.game_folder_value
+        update_config({
+            "game_folder": self.game_folder_value,
+            "mod_source_folder": self.game_folder_value,
+            "mod_source_mode": "game",
+        })
         self.check_game()
         if self.mod_source_folder_value:
             self.scan_mods(show_error=False)
 
-    @Slot(str)
-    def setModSourceFolder(self, value: str) -> None:
+    @Slot()
+    def reset9527Import(self) -> None:
+        self.pack9527_folder_value = ""
+        self.pack9527_status_value = "尚未选择 9527 整合包"
+        self.pack9527_analysis_value = {}
+        self.pack9527_backup_value = ""
+        self.configChanged.emit()
+
+    @Slot(str, result=bool)
+    def inspect9527Pack(self, value: str) -> bool:
         url = QUrl(value)
         path = url.toLocalFile() if url.isLocalFile() else value
-        self.mod_source_folder_value = str(Path(path)) if path else ""
-        update_config({"mod_source_folder": self.mod_source_folder_value, "mod_source_mode": "external"})
-        self.scan_mods(show_error=True)
+        self.pack9527_folder_value = str(Path(path)) if path else ""
+        self.pack9527_analysis_value = {}
+        self.pack9527_backup_value = ""
+        try:
+            analysis = self.pack9527_importer.inspect(Path(self.pack9527_folder_value))
+        except (Pack9527Error, OSError) as error:
+            self.pack9527_status_value = str(error)
+            self._toast("9527 整合包校验失败", str(error))
+            self.configChanged.emit()
+            return False
+        self.pack9527_folder_value = analysis.root
+        self.pack9527_analysis_value = analysis.as_dict()
+        size_mib = analysis.total_bytes / (1024 * 1024)
+        self.pack9527_status_value = (
+            f"校验通过：插件 {analysis.plugins} · V1 {analysis.v1_missions} · "
+            f"V2 {analysis.v2_packages} · {size_mib:.1f} MiB"
+        )
+        self._log(f"9527 整合包：{self.pack9527_status_value}")
+        self.configChanged.emit()
+        return analysis.ready
+
+    @Slot(result=bool)
+    def install9527Pack(self) -> bool:
+        if not self.pack9527_folder_value:
+            self._toast("尚未选择整合包", "请先选择解压后的 9527 整合包目录")
+            return False
+        self.pack9527_status_value = "正在备份并应用精简启动预设…"
+        self.configChanged.emit()
+        try:
+            result = self.pack9527_importer.install(
+                Path(self.pack9527_folder_value),
+                Path(self.game_folder_value.strip()),
+            )
+        except (Pack9527Error, OSError, shutil.Error) as error:
+            self.pack9527_status_value = str(error)
+            self._toast("9527 整合包导入失败", str(error))
+            self._log(f"9527 整合包导入失败：{error}")
+            self.configChanged.emit()
+            return False
+
+        self.pack9527_backup_value = str(result["backup"])
+        self.pack9527_analysis_value = dict(result)
+        self.pack9527_status_value = (
+            f"导入完成：仅启用 CustomMission 1/2；已停用插件 {result['disabled_plugins']}、"
+            f"V1 任务 {result['disabled_v1']}、V2 包 {result['disabled_v2']}"
+        )
+        self.mod_source_folder_value = self.game_folder_value
+        update_config({
+            "mod_source_folder": self.mod_source_folder_value,
+            "mod_source_mode": "game",
+        })
+        self.scan_mods(show_error=False)
+        self._log(f"9527 整合包：{self.pack9527_status_value}")
+        self._toast("9527 整合包导入完成", "精简启动预设已应用；可到本地 Mod 逐项开启任务")
+        self.configChanged.emit()
+        return True
 
     @Slot()
-    def useBundledMods(self) -> None:
-        bundled = bundled_mod_repositories_path()
-        if not bundled.is_dir():
-            self._toast("内置仓库不可用", "当前软件目录中没有 mod_repositories")
-            return
-        self.mod_source_folder_value = str(bundled)
-        update_config({"mod_source_folder": str(bundled), "mod_source_mode": "bundled"})
-        self.scan_mods(show_error=True)
+    def open9527Backup(self) -> None:
+        if self.pack9527_backup_value and Path(self.pack9527_backup_value).is_dir():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.pack9527_backup_value))
 
     @Slot(result=bool)
     def scanMods(self) -> bool:
@@ -937,20 +1278,22 @@ class ControlCenterBackend(QObject):
                 mod["location"] = "　".join(f"{item['name']}：{item['location']}" for item in matches)
             mod["locationNote"] = "　".join(item["note"] for item in matches if item["note"])
 
-    @staticmethod
-    def _recommended_mods(inventory: list[dict]) -> list[dict]:
+    def _recommended_mods(self, inventory: list[dict]) -> list[dict]:
         by_id = {str(item.get("id", "")).casefold(): item for item in inventory}
         result: list[dict] = []
         for definition in RECOMMENDED_MODS:
             item = dict(by_id.get(definition["id"].casefold(), {}))
-            item.update(definition)
+            localized_definition = dict(definition)
+            localized_definition["role"] = self._t(str(definition["role"]))
+            localized_definition["summary"] = self._t(str(definition["summary"]))
+            item.update(localized_definition)
             if not item.get("kind"):
                 item.update({
                     "kind": "plugin" if definition["id"].startswith("plugin|") else "v2",
-                    "kindLabel": "插件" if definition["id"].startswith("plugin|") else "V2 包",
+                    "kindLabel": self._t("插件" if definition["id"].startswith("plugin|") else "V2 包"),
                     "enabled": False,
                     "available": False,
-                    "status": "当前来源库中未找到",
+                    "status": self._t("当前来源库中未找到"),
                     "warning": "",
                     "requiredPluginName": "",
                     "dependencyReady": True,
@@ -1595,6 +1938,8 @@ class ControlCenterBackend(QObject):
             self.server_ready_value = True
             address = f"{payload.get('lan_ip')}:{payload.get('port')}"
             self.lan_address_value = address
+            if self.bridge is not None:
+                self.lan_addresses_value = list(self.bridge.available_lan_ips)
             self.device_status_value = "Socket 已就绪 · 等待手机扫码"
             if self.bridge is not None:
                 snapshot = self.bridge.snapshot()
@@ -1761,7 +2106,7 @@ class ControlCenterBackend(QObject):
         return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
 
     def _toast(self, title: str, message: str) -> None:
-        self.toastRequested.emit(title, message)
+        self.toastRequested.emit(self._t(title), self._t(message))
 
     def _log(self, text: str) -> None:
         self.log_lines.append(f"{time.strftime('%H:%M:%S')}  {text}")

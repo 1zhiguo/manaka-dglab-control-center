@@ -22,14 +22,14 @@
 8. “存档工具”可以读取并修改当前存档的游戏货币（RP）和经验值。先载入目标存档，
    让角色处于室外（非室内），再按 Esc 暂停游戏并点击“备份、写入并保存”；每次写入前
    都会自动备份原始存档。经验写入后，需要完成任意任务并回家触发结算，等级才会刷新。
-9. “Mod 管理器”默认读取软件旁边的三个内置仓库，无需另外选择目录；也可以点击
-   “外部整合包”，选择能直接看到 `BepInEx`、`CustomMissions1` 或 `CustomMissions2`
-   的其他根目录。软件会记住该电脑上的选择。
+9. “Mod 管理器”只管理当前游戏目录中已有的插件、CustomMission 1 和
+   CustomMission 2 内容。发行包不再携带第三方 Mod 仓库；请在“创意工坊”访问
+   F95Zone 原帖，下载后使用 Drop-in 收件箱，或通过专用向导导入 user9527 整合包。
 
 ## Mod 管理器
 
 - **插件**：扫描 `BepInEx\plugins` 下的 DLL；整合包 `plugins\save` 中的 DLL 会显示为已拥有但未启用。
-- **V1 任务**：把 `CustomMissions1` 中同系列 JSON 归为一组，启用后复制到游戏的 `CustomMissions`。
+- **V1 任务**：把来源目录中的 `CustomMissions`/`CustomMissions1` JSON 按系列归组，启用后复制到游戏的 `CustomMissions`。
 - **V2 包**：每个 `CustomMissions2\包名` 文件夹是一个独立开关；名称与简介优先读取其 `meta.json`。
 - **前置关系**：V1 任务需要先启用 `CustomMission 1`（`SFM_custom_mission.dll`）；V2 包需要先启用 `CustomMission 2`（`SFM_custom_mission_v2.dll`）。Mod 管理器的“推荐与前置”页会持续显示这两个加载器以及 Moaning2、Aftermath & StageLock 的实际状态。
 - **当前加载**：是“全部 Mod”的启用状态筛选，只显示当前位于游戏启用目录、理论上会随游戏加载的插件和任务包；不读取运行日志，也不代表已经验证过运行结果。
@@ -40,8 +40,24 @@
 - Aftermath 两个变体、MultiStageItemSearch 与 Plus 属于互斥组合，管理器会阻止同时启用；
   Hunted、Vampire、NPCBehaviorModifier 等已知软冲突会显示黄色警告。
 - 第三方 Mod 仍属于其原作者；控制中心只保存路径和开关状态，不把这些文件打进发布包。
-- 私人整合版例外：软件目录的 `mod_repositories` 内含三个用户指定的本地快照仓库；
-  它们不包含 `.git` 历史，也排除了原整合包中的 V2 个人运行存档。
+- 便携包仅内置 BepInEx 运行环境和本项目的 DG-LAB 遥测插件。CustomMission 1/2
+  加载器、任务与其他插件均由用户从作者页面取得。
+
+### 导入 user9527 汉化整合
+
+1. 在“设备与游戏”选择游戏根目录，并先完成 BepInEx 运行环境安装。
+2. 完全退出游戏，在“Mod 管理器”点击“9527 导入向导”。
+3. 选择解压后能直接看到 `BepInEx`、`CustomMissions`、`CustomMissions2`
+   和必读说明的目录。向导也能从只有一个有效候选项的上一层目录自动定位。
+4. 检查识别出的插件、V1/V2 数量，阅读作者提供的必读说明，然后确认安装计划。
+5. 向导会备份将被覆盖的文件，复制配置和附属资源，并应用“精简启动”预设：
+   只启用 `SFM_custom_mission.dll` 与 `SFM_custom_mission_v2.dll`；其他第三方 DLL、
+   全部 V1/V2 内容先放入 `ManakaModManager\disabled`。
+6. 导入完成后在“本地 Mod”逐项开启需要的任务。DG-LAB 遥测插件不会被该预设关闭。
+
+备份位于游戏目录的 `ManakaModManager\backups\9527-日期时间`。后续再次用向导更新时，
+软件会依据上一次安装清单清理已由向导管理、但新包中已经移除的旧文件；不会运行或上传
+整合包中的 EXE、BAT 或其他脚本。
 
 ### Drop-in 添加外部 Mod
 
@@ -58,9 +74,8 @@
 解压后超过 512 MiB 的压缩包。导入阶段不会执行 BAT、EXE 或其他脚本；但启用第三方
 DLL 后，BepInEx 会在游戏启动时加载它，因此请勿使用不可信来源的 Mod。
 
-“外部整合包”不是导入按钮：它用于选择并扫描另一套已有整合包的根目录。扫描本身
-不会修改那套整合包或当前游戏；只有在列表中开启某项后，软件才把对应内容同步到当前
-游戏的 `BepInEx\plugins`、`CustomMissions` 或 `CustomMissions2`。
+普通 F95Zone 内容请放入 Drop-in 收件箱；user9527 整合包请在“创意工坊”的路线 2
+使用专用向导。Mod 管理器顶部不再切换来源，始终显示当前游戏目录及其停用隔离区中的内容。
 
 ## 存档工具
 
@@ -86,6 +101,7 @@ DLL 后，BepInEx 会在游戏启动时加载它，因此请勿使用不可信�
 
 二维码使用 DG-LAB Socket 协议，默认监听 TCP `9999` 端口。若二维码无法连接，
 请确认手机与电脑处于同一 Wi-Fi、未启用访客网络隔离，并检查 Windows 防火墙的专用网络权限。
+也可以在“设备与游戏”页面点击“连接不上？”，切换二维码使用的局域网 IP，或在可信家庭网络中使用管理员网络修复。
 
 ## 波形工作台
 

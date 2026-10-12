@@ -1,8 +1,8 @@
 """Safe, reversible mod inventory and toggling for Secret Flasher Manaka.
 
-Third-party files are never bundled by the application.  A user-selected pack is
-treated as a read-only source library; the selected game folder is the only
-managed destination.
+Third-party files are never bundled by the application. The selected game folder
+is the default local inventory; an optional user-selected pack is treated as a
+read-only source library and the game folder remains the only managed destination.
 """
 
 from __future__ import annotations
@@ -20,24 +20,161 @@ class ModManagerError(RuntimeError):
 
 
 PLUGIN_DESCRIPTIONS = {
-    "barenai_manaka_helper": "通用辅助插件；部分玩法或任务可能依赖它。",
-    "bettercompass": "改进游戏内罗盘显示。",
-    "bgmkr.manaka.animcancel": "允许取消部分动作动画。",
-    "desperatedash": "扩展冲刺相关玩法。",
-    "doorinspect": "增加门与入口的检查交互。",
-    "rotorsoundfix": "修正转子类道具的声音表现。",
+    "animreplacer": "动作替换插件，按 F1 打开设置。",
+    "bj_sounds": "为 Xxxhibition_Sex 提供口交声音。",
+    "collarasset": "锁链拘束具；配合 ChainCollar 或 PetCollar，面对墙体按 ] 使用。",
+    "com.tetorafetora.sfmfluidsmod": "增强淫水和液体的视觉效果。",
+    "sfmfluidsmod": "增强淫水和液体的视觉效果。",
+    "cosplayascoat": "整合额外服装的私服、穿脱等扩展功能；请备份 partgroups 配置。",
+    "sfm_maploader": "加载自定义地图及其资源。",
+    "sfmcosplaycache": "提升额外服装加载速度，可通过 cfg 配置。",
+    "allowall": "设置角色可以与哪些类型的 NPC 互动。",
+    "barenai_manaka_helper": "去除马赛克补丁。",
+    "bettercompass": "罗盘会提示物品与角色的垂直位置关系。",
+    "bgmkr.manaka.animcancel": "允许角色趴着时做姿势动作。",
+    "cmv2extras": "CustomMission 2 的必需扩展功能。",
+    "desperatedash": "震动器处于强档时仍可消耗体力冲刺。",
+    "disablecollectall": "禁止使用 PC 回收全部物品。",
+    "disablefasttravel": "禁止使用 Tab 快速传送。",
+    "eyemaskplus": "设置佩戴眼罩后的视野，可通过 cfg 配置。",
+    "freer": "重做手铐系统，让受束缚后的行动更符合真实逻辑。",
+    "gameoversounddisabler": "禁用被发现后的提示音效。",
+    "handcuffskillcheck": "把手铐解锁改为按空格完成 QTE，可通过 cfg 配置。",
+    "heartfx": "高心率时增加屏幕晃动效果。",
+    "hidefinishedpanel": "完成原版任务后隐藏任务面板。",
+    "manakacamera": "额外摄像机；* 开关、[ 切换模式，Ctrl 配合方向键移动。",
+    "minimapplugin": "F5 显示小地图，F6 显示大地图。",
+    "mpasset": "ManakaPlus 任务的必需插件。",
+    "nakedcountedasflashing": "全裸时同时计为多种暴露状态，可能一次出现大量任务。",
+    "npcbehaviormodifier": "改变 NPC 行为；暴露后进入追逐，被抓后进入惩罚流程。",
+    "npccompass": "显示周围 NPC 位置的平面图，可通过 cfg 配置。",
+    "npcturn": "修复插件控制 NPC 转身时可能出现的错误。",
+    "rotorsoundfix": "为两种转子补充震动音效。",
     "sfm_custom_mission": "V1 CustomMissions JSON 任务加载器。",
     "sfm_custom_mission_v2": "V2 .code 任务与功能包加载器。",
     "sfm_disable_missions": "隐藏/停用原版任务；建议完成原版地图任务后再启用。",
-    "sfmcmextender": "V1 自定义任务扩展依赖，部分大型任务包需要。",
-    "sfmcosplayloadermod": "自定义服装与模型资源加载器。",
-    "texture_replacer_be_il2cpp": "图片/材质替换加载器。",
-    "sfmfluidsmod": "额外流体视觉效果与相关资源。",
-    "secretflasher.voicepack-plus": "附加语音包及音频资源。",
-    "npcbehaviormodifier": "改变 NPC 行为；与部分追逐或接管 NPC 的任务冲突。",
-    "xxxhibition_sex": "扩展互动玩法；已知可能与 Aftermath 系列产生严重冲突。",
-    "freer": "解除或放宽部分游戏限制。",
+    "sfmcmextender": "CustomMissions/challenges 的必需扩展插件。",
+    "sfmcosplayloadermod": "额外服装加载器，可在家中 PC 的在线商店购买服装。",
+    "texture_replacer_be_il2cpp": "用命名正确的自定义贴图覆盖游戏贴图。",
+    "transparenttoys": "设置外套与成人玩具的透明度，可通过 cfg 配置。",
+    "xxxhibition_sex": "新增互动姿势与 Aftermath 惩罚系统；与 Aftermath 系列可能冲突。",
 }
+
+V2_DESCRIPTIONS = {
+    "aftermath": "控制角色互动结束后的后果。",
+    "aftermath&stagelock": "扩展版 Aftermath；与普通版互相干涉，只能谨慎选择一个。",
+    "autobrightness": "为不同地图分别设置亮度。",
+    "autostamina": "设置不同情况下的体力消耗与恢复。",
+    "blackmailv2": "自定义剧情任务，起点在家门口右边。",
+    "cameraflash": "使用手机相机推进的自定义任务。",
+    "caught": "为 NPCBehaviorModifier 的多人惩罚模式提供额外效果。",
+    "clothesstolen": "NPC 会抢走外套和服装；与 dropClothes 不兼容。",
+    "conditionalhomedoor": "按条件限制回家；在室外生效后，修改设置不会立刻刷新。",
+    "cosplaylink": "为服装绑定成人玩具功能。",
+    "cosplayshop": "在多个商店使用 RP 购买身体彩绘、道具、钥匙与服装。",
+    "countdownexposure": "长时间没有进行暴露会受到逐渐叠加的惩罚。",
+    "custom ecstasy": "自定义快感值；说明标记为不稳定，请谨慎使用。",
+    "destructive exposure": "破灭露出任务，依赖 DesperateDash、Freer、SFM_disable_missions 与 EdgingPatch。",
+    "detective manaka": "自定义剧情任务，起点在家中落地镜边或吧台边。",
+    "dial a kidnapper": "可通过手机主动触发绑架并获得 RP。",
+    "d's clothes": "可通过手机下单取得一套私服。",
+    "edgingpatch": "使用快捷键消耗体力降低快感值；修改按键后需重新载入存档。",
+    "exhiburges": "章节式剧情任务；第三章结尾前需禁用所有 Aftermath 变体。",
+    "exposureapocalypse": "自定义剧情任务，起点在家中落地镜边。",
+    "fanschat": "直播/拍照玩法，可按 V 键直接拍照。",
+    "fetch": "自定义剧情任务，起点在家门口左边。",
+    "find my": "提供物品定位和手铐问题修复。",
+    "goodvibrations": "扩展震动器与活塞机功能、开关掉落和 NPC 拾取。",
+    "hideandseek": "躲猫猫玩法。",
+    "homekeysearch": "寻找家门钥匙的小游戏。",
+    "hunted": "生成特殊 NPC 追猎角色，可在家中时钟下设置惩罚。",
+    "itemshifter": "远离掉落物后，将其转移到随机位置。",
+    "lilith’s fun": "随机命令任务，并显示一套固定 UI。",
+    "manaka adventure": "系列剧情任务，会自动加入 Tab 任务列表。",
+    "manakahub": "直播姬玩法，必须配合 MPAsset。",
+    "manakaplus": "额外小游戏扩展包，必须配合 MPAsset。",
+    "mechanicspack": "限制佩戴或摘除成人玩具。",
+    "mistake": "章节式剧情任务，起点在家里床边。",
+    "moaning3": "呻吟音效与高潮动画扩展；声音类插件只建议启用一个。",
+    "moremode": "提供多种震动器运行模式。",
+    "multistageitemsearch": "多阶段物品搜索玩法，跟随游戏提示使用。",
+    "nakedcoatsnatch": "夺回外套小游戏。",
+    "nakedkeysnatch": "夺回钥匙小游戏。",
+    "night trial": "自定义剧情任务，起点在家里床边。",
+    "oops": "行动过程中自动打开外套或摔倒。",
+    "park stroll": "公园相关自定义剧情任务。",
+    "piercing jingle": "为服装增加音效；可能频繁产生无害的后台报错。",
+    "policeofficer": "暴露后 NPC 会拍照并呼叫警察。",
+    "prefectmanaka": "章节式剧情任务，可通过存档中的 progress 值回退进度。",
+    "restricted": "整合多种限制与功能，默认开启；请在手机设置中逐项检查。",
+    "shamegameover": "增加羞耻值系统。",
+    "steal one pay ten": "自定义剧情任务，起点在家里正中。",
+    "the dress": "大型综合任务；不熟悉 CustomMission 2 时不建议直接启用。",
+    "the price of losing control": "单章节自定义剧情任务。",
+    "timedcuffgame": "计时手铐小游戏，跟随游戏提示使用。",
+    "timeforadventure": "自定义剧情任务。",
+    "traveling tasks": "旅行任务，在家门口左边石碑或手机设置中查看规则。",
+    "vampire": "夜间户外吸血玩法；与干涉快感值的插件不兼容。",
+}
+
+CORE_MODS = {
+    "sfm_custom_mission", "sfm_custom_mission_v2", "cmv2extras",
+    "mpasset", "sfmcmextender",
+}
+MEDIA_MODS = {
+    "animreplacer", "bj_sounds", "com.tetorafetora.sfmfluidsmod",
+    "cosplayascoat", "sfmcosplaycache", "barenai_manaka_helper",
+    "eyemaskplus", "heartfx", "manakacamera", "minimapplugin",
+    "npccompass", "rotorsoundfix", "sfmcosplayloadermod",
+    "texture_replacer_be_il2cpp", "transparenttoys", "moaning3",
+    "piercing jingle", "d's clothes", "sfmfluidsmod",
+}
+V2_STORY_MODS = {
+    "blackmailv2", "cameraflash", "destructive exposure", "detective manaka",
+    "exhiburges", "exposureapocalypse", "fetch", "manaka adventure", "mistake",
+    "n96k", "night trial", "park stroll", "prefectmanaka", "steal one pay ten",
+    "the dress", "the price of losing control", "timeforadventure", "traveling tasks",
+}
+UTILITY_MODS = {
+    "bettercompass", "gameoversounddisabler", "hidefinishedpanel", "npcturn",
+    "sfm_maploader", "autobrightness", "autostamina", "find my", "itemshifter",
+}
+GAMEPLAY_MODS = {
+    "collarasset", "allowall", "bgmkr.manaka.animcancel", "desperatedash",
+    "disablecollectall", "disablefasttravel", "freer", "handcuffskillcheck",
+    "nakedcountedasflashing", "npcbehaviormodifier", "sfm_disable_missions",
+    "xxxhibition_sex",
+}
+
+CATEGORY_LABELS = {
+    "core": "必备前置",
+    "v1": "V1 任务",
+    "v2_story": "V2 剧情",
+    "gameplay": "玩法与限制",
+    "media": "外观与音效",
+    "utility": "工具与辅助",
+}
+
+
+def _mod_category(kind: str, name: str) -> tuple[str, str]:
+    key = name.casefold()
+    if key in CORE_MODS:
+        category = "core"
+    elif kind == "v1":
+        category = "v1"
+    elif key in MEDIA_MODS:
+        category = "media"
+    elif key in UTILITY_MODS:
+        category = "utility"
+    elif key in GAMEPLAY_MODS:
+        category = "gameplay"
+    elif kind == "v2" and key in V2_STORY_MODS:
+        category = "v2_story"
+    elif kind == "v2":
+        category = "gameplay"
+    else:
+        category = "utility"
+    return category, CATEGORY_LABELS[category]
 
 SOFT_WARNINGS = {
     "aftermath&stagelock": "与其他 Aftermath 变体互斥；也可能与接管 NPC 或场景流程的模组冲突。",
@@ -75,14 +212,20 @@ class ModEntry:
     dependency_ready: bool = True
     dependency_available: bool = True
     user_imported: bool = False
+    classification_key: str = ""
 
     def as_dict(self) -> dict:
+        classification_key = self.classification_key or self.name
+        category, category_label = _mod_category(self.kind, classification_key)
         return {
             "id": self.id,
             "kind": self.kind,
             "kindLabel": {"plugin": "插件", "v1": "V1 任务", "v2": "V2 包"}[self.kind],
             "name": self.name,
             "description": self.description,
+            "category": category,
+            "categoryLabel": category_label,
+            "classificationKey": classification_key,
             "enabled": self.enabled,
             "available": self.available,
             "status": self.status,
@@ -171,8 +314,8 @@ class ManakaModManager:
         self.additional_source_roots = [
             path for path in additional_source_roots if path != source_root
         ]
-        # Explicit user drop-ins take precedence over bundled files with the
-        # same relative name, while the curated repository remains the base.
+        # Explicit user drop-ins take precedence over the selected source pack
+        # when both contain the same relative name.
         self.source_roots = list(self.additional_source_roots) + [source_root]
         self.disabled_root = game_root / "ManakaModManager" / "disabled"
         self.entries: dict[str, ModEntry] = {}
@@ -190,6 +333,7 @@ class ManakaModManager:
     def _v1_dir_for(root: Path) -> Path:
         candidates = (
             root / "custommissions1" / "files",
+            root / "CustomMissions",
             root / "CustomMissions1",
         )
         return next((path for path in candidates if path.is_dir()), candidates[0])
@@ -293,13 +437,15 @@ class ManakaModManager:
                 changed = False
                 active_dir = self.game_root / "CustomMissions"
                 disabled_dir = self.disabled_root / "v1"
-                for name in entry.files:
-                    source_value = entry.source_map.get(name.casefold(), "")
+                for relative_name in entry.files:
+                    source_value = entry.source_map.get(relative_name.casefold(), "")
                     source = Path(source_value) if source_value else Path()
-                    active = _safe_child(active_dir, active_dir / name)
+                    active = _safe_child(active_dir, active_dir / Path(relative_name))
                     if source_value and source.is_file() and active.is_file():
+                        active.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(source, active)
-                        (disabled_dir / name).unlink(missing_ok=True)
+                        disabled = _safe_child(disabled_dir, disabled_dir / Path(relative_name))
+                        disabled.unlink(missing_ok=True)
                         changed = True
                 refreshed += int(changed)
             else:
@@ -336,10 +482,12 @@ class ManakaModManager:
         elif entry.kind == "v1":
             active_dir = self.game_root / "CustomMissions"
             disabled_dir = self.disabled_root / "v1"
-            for name in entry.files:
-                (active_dir / name).unlink(missing_ok=True)
-                (disabled_dir / name).unlink(missing_ok=True)
-                source_value = entry.source_map.get(name.casefold(), "")
+            for relative_name in entry.files:
+                active = _safe_child(active_dir, active_dir / Path(relative_name))
+                disabled = _safe_child(disabled_dir, disabled_dir / Path(relative_name))
+                active.unlink(missing_ok=True)
+                disabled.unlink(missing_ok=True)
+                source_value = entry.source_map.get(relative_name.casefold(), "")
                 source = Path(source_value) if source_value else Path()
                 if source_value and self._dropin_root_for(source) is not None:
                     source.unlink(missing_ok=True)
@@ -455,25 +603,38 @@ class ManakaModManager:
     def _v1_files(self, root: Path) -> list[Path]:
         if not root.is_dir():
             return []
-        return [path for path in root.glob("*.json") if path.is_file() and not path.is_symlink()]
+        return [path for path in root.rglob("*.json") if path.is_file() and not path.is_symlink()]
+
+    @staticmethod
+    def _v1_relative(root: Path, path: Path) -> str:
+        return path.relative_to(root).as_posix()
+
+    @classmethod
+    def _v1_group_for(cls, root: Path, path: Path) -> str:
+        relative = path.relative_to(root)
+        if len(relative.parts) > 1:
+            return relative.parts[0]
+        return _v1_group(path.stem)
 
     def _scan_v1(self) -> list[ModEntry]:
         source_dirs = self._source_v1_dirs()
         active_dir = self.game_root / "CustomMissions"
         disabled_dir = self.disabled_root / "v1"
-        groups: dict[str, dict[str, Path]] = {}
+        groups: dict[str, dict[str, str]] = {}
         source_files: dict[str, Path] = {}
         for directory in source_dirs:
             for path in self._v1_files(directory):
-                source_files.setdefault(path.name.casefold(), path)
+                relative_name = self._v1_relative(directory, path)
+                source_files.setdefault(relative_name.casefold(), path)
         for directory in (*source_dirs, active_dir, disabled_dir):
             for path in self._v1_files(directory):
-                group = _v1_group(path.stem)
-                groups.setdefault(group, {}).setdefault(path.name.casefold(), path)
+                relative_name = self._v1_relative(directory, path)
+                group = self._v1_group_for(directory, path)
+                groups.setdefault(group, {}).setdefault(relative_name.casefold(), relative_name)
         result: list[ModEntry] = []
         for group, known in sorted(groups.items(), key=lambda item: item[0].casefold()):
-            names = sorted({path.name for path in known.values()}, key=str.casefold)
-            active_count = sum((active_dir / name).is_file() for name in names)
+            names = sorted(set(known.values()), key=str.casefold)
+            active_count = sum((active_dir / Path(name)).is_file() for name in names)
             enabled = bool(names) and active_count == len(names)
             status = "已启用" if enabled else f"部分启用 {active_count}/{len(names)}" if active_count else "已停用"
             sample = "、".join(Path(name).stem for name in names[:3])
@@ -507,12 +668,14 @@ class ManakaModManager:
             disabled = disabled_dir / name
             meta_folder = active if active.is_dir() else source if source.is_dir() else disabled
             title, description = _read_v2_meta(meta_folder)
+            description = V2_DESCRIPTIONS.get(name.casefold(), description)
             result.append(ModEntry(
                 id="v2|" + name, kind="v2", name=title,
                 description=description, enabled=active.is_dir(), available=True,
                 status="已启用" if active.is_dir() else "已停用",
                 warning=SOFT_WARNINGS.get(name.casefold(), ""), files=[name],
                 source=str(source), target=str(active),
+                classification_key=name,
             ))
         return result
 
@@ -613,20 +776,22 @@ class ManakaModManager:
         disabled_dir = self.disabled_root / "v1"
         active_dir.mkdir(parents=True, exist_ok=True)
         disabled_dir.mkdir(parents=True, exist_ok=True)
-        for name in entry.files:
-            active = _safe_child(active_dir, active_dir / name)
-            disabled = _safe_child(disabled_dir, disabled_dir / name)
-            source_value = entry.source_map.get(name.casefold(), "")
+        for relative_name in entry.files:
+            active = _safe_child(active_dir, active_dir / Path(relative_name))
+            disabled = _safe_child(disabled_dir, disabled_dir / Path(relative_name))
+            source_value = entry.source_map.get(relative_name.casefold(), "")
             source = Path(source_value) if source_value else Path()
             if enabled:
+                active.parent.mkdir(parents=True, exist_ok=True)
                 if source_value and source.is_file():
                     shutil.copy2(source, active)
                     disabled.unlink(missing_ok=True)
                 elif not active.exists() and disabled.is_file():
                     disabled.replace(active)
                 elif not active.exists():
-                    raise ModManagerError(f"缺少任务文件：{name}")
+                    raise ModManagerError(f"缺少任务文件：{relative_name}")
             elif not enabled and active.is_file():
+                disabled.parent.mkdir(parents=True, exist_ok=True)
                 active.replace(disabled)
 
     def _toggle_v2(self, entry: ModEntry, enabled: bool) -> None:
