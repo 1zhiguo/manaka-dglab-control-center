@@ -5,6 +5,9 @@ from manaka_waveforms import (
     PRESETS,
     WaveformPreset,
     WaveformSelector,
+    action_label,
+    action_style,
+    recommended_wave_for_action,
     resolve_waveform,
     sanitize_wave_map,
 )
@@ -53,6 +56,23 @@ class WaveformTests(unittest.TestCase):
         selector = WaveformSelector(hold_seconds=0.8)
         selector.select("A", "heartbeat", "smart", "heartbeat", DEFAULT_WAVE_MAP, now=1.0)
         self.assertIsNone(selector.select("A", "idle", "smart", "heartbeat", DEFAULT_WAVE_MAP, now=1.1))
+
+    def test_action_types_receive_safe_recommended_waveforms(self):
+        self.assertEqual(action_style("PickUpItem"), "off")
+        self.assertEqual(recommended_wave_for_action("PickUpItem"), "off")
+        self.assertEqual(action_style("Dogeza"), "static")
+        self.assertEqual(recommended_wave_for_action("Dogeza"), "official_breath")
+        self.assertEqual(action_style("OnaniNormal"), "rhythmic")
+        self.assertEqual(recommended_wave_for_action("OnaniNormal"), "official_heartbeat")
+        self.assertEqual(recommended_wave_for_action("UseDildoFloorPussy1"), "official_pulsating")
+
+    def test_action_labels_are_localized_without_changing_keys(self):
+        self.assertEqual(action_label("Pinpon", "zh"), "按门铃")
+        self.assertEqual(action_label("Dogeza", "zh"), "土下座")
+        self.assertEqual(action_label("UseDildoFloorPussy3", "zh"), "地面假阳具 · 阴道动作 3")
+        self.assertEqual(action_label("UseDildoWallWaitAnal", "zh"), "墙面假阳具 · 肛门待机")
+        self.assertEqual(action_label("UseDildoWallFellaEcstasyA", "zh"), "墙面假阳具 · 口交高潮")
+        self.assertEqual(action_label("FutureAction42", "en"), "Future Action 42")
 
 
 if __name__ == "__main__":

@@ -170,6 +170,92 @@ ApplicationWindow {
         }
     }
 
+    component WaveComboBox: ComboBox {
+        id: waveCombo
+        property var selectedWave: currentIndex >= 0 && model && currentIndex < model.length ? model[currentIndex] : null
+        implicitHeight: 52
+        leftPadding: 10
+        rightPadding: 38
+        hoverEnabled: true
+        font.family: "Microsoft YaHei UI"
+        font.pixelSize: 11
+        textRole: "name"
+        background: Rectangle {
+            radius: 12
+            color: waveCombo.pressed ? Qt.darker(panel2, 1.08) : panel2
+            border.color: waveCombo.popup.visible ? accent : border
+        }
+        contentItem: RowLayout {
+            spacing: 9
+            WaveView {
+                Layout.preferredWidth: 86
+                Layout.fillHeight: true
+                points: waveCombo.selectedWave ? waveCombo.selectedWave.points : []
+                waveColor: waveCombo.selectedWave ? waveCombo.selectedWave.color : muted
+                animated: waveCombo.hovered && !waveCombo.popup.visible
+            }
+            Text {
+                Layout.fillWidth: true
+                text: waveCombo.selectedWave ? waveCombo.selectedWave.name : ""
+                color: root.fg
+                font: waveCombo.font
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+        }
+        indicator: Text {
+            x: waveCombo.width - width - 14
+            anchors.verticalCenter: parent.verticalCenter
+            text: waveCombo.popup.visible ? "⌃" : "⌄"
+            color: waveCombo.popup.visible ? accent : muted
+            font.pixelSize: 16
+        }
+        delegate: ItemDelegate {
+            required property int index
+            id: waveOption
+            width: waveCombo.popup.width - 12
+            height: 62
+            leftPadding: 10
+            rightPadding: 10
+            HoverHandler { id: optionHover }
+            contentItem: RowLayout {
+                spacing: 10
+                WaveView {
+                    Layout.preferredWidth: 126
+                    Layout.fillHeight: true
+                    points: waveCombo.model[index] ? waveCombo.model[index].points : []
+                    waveColor: waveCombo.model[index] ? waveCombo.model[index].color : muted
+                    animated: optionHover.hovered
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+                    Text { Layout.fillWidth: true; text: waveCombo.textAt(index); color: root.fg; font: waveCombo.font; elide: Text.ElideRight }
+                    Text { Layout.fillWidth: true; text: waveCombo.model[index] && waveCombo.model[index].frequency ? waveCombo.model[index].frequency + " Hz" : root.t("无输出"); color: muted; font.pixelSize: 9; elide: Text.ElideRight }
+                }
+            }
+            background: Rectangle {
+                radius: 9
+                color: highlighted ? Qt.rgba(accent.r, accent.g, accent.b, darkMode ? 0.18 : 0.12) : optionHover.hovered ? Qt.rgba(cyan.r, cyan.g, cyan.b, darkMode ? 0.10 : 0.07) : "transparent"
+            }
+        }
+        popup: Popup {
+            x: Math.min(0, waveCombo.width - width)
+            y: waveCombo.height + 5
+            width: Math.max(waveCombo.width, 370)
+            implicitHeight: Math.min(contentItem.implicitHeight + 12, 390)
+            padding: 6
+            background: Rectangle { radius: 13; color: panel; border.color: border }
+            contentItem: ListView {
+                clip: true
+                implicitHeight: contentHeight
+                model: waveCombo.popup.visible ? waveCombo.delegateModel : null
+                currentIndex: waveCombo.highlightedIndex
+                ScrollIndicator.vertical: ScrollIndicator { }
+            }
+        }
+    }
+
     component NavItem: Rectangle {
         id: nav
         required property int targetPage
@@ -215,6 +301,7 @@ ApplicationWindow {
         property color waveColor: accent
         property bool animated: true
         antialiasing: true
+        clip: true
         onPointsChanged: requestPaint()
         onWaveColorChanged: requestPaint()
         Connections { target: root; function onWavePhaseChanged() { if (wave.animated) wave.requestPaint() } function onDarkModeChanged() { wave.requestPaint() } }
@@ -241,10 +328,17 @@ ApplicationWindow {
             }
             ctx.stroke()
             if (animated) {
-                const playX = (wavePhase % 1) * w
-                ctx.strokeStyle = Qt.rgba(waveColor.r, waveColor.g, waveColor.b, 0.65)
-                ctx.lineWidth = 2
-                ctx.beginPath(); ctx.moveTo(playX, 5); ctx.lineTo(playX, h - 5); ctx.stroke()
+                const cursor = (wavePhase % 1) * (total - 1)
+                const sampleIndex = Math.floor(cursor)
+                const nextIndex = Math.min(total - 1, sampleIndex + 1)
+                const fraction = cursor - sampleIndex
+                const firstSample = points[sampleIndex % points.length] / 100
+                const nextSample = points[nextIndex % points.length] / 100
+                const sample = firstSample + (nextSample - firstSample) * fraction
+                const playX = 4 + cursor / (total - 1) * Math.max(0, w - 8)
+                const playY = h * 0.82 - sample * h * 0.64
+                ctx.fillStyle = waveColor
+                ctx.beginPath(); ctx.arc(playX, playY, 4, 0, Math.PI * 2); ctx.fill()
             }
         }
     }
@@ -365,7 +459,7 @@ ApplicationWindow {
                                     }
                                     Column { anchors.centerIn: parent; spacing: -4; Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(backend.heartRate); color: root.fg; font.family: "Segoe UI Variable Display"; font.pixelSize: 56; font.weight: Font.Bold } Text { anchors.horizontalCenter: parent.horizontalCenter; text: "BPM"; color: accent; font.pixelSize: 10; font.weight: Font.Bold; font.letterSpacing: 2.2 } }
                                 }
-                                Text { text: backend.stage + "  ·  " + backend.action; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
+                                Text { text: backend.stage + "  ·  " + backend.actionDisplay; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                             }
                         }
                         AppCard {
@@ -409,7 +503,7 @@ ApplicationWindow {
                         }
                         AppCard {
                             Layout.columnSpan: 4; Layout.rowSpan: 5; Layout.fillWidth: true; Layout.fillHeight: true
-                            ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 8; SectionTitle { title: root.t("场景状态"); detail: backend.stage } MetricBar { Layout.fillWidth: true; label: root.t("NPC 警觉度"); valueText: Math.round(backend.alertLevel)+"%"; value: backend.alertLevel; barColor: amber } MetricBar { Layout.fillWidth: true; label: root.t("兴奋度"); valueText: Math.round(backend.excitement)+"%"; value: backend.excitement; barColor: violet } Item { Layout.fillHeight: true } Text { text: root.t("当前动作    ") + backend.action; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } }
+                            ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 8; SectionTitle { title: root.t("场景状态"); detail: backend.stage } MetricBar { Layout.fillWidth: true; label: root.t("NPC 警觉度"); valueText: Math.round(backend.alertLevel)+"%"; value: backend.alertLevel; barColor: amber } MetricBar { Layout.fillWidth: true; label: root.t("兴奋度"); valueText: Math.round(backend.excitement)+"%"; value: backend.excitement; barColor: violet } Item { Layout.fillHeight: true } Text { text: root.t("当前动作    ") + backend.actionDisplay; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } }
                         }
                     }
 
@@ -524,12 +618,57 @@ ApplicationWindow {
                         property string draftName: backend.customName
                         property var draftPoints: backend.customPoints.slice()
                         property int draftFrequency: backend.customFrequency
+                        property string catalogFilter: "all"
+                        property string actionFilter: "all"
+                        property string actionSearch: ""
+                        property var editHistory: []
+                        property int editHistoryIndex: -1
+                        property var filteredCatalog: {
+                            let values = []
+                            for (let i = 0; i < backend.waveformCatalog.length; ++i) {
+                                let item = backend.waveformCatalog[i]
+                                if (catalogFilter === "all" || item.group === catalogFilter) values.push(item)
+                            }
+                            return values
+                        }
+                        property var filteredActions: {
+                            let values = []
+                            let query = actionSearch.trim().toLowerCase()
+                            for (let i = 0; i < backend.actionWaveMappings.length; ++i) {
+                                let item = backend.actionWaveMappings[i]
+                                if (actionFilter !== "all" && item.style !== actionFilter) continue
+                                if (query.length && item.action.toLowerCase().indexOf(query) < 0 && item.actionLabel.toLowerCase().indexOf(query) < 0 && item.waveName.toLowerCase().indexOf(query) < 0) continue
+                                values.push(item)
+                            }
+                            return values
+                        }
                         function presetIndex(key) { for (let i=0;i<backend.presets.length;i++) if (backend.presets[i].key===key) return i; return 0 }
+                        function optionIndex(key) { for (let i=0;i<backend.assignableWaveforms.length;i++) if (backend.assignableWaveforms[i].key===key) return i; return 0 }
+                        function waveOption(key) { for (let i=0;i<backend.assignableWaveforms.length;i++) if (backend.assignableWaveforms[i].key===key) return backend.assignableWaveforms[i]; return backend.assignableWaveforms[0] }
+                        function activeActionWave() { for (let i=0;i<backend.actionWaveMappings.length;i++) if (backend.actionWaveMappings[i].action===backend.action) return backend.actionWaveMappings[i]; return ({waveName:root.t("关闭 B 通道"),points:[0,0,0,0],color:muted}) }
+                        function resetHeartMapping() { let copy=Object.assign({},draftMap);copy.low="official_breath";copy.mid="official_heartbeat";copy.high="official_pulsating";copy.peak="climax";draftMap=copy }
                         function setPoint(index,value) { let copy=draftPoints.slice(); copy[index]=Math.max(0,Math.min(100,Math.round(value))); draftPoints=copy }
+                        function resetEditHistory() { editHistory=[draftPoints.slice()]; editHistoryIndex=0 }
+                        function commitEditHistory() { let copy=editHistory.slice(0,editHistoryIndex+1); copy.push(draftPoints.slice()); editHistory=copy; editHistoryIndex=copy.length-1 }
+                        function undoEdit() { if(editHistoryIndex>0){editHistoryIndex--;draftPoints=editHistory[editHistoryIndex].slice()} }
+                        function redoEdit() { if(editHistoryIndex+1<editHistory.length){editHistoryIndex++;draftPoints=editHistory[editHistoryIndex].slice()} }
+                        function applyPoints(points) { draftPoints=points.slice(); commitEditHistory() }
+                        function applyTemplate(key) {
+                            if(key==="breath") applyPoints([0,8,20,38,60,82,100,88,70,48,28,12,0,0,0,0])
+                            else if(key==="heartbeat") applyPoints([0,100,24,0,62,12,0,0,0,100,24,0,62,12,0,0])
+                            else if(key==="ramp") applyPoints([0,7,14,21,28,35,42,50,58,66,74,82,90,100,55,0])
+                            else if(key==="steps") applyPoints([12,12,30,30,48,48,66,66,84,84,100,100,65,42,20,0])
+                            else applyPoints([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+                        }
+                        function smoothPoints() { let source=draftPoints.slice();let out=source.slice();for(let i=1;i<source.length-1;i++)out[i]=Math.round((source[i-1]+source[i]*2+source[i+1])/4);applyPoints(out) }
+                        function mirrorPoints() { applyPoints(draftPoints.slice().reverse()) }
+                        function normalizePoints() { let high=Math.max.apply(Math,draftPoints);if(high<=0)return;applyPoints(draftPoints.map(value=>Math.round(value/high*100))) }
+                        function openNewEditor() { draftName=backend.nextCustomWaveformName;draftPoints=[0,18,48,82,100,58,20,0,0,25,68,45,15,0,0,0];draftFrequency=92;resetEditHistory();waveformEditor.open() }
+                        function openWaveEditor(name,points,frequency) { draftName=name;draftPoints=points.slice();draftFrequency=frequency;resetEditHistory();waveformEditor.open() }
                         function restoreDefaults() {
                             draftMode="smart"; draftFixed="official_heartbeat"
                             draftMap={low:"official_breath",mid:"official_heartbeat",high:"official_pulsating",action:"official_tide",peak:"climax"}
-                            draftName="我的波形"; draftPoints=[0,18,48,82,100,58,20,0,0,25,68,45,15,0,0,0]; draftFrequency=92
+                            draftName=root.t("我的波形"); draftPoints=[0,18,48,82,100,58,20,0,0,25,68,45,15,0,0,0]; draftFrequency=92
                             backend.resetWaveSettings()
                         }
                         ScrollView {
@@ -545,30 +684,43 @@ ApplicationWindow {
                                 AppButton { label: root.t("保存波形策略"); fillColor: green; labelColor: "#11151C"; onClicked: backend.saveWaveSettings(wavePage.draftMode,wavePage.draftFixed,wavePage.draftMap.low,wavePage.draftMap.mid,wavePage.draftMap.high,wavePage.draftMap.action,wavePage.draftMap.peak,wavePage.draftName,wavePage.draftPoints,wavePage.draftFrequency) }
                             }
                             AppCard {
-                                Layout.fillWidth: true; Layout.preferredHeight: 252
+                                Layout.fillWidth: true; Layout.preferredHeight: 282
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 16; spacing: 8
-                                    SectionTitle { title: root.t("波形预设与我的波形库"); detail: root.t("内置预设只读 · ") + backend.waveformCatalog.length + root.t(" 个波形") }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        SectionTitle { title: root.t("波形预设与我的波形库"); detail: wavePage.filteredCatalog.length + root.t(" 个波形") }
+                                        Repeater {
+                                            model: [{key:"all",label:root.t("全部")},{key:"official",label:root.t("官方波形")},{key:"custom",label:root.t("自定义波形")},{key:"builtin",label:root.t("内置波形")}]
+                                            delegate: AppButton { required property var modelData; Layout.preferredWidth: 92; Layout.preferredHeight: 34; label: modelData.label; fillColor: wavePage.catalogFilter===modelData.key ? accent : panel2; labelColor: wavePage.catalogFilter===modelData.key ? "#10151A" : root.fg; onClicked: wavePage.catalogFilter=modelData.key }
+                                        }
+                                    }
                                     ListView {
                                         id: waveformCatalogList
                                         Layout.fillWidth: true; Layout.fillHeight: true
                                         orientation: ListView.Horizontal; spacing: 10; clip: true; interactive: true
                                         boundsBehavior: Flickable.StopAtBounds
-                                        model: backend.waveformCatalog
+                                        model: wavePage.filteredCatalog
                                         delegate: Rectangle {
                                             required property var modelData
+                                            id: waveformCard
                                             width: 250; height: waveformCatalogList.height; radius: 13
-                                            color: panel2; border.color: modelData.source === "我的波形库" ? Qt.rgba(cyan.r,cyan.g,cyan.b,0.55) : border
+                                            z: waveformHover.hovered ? 2 : 1
+                                            scale: waveformHover.hovered ? 1.018 : 1
+                                            color: waveformHover.hovered ? Qt.lighter(panel2, 1.08) : panel2
+                                            border.color: modelData.group === "custom" ? Qt.rgba(cyan.r,cyan.g,cyan.b,0.55) : waveformHover.hovered ? modelData.color : border
+                                            Behavior on scale { NumberAnimation { duration: 120 } }
+                                            HoverHandler { id: waveformHover }
                                             ColumnLayout {
                                                 anchors.fill: parent; anchors.margins: 10; spacing: 4
-                                                RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold; elide: Text.ElideRight } Text { text: modelData.source === "我的波形库" ? root.t("自定义") : modelData.source; color: modelData.source === "我的波形库" ? cyan : muted; font.pixelSize: 8 } }
-                                                WaveView { Layout.fillWidth: true; Layout.fillHeight: true; points: modelData.points; waveColor: modelData.color; animated: false }
+                                                RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold; elide: Text.ElideRight } Text { text: modelData.group === "custom" ? root.t("自定义") : modelData.source; color: modelData.group === "custom" ? cyan : muted; font.pixelSize: 8 } }
+                                                WaveView { Layout.fillWidth: true; Layout.fillHeight: true; points: modelData.points; waveColor: modelData.color; animated: waveformHover.hovered }
                                                 RowLayout {
                                                     Layout.fillWidth: true
                                                     Text { Layout.fillWidth: true; text: modelData.frequency + " Hz"; color: muted; font.pixelSize: 9 }
-                                                    Text { visible: modelData.source !== "我的波形库"; text: root.t("只读预览"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 }
-                                                    AppButton { visible: modelData.source === "我的波形库"; Layout.preferredWidth: 88; label: root.t("载入编辑"); onClicked: { wavePage.draftName = modelData.name; wavePage.draftPoints = modelData.points.slice(); wavePage.draftFrequency = modelData.frequency; backend.loadCustomWaveform(modelData.id) } }
-                                                    AppButton { visible: modelData.source === "我的波形库"; Layout.preferredWidth: 62; label: root.t("删除"); fillColor: Qt.rgba(red.r,red.g,red.b,darkMode?0.18:0.10); labelColor: red; onClicked: backend.deleteCustomWaveform(modelData.id) }
+                                                    Text { visible: modelData.group !== "custom"; text: waveformHover.hovered ? root.t("正在预览") : root.t("悬停预览"); color: waveformHover.hovered ? modelData.color : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 }
+                                                    AppButton { visible: modelData.group === "custom"; Layout.preferredWidth: 88; label: root.t("载入编辑"); onClicked: wavePage.openWaveEditor(modelData.name,modelData.points,modelData.frequency) }
+                                                    AppButton { visible: modelData.group === "custom"; Layout.preferredWidth: 62; label: root.t("删除"); fillColor: Qt.rgba(red.r,red.g,red.b,darkMode?0.18:0.10); labelColor: red; onClicked: backend.deleteCustomWaveform(modelData.id) }
                                                 }
                                             }
                                         }
@@ -583,28 +735,25 @@ ApplicationWindow {
                                 }
                             }
                             RowLayout {
-                                Layout.fillWidth: true; Layout.preferredHeight: 385; spacing: 15
+                                Layout.fillWidth: true; Layout.preferredHeight: 330; spacing: 15
                                 AppCard {
                                     Layout.preferredWidth: 410; Layout.fillHeight: true
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 20; spacing: 10
-                                        SectionTitle { title: wavePage.draftMode === "smart" ? root.t("心率区间映射") : root.t("固定波形"); detail: wavePage.draftMode === "smart" ? root.t("自动切换") : root.t("始终使用") }
-                                        ScrollView {
-                                            Layout.fillWidth: true; Layout.fillHeight: true; clip: true; contentWidth: availableWidth
-                                            ColumnLayout {
-                                                width: parent.width; spacing: 11
-                                                AppComboBox { visible: wavePage.draftMode === "fixed"; Layout.fillWidth: true; model: backend.presets; textRole: "name"; currentIndex: wavePage.presetIndex(wavePage.draftFixed); onActivated: wavePage.draftFixed=backend.presets[currentIndex].key }
-                                                Repeater {
-                                                    visible: wavePage.draftMode === "smart"
-                                                    model: [{key:"low",label:root.t("低心率段")},{key:"mid",label:root.t("中心率段")},{key:"high",label:root.t("高心率段")},{key:"action",label:root.t("动作进程")},{key:"peak",label:root.t("峰值边沿")}]
-                                                    delegate: ColumnLayout {
-                                                        required property var modelData
-                                                        Layout.fillWidth: true; spacing: 4
-                                                        Text { text: modelData.label; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
-                                                        AppComboBox { Layout.fillWidth: true; model: backend.presets; textRole: "name"; currentIndex: wavePage.presetIndex(wavePage.draftMap[modelData.key]); onActivated: { let copy=Object.assign({},wavePage.draftMap); copy[modelData.key]=backend.presets[currentIndex].key; wavePage.draftMap=copy } }
-                                                    }
-                                                }
-                                            }
+                                        SectionTitle { title: wavePage.draftMode === "smart" ? root.t("通道策略") : root.t("固定波形"); detail: wavePage.draftMode === "smart" ? "A / B" : root.t("始终使用") }
+                                        WaveComboBox { visible: wavePage.draftMode === "fixed"; Layout.fillWidth: true; Layout.preferredHeight: 62; model: backend.presets; currentIndex: wavePage.presetIndex(wavePage.draftFixed); onActivated: wavePage.draftFixed=backend.presets[currentIndex].key }
+                                        Item { visible: wavePage.draftMode === "fixed"; Layout.fillHeight: true }
+                                        Rectangle {
+                                            visible: wavePage.draftMode === "smart"; Layout.fillWidth: true; Layout.fillHeight: true; radius: 15; color: panel2; border.color: cyan
+                                            RowLayout { anchors.fill: parent; anchors.margins: 13; spacing: 11; Rectangle { width: 46; height: 46; radius: 14; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.15); Text { anchors.centerIn: parent; text: "A"; color: cyan; font.pixelSize: 19; font.weight: Font.Bold } } ColumnLayout { Layout.fillWidth: true; spacing: 2; Text { text: root.t("A 通道 · 心率"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: root.t("低、中、高心率与 Climax"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } } WaveView { Layout.preferredWidth: 112; Layout.fillHeight: true; points: wavePage.waveOption(wavePage.draftMap.mid).points; waveColor: cyan; animated: channelAHover.hovered } Text { text: "›"; color: cyan; font.pixelSize: 24 } }
+                                            HoverHandler { id: channelAHover }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: heartMappingDialog.open() }
+                                        }
+                                        Rectangle {
+                                            visible: wavePage.draftMode === "smart"; Layout.fillWidth: true; Layout.fillHeight: true; radius: 15; color: panel2; border.color: backend.action !== "None" ? violet : border
+                                            RowLayout { anchors.fill: parent; anchors.margins: 13; spacing: 11; Rectangle { width: 46; height: 46; radius: 14; color: Qt.rgba(violet.r,violet.g,violet.b,0.15); Text { anchors.centerIn: parent; text: "B"; color: violet; font.pixelSize: 19; font.weight: Font.Bold } } ColumnLayout { Layout.fillWidth: true; spacing: 2; Text { text: root.t("B 通道 · 动作"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: backend.action === "None" ? root.t("等待游戏动作") : backend.actionDisplay; color: backend.action === "None" ? muted : violet; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; elide: Text.ElideRight } } WaveView { Layout.preferredWidth: 112; Layout.fillHeight: true; points: wavePage.activeActionWave().points; waveColor: wavePage.activeActionWave().color; animated: channelBHover.hovered } Text { text: "›"; color: violet; font.pixelSize: 24 } }
+                                            HoverHandler { id: channelBHover }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: actionMappingDialog.open() }
                                         }
                                     }
                                 }
@@ -612,30 +761,88 @@ ApplicationWindow {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 20; spacing: 10
-                                        SectionTitle { title: root.t("自定义波形设计器"); detail: wavePage.draftFrequency + " Hz · 16" + root.t(" 点包络") }
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            TextField { Layout.fillWidth: true; Layout.preferredHeight: 40; text: wavePage.draftName; placeholderText: root.t("给波形命名"); selectByMouse: true; color: root.fg; font.family: "Microsoft YaHei UI"; onTextEdited: wavePage.draftName=text; background: Rectangle { radius: 11; color: panel2; border.color: parent.activeFocus ? cyan : border } }
-                                            AppButton { Layout.preferredWidth: backend.language === "en" ? 150 : 118; label: root.t("保存到我的波形库"); fillColor: cyan; labelColor: "#10151A"; onClicked: backend.saveCustomWaveform(wavePage.draftName,wavePage.draftPoints,wavePage.draftFrequency) }
-                                        }
+                                        SectionTitle { title: root.t("自定义波形设计器"); detail: root.t("独立窗口编辑") }
                                         Rectangle {
-                                            Layout.fillWidth: true; Layout.preferredHeight: 160; radius: 15; color: darkMode ? "#0B1220" : "#F0F4F9"; border.color: border
-                                            Canvas {
-                                                id: customCanvas; anchors.fill: parent; anchors.margins: 14; antialiasing: true
-                                                onPaint: { const ctx=getContext("2d");ctx.reset();const p=wavePage.draftPoints;if(!p||p.length<2)return;ctx.strokeStyle=darkMode?"#29364E":"#D7DFEA";ctx.lineWidth=1;for(let i=1;i<4;i++){let y=height*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}ctx.strokeStyle=cyan;ctx.lineWidth=3;ctx.lineJoin="round";ctx.beginPath();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;ctx.fillStyle=root.fg;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill()} }
-                                                Connections { target: wavePage; function onDraftPointsChanged(){customCanvas.requestPaint()} }
-                                                Connections { target: root; function onDarkModeChanged(){customCanvas.requestPaint()} }
-                                                MouseArea { anchors.fill: parent; cursorShape: Qt.CrossCursor; function paint(mouse){let i=Math.round(Math.max(0,Math.min(1,mouse.x/width))*15);let v=(1-Math.max(0,Math.min(1,mouse.y/height)))*100;wavePage.setPoint(i,v)} onPressed: mouse=>paint(mouse); onPositionChanged: mouse=>{if(pressed)paint(mouse)} }
-                                            }
+                                            id: customSummary; Layout.fillWidth: true; Layout.fillHeight: true; radius: 15; color: darkMode ? "#0B1220" : "#F0F4F9"; border.color: customSummaryHover.hovered ? cyan : border
+                                            HoverHandler { id: customSummaryHover }
+                                            ColumnLayout { anchors.fill: parent; anchors.margins: 14; spacing: 7; RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: wavePage.draftName; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold; elide: Text.ElideRight } Text { text: wavePage.draftFrequency+" Hz"; color: cyan; font.pixelSize: 10 } } WaveView { Layout.fillWidth: true; Layout.fillHeight: true; points: wavePage.draftPoints; waveColor: cyan; animated: customSummaryHover.hovered } Text { Layout.fillWidth: true; text: root.t("悬停查看播放位置；打开编辑器可使用模板、平滑、镜像与撤销。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap } }
                                         }
-                                        Text { text: root.t("按住鼠标在画布上拖动即可绘制；实际输出仍受强度范围和硬上限限制。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                                        RowLayout { Layout.fillWidth: true; Text { text: root.t("频率"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 } Slider { Layout.fillWidth: true; from: 10; to: 240; stepSize: 1; value: wavePage.draftFrequency; onMoved: wavePage.draftFrequency=Math.round(value) } Text { text: wavePage.draftFrequency+" Hz"; color: cyan; font.pixelSize: 11; font.weight: Font.DemiBold } }
-                                        Item { Layout.fillHeight: true }
-                                        RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: root.t("固定保存位置：") + backend.waveformLibraryFolder; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; elide: Text.ElideMiddle } AppButton { label: root.t("打开目录"); onClicked: backend.openWaveformLibraryFolder() } }
+                                        RowLayout { Layout.fillWidth: true; AppButton { Layout.fillWidth: true; label: root.t("新建波形"); onClicked: wavePage.openNewEditor() } AppButton { Layout.fillWidth: true; label: root.t("编辑当前波形"); fillColor: cyan; labelColor: "#10151A"; onClicked: wavePage.openWaveEditor(wavePage.draftName,wavePage.draftPoints,wavePage.draftFrequency) } AppButton { Layout.preferredWidth: 96; label: root.t("打开目录"); onClicked: backend.openWaveformLibraryFolder() } }
                                     }
                                 }
                             }
                             Item { Layout.preferredHeight: 2 }
+                            }
+                        }
+
+                        Dialog {
+                            id: heartMappingDialog
+                            anchors.centerIn: parent; width: Math.min(780,root.width-90); height: Math.min(590,root.height-70); modal: true; padding: 0
+                            background: Rectangle { color: panel; border.color: border; radius: 20 }
+                            contentItem: ColumnLayout {
+                                anchors.fill: parent; anchors.margins: 22; spacing: 12
+                                RowLayout { Layout.fillWidth: true; ColumnLayout { spacing: 3; Text { text: root.t("A 通道 · 心率波形"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold } Text { text: root.t("为低、中、高心率和 Climax 分别选择波形"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } } Item { Layout.fillWidth: true } AppButton { Layout.preferredWidth: 110; label: root.t("恢复推荐"); onClicked: wavePage.resetHeartMapping() } AppButton { Layout.preferredWidth: 84; label: root.t("关闭"); onClicked: heartMappingDialog.close() } }
+                                Repeater {
+                                    model: [{key:"low",label:root.t("低心率段"),detail:root.t("轻柔起步")},{key:"mid",label:root.t("中心率段"),detail:root.t("稳定节奏")},{key:"high",label:root.t("高心率段"),detail:root.t("高频输出")},{key:"peak",label:"Climax",detail:root.t("峰值包络")}]
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        Layout.fillWidth: true; Layout.fillHeight: true; radius: 14; color: panel2; border.color: modelData.key==="peak"?accent:border
+                                        RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 13; ColumnLayout { Layout.preferredWidth: 150; spacing: 3; Text { text: modelData.label; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold } Text { text: modelData.detail; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } } WaveComboBox { Layout.fillWidth: true; model: backend.presets; currentIndex: wavePage.presetIndex(wavePage.draftMap[modelData.key]); onActivated: { let copy=Object.assign({},wavePage.draftMap);copy[modelData.key]=backend.presets[currentIndex].key;wavePage.draftMap=copy } } }
+                                    }
+                                }
+                                Text { Layout.fillWidth: true; text: root.t("修改后返回波形工作台，点击“保存波形策略”生效。"); color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; horizontalAlignment: Text.AlignRight }
+                            }
+                        }
+
+                        Dialog {
+                            id: waveformEditor
+                            anchors.centerIn: parent; width: Math.min(980,root.width-70); height: Math.min(690,root.height-50); modal: true; padding: 0
+                            background: Rectangle { color: panel; border.color: border; radius: 20 }
+                            contentItem: ColumnLayout {
+                                anchors.fill: parent; anchors.margins: 22; spacing: 12
+                                RowLayout { Layout.fillWidth: true; ColumnLayout { spacing: 3; Text { text: root.t("自定义波形编辑器"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold } Text { text: root.t("从模板开始，或直接在大画布上绘制 16 点包络"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } } Item { Layout.fillWidth: true } AppButton { Layout.preferredWidth: 90; label: root.t("关闭"); onClicked: waveformEditor.close() } }
+                                RowLayout {
+                                    Layout.fillWidth: true; spacing: 8
+                                    TextField { Layout.fillWidth: true; Layout.preferredHeight: 42; text: wavePage.draftName; placeholderText: backend.nextCustomWaveformName; selectByMouse: true; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; onTextEdited: wavePage.draftName=text; background: Rectangle { radius: 11; color: panel2; border.color: parent.activeFocus ? cyan : border } }
+                                    AppButton { Layout.preferredWidth: 88; label: root.t("呼吸"); onClicked: wavePage.applyTemplate("breath") }
+                                    AppButton { Layout.preferredWidth: 88; label: root.t("心跳"); onClicked: wavePage.applyTemplate("heartbeat") }
+                                    AppButton { Layout.preferredWidth: 88; label: root.t("渐强"); onClicked: wavePage.applyTemplate("ramp") }
+                                    AppButton { Layout.preferredWidth: 88; label: root.t("阶梯"); onClicked: wavePage.applyTemplate("steps") }
+                                }
+                                Rectangle {
+                                    Layout.fillWidth: true; Layout.fillHeight: true; radius: 16; color: darkMode ? "#090F1B" : "#F1F5FA"; border.color: cyan
+                                    Canvas {
+                                        id: editorCanvas; anchors.fill: parent; anchors.margins: 18; antialiasing: true
+                                        onPaint: { const ctx=getContext("2d");ctx.reset();const p=wavePage.draftPoints;ctx.strokeStyle=darkMode?"#29364E":"#D7DFEA";ctx.lineWidth=1;for(let i=0;i<=4;i++){let y=height*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}for(let i=0;i<16;i++){let x=width*i/15;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke()}if(!p||p.length<2)return;ctx.strokeStyle=cyan;ctx.lineWidth=4;ctx.lineJoin="round";ctx.beginPath();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;ctx.fillStyle=root.fg;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()}let playX=(root.wavePhase%1)*width;ctx.strokeStyle=Qt.rgba(cyan.r,cyan.g,cyan.b,0.55);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(playX,0);ctx.lineTo(playX,height);ctx.stroke() }
+                                        Connections { target: wavePage; function onDraftPointsChanged(){editorCanvas.requestPaint()} }
+                                        Connections { target: root; function onWavePhaseChanged(){if(waveformEditor.visible)editorCanvas.requestPaint()} function onDarkModeChanged(){editorCanvas.requestPaint()} }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.CrossCursor; function paint(mouse){let i=Math.round(Math.max(0,Math.min(1,mouse.x/width))*15);let v=(1-Math.max(0,Math.min(1,mouse.y/height)))*100;wavePage.setPoint(i,v)} onPressed: mouse=>paint(mouse); onPositionChanged: mouse=>{if(pressed)paint(mouse)}; onReleased: wavePage.commitEditHistory() }
+                                    }
+                                }
+                                RowLayout { Layout.fillWidth: true; spacing: 8; AppButton { Layout.preferredWidth: 82; label: root.t("撤销"); enabled: wavePage.editHistoryIndex>0; onClicked: wavePage.undoEdit() } AppButton { Layout.preferredWidth: 82; label: root.t("重做"); enabled: wavePage.editHistoryIndex+1<wavePage.editHistory.length; onClicked: wavePage.redoEdit() } AppButton { Layout.preferredWidth: 82; label: root.t("平滑"); onClicked: wavePage.smoothPoints() } AppButton { Layout.preferredWidth: 82; label: root.t("镜像"); onClicked: wavePage.mirrorPoints() } AppButton { Layout.preferredWidth: 88; label: root.t("归一化"); onClicked: wavePage.normalizePoints() } AppButton { Layout.preferredWidth: 82; label: root.t("清空"); onClicked: wavePage.applyTemplate("clear") } Item { Layout.fillWidth: true } Text { text: root.t("实际输出仍受强度范围和硬上限限制"); color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } }
+                                RowLayout { Layout.fillWidth: true; Text { text: root.t("频率"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 } Slider { Layout.fillWidth: true; from: 10; to: 240; stepSize: 1; value: wavePage.draftFrequency; onMoved: wavePage.draftFrequency=Math.round(value) } Text { text: wavePage.draftFrequency+" Hz"; color: cyan; font.pixelSize: 12; font.weight: Font.DemiBold } AppButton { Layout.preferredWidth: 190; Layout.preferredHeight: 46; label: root.t("保存到我的波形库"); fillColor: cyan; labelColor: "#10151A"; onClicked: { if(backend.saveCustomWaveform(wavePage.draftName,wavePage.draftPoints,wavePage.draftFrequency)){wavePage.draftName=backend.customName;waveformEditor.close()} } } }
+                            }
+                        }
+
+                        Dialog {
+                            id: actionMappingDialog
+                            anchors.centerIn: parent; width: Math.min(980,root.width-70); height: Math.min(700,root.height-50); modal: true; padding: 0
+                            background: Rectangle { color: panel; border.color: border; radius: 20 }
+                            contentItem: ColumnLayout {
+                                anchors.fill: parent; anchors.margins: 20; spacing: 10
+                                RowLayout { Layout.fillWidth: true; ColumnLayout { spacing: 3; Text { text: root.t("动作类型与波形"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 21; font.weight: Font.Bold } Text { text: root.t("只根据游戏报告的动作类型切换；普通交互默认关闭，静态姿势与规律动作采用不同推荐。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } } Item { Layout.fillWidth: true } AppButton { Layout.preferredWidth: 104; label: root.t("恢复推荐"); onClicked: backend.resetActionWaveforms() } AppButton { Layout.preferredWidth: 84; label: root.t("关闭"); onClicked: actionMappingDialog.close() } }
+                                RowLayout { Layout.fillWidth: true; TextField { Layout.fillWidth: true; Layout.preferredHeight: 40; placeholderText: root.t("搜索动作或波形"); text: wavePage.actionSearch; onTextEdited: wavePage.actionSearch=text; color: root.fg; font.family: "Microsoft YaHei UI"; background: Rectangle { radius: 11; color: panel2; border.color: parent.activeFocus?violet:border } } Repeater { model: [{key:"all",label:root.t("全部")},{key:"rhythmic",label:root.t("规律动作")},{key:"static",label:root.t("静态姿势")},{key:"off",label:root.t("普通交互")}]; delegate: AppButton { required property var modelData; Layout.preferredWidth: 92; Layout.preferredHeight: 36; label: modelData.label; fillColor: wavePage.actionFilter===modelData.key?violet:panel2; labelColor: wavePage.actionFilter===modelData.key?"#10151A":root.fg; onClicked: wavePage.actionFilter=modelData.key } } }
+                                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 34; radius: 9; color: panel2; RowLayout { anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14; spacing: 10; Text { Layout.preferredWidth: 220; text: root.t("游戏动作类型"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 82; text: root.t("分类"); color: muted; font.pixelSize: 9 } Text { Layout.fillWidth: true; text: root.t("波形预览"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 280; text: root.t("使用波形"); color: muted; font.pixelSize: 9 } } }
+                                ListView {
+                                    Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6; model: wavePage.filteredActions
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        width: ListView.view.width; height: 70; radius: 12; color: panel2; border.color: modelData.isOverride?violet:border
+                                        RowLayout { anchors.fill: parent; anchors.margins: 10; spacing: 10; Text { Layout.preferredWidth: 220; text: modelData.actionLabel; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; elide: Text.ElideRight; ToolTip.visible: actionNameHover.hovered; ToolTip.text: modelData.actionLabel + "\n" + modelData.action; HoverHandler { id: actionNameHover } } Text { Layout.preferredWidth: 82; text: modelData.styleLabel; color: modelData.style==="rhythmic"?violet:modelData.style==="static"?cyan:muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } WaveView { Layout.fillWidth: true; Layout.preferredHeight: 46; points: modelData.points; waveColor: modelData.color; animated: actionRowHover.hovered } WaveComboBox { Layout.preferredWidth: 280; model: backend.assignableWaveforms; currentIndex: wavePage.optionIndex(modelData.waveKey); onActivated: backend.setActionWaveform(modelData.action,backend.assignableWaveforms[currentIndex].key) } }
+                                        HoverHandler { id: actionRowHover }
+                                    }
+                                    ScrollBar.vertical: ScrollBar { }
+                                }
                             }
                         }
                     }
@@ -1135,15 +1342,15 @@ ApplicationWindow {
                                 }
                                 RowLayout {
                                     Layout.fillWidth: true; spacing: 10; visible: workshopPage.route === "f95"
-                                    Column { Layout.fillWidth: true; Text { text: root.t("Mod 与任务来源目录"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold } Text { text: root.t("CustomMission 1/2 已置顶；其余条目按类型整理。只跳转作者页面，不托管文件。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } }
+                                    Column { Layout.fillWidth: true; spacing: 3; Text { text: root.t("Mod 与任务来源目录"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 16; font.weight: Font.DemiBold } Text { text: root.t("CustomMission 1/2 已置顶；其余条目按类型整理。只跳转作者页面，不托管文件。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } }
                                     TextField {
                                         Layout.preferredWidth: 270; Layout.preferredHeight: 38
                                         placeholderText: root.t("搜索名称、作者、类型或楼层")
-                                        text: workshopPage.searchText; selectByMouse: true; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 10
+                                        text: workshopPage.searchText; selectByMouse: true; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11
                                         onTextEdited: workshopPage.searchText = text
                                         background: Rectangle { radius: 11; color: panel2; border.color: parent.activeFocus ? accent : border }
                                     }
-                                    Text { text: workshopPage.filteredSources.length + " / " + backend.modSourceLinks.length; color: accent; font.family: "Cascadia Mono"; font.pixelSize: 8; font.weight: Font.DemiBold }
+                                    Text { text: workshopPage.filteredSources.length + " / " + backend.modSourceLinks.length; color: accent; font.family: "Cascadia Mono"; font.pixelSize: 10; font.weight: Font.DemiBold }
                                 }
                                 RowLayout {
                                     Layout.fillWidth: true; spacing: 6; visible: workshopPage.route === "f95"
@@ -1170,10 +1377,10 @@ ApplicationWindow {
                                 GridView {
                                     id: workshopSourceList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; visible: workshopPage.route === "f95"
                                     model: workshopPage.filteredSources
-                                    cellWidth: width / 2; cellHeight: 142
+                                    cellWidth: width / 2; cellHeight: 158
                                     delegate: Rectangle {
                                         required property var modelData
-                                        width: workshopSourceList.cellWidth - 7; height: 134; radius: 14
+                                        width: workshopSourceList.cellWidth - 7; height: 150; radius: 14
                                         color: modelData.pinned ? (darkMode ? "#182033" : "#E7F8FB") : (darkMode ? "#141E2F" : "#EDF2F8")
                                         border.color: modelData.pinned ? accent : border
                                         RowLayout {
@@ -1181,51 +1388,73 @@ ApplicationWindow {
                                             Rectangle { Layout.alignment: Qt.AlignTop; width: 40; height: 40; radius: 12; color: Qt.rgba(accent.r,accent.g,accent.b,0.13); Text { anchors.centerIn: parent; text: modelData.pinned ? "★" : "↗"; color: accent; font.pixelSize: 15; font.weight: Font.Bold } }
                                             ColumnLayout {
                                                 Layout.fillWidth: true; Layout.alignment: Qt.AlignTop; spacing: 3
-                                                RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: modelData.displayName; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold; wrapMode: Text.Wrap } Rectangle { width: workshopGroupText.width + 12; height: 19; radius: 6; color: panel2; Text { id: workshopGroupText; anchors.centerIn: parent; text: modelData.categoryLabel; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 7 } } }
-                                                Text { Layout.fillWidth: true; text: modelData.alternateName; color: muted; font.family: "Segoe UI"; font.pixelSize: 8; elide: Text.ElideRight }
-                                                Text { Layout.fillWidth: true; text: modelData.author + " · " + modelData.kind + " · " + modelData.reference; color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 8; wrapMode: Text.Wrap }
-                                                Text { Layout.fillWidth: true; visible: modelData.note.length > 0; text: modelData.note; color: muted; font.family: "Segoe UI"; font.pixelSize: 8; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
+                                                RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: modelData.displayName; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.Wrap } Rectangle { width: workshopGroupText.width + 14; height: 22; radius: 7; color: panel2; Text { id: workshopGroupText; anchors.centerIn: parent; text: modelData.categoryLabel; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 } } }
+                                                Text { Layout.fillWidth: true; text: modelData.alternateName; color: muted; font.family: "Segoe UI"; font.pixelSize: 10; elide: Text.ElideRight }
+                                                Text { Layout.fillWidth: true; text: modelData.author + " · " + modelData.kind + " · " + modelData.reference; color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
+                                                Text { Layout.fillWidth: true; visible: modelData.note.length > 0; text: modelData.note; color: muted; font.family: "Segoe UI"; font.pixelSize: 9; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
                                             }
-                                            AppButton { Layout.alignment: Qt.AlignVCenter; Layout.preferredWidth: 86; Layout.preferredHeight: 32; label: root.t("打开原帖页"); onClicked: backend.openExternalUrl(modelData.url) }
+                                            AppButton { Layout.alignment: Qt.AlignVCenter; Layout.preferredWidth: 98; Layout.preferredHeight: 36; label: root.t("打开原帖页"); onClicked: backend.openExternalUrl(modelData.url) }
                                         }
                                     }
                                     ScrollBar.vertical: ScrollBar { contentItem: Rectangle { implicitWidth: 5; radius: 3; color: muted } background: Rectangle { color: "transparent" } }
                                 }
                                 ColumnLayout {
-                                    Layout.fillWidth: true; Layout.fillHeight: true; visible: workshopPage.route === "user9527"; spacing: 14
-                                    Item { Layout.preferredHeight: 16 }
-                                    Text { Layout.fillWidth: true; text: root.t("user9527 中文汉化整合"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 19; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter }
-                                    Text { Layout.fillWidth: true; text: root.t("选择原帖查看说明，或打开作者提供的文件目录。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
+                                    Layout.fillWidth: true; Layout.fillHeight: true; visible: workshopPage.route === "user9527"; spacing: 11
+                                    Text { Layout.fillWidth: true; text: root.t("user9527 中文汉化整合"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 21; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter }
+                                    Text { Layout.fillWidth: true; text: root.t("选择原帖查看说明，或打开作者提供的文件目录。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter }
                                     RowLayout {
-                                        Layout.fillWidth: true; Layout.preferredHeight: 190; spacing: 14
+                                        Layout.fillWidth: true; Layout.preferredHeight: 126; Layout.minimumHeight: 126; Layout.maximumHeight: 126; spacing: 12
                                         Rectangle {
-                                            Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
+                                            Layout.fillWidth: true; Layout.fillHeight: true; radius: 15
                                             color: darkMode ? "#171827" : "#F2EFFB"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.38)
-                                            ColumnLayout {
-                                                anchors.fill: parent; anchors.margins: 18; spacing: 8
-                                                Rectangle { width: 42; height: 42; radius: 13; color: Qt.rgba(violet.r,violet.g,violet.b,0.16); Text { anchors.centerIn: parent; text: "↗"; color: violet; font.pixelSize: 17; font.weight: Font.Bold } }
-                                                Text { text: root.t("F95Zone 汉化整合原帖"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                                Text { Layout.fillWidth: true; text: root.t("查看使用说明、更新记录与作者声明"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
-                                                Item { Layout.fillHeight: true }
-                                                AppButton { Layout.fillWidth: true; Layout.preferredHeight: 38; label: root.t("打开原帖"); fillColor: violet; labelColor: "#10151A"; onClicked: backend.openExternalUrl("https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-4-0.263276/post-20360819") }
+                                            RowLayout {
+                                                anchors.fill: parent; anchors.margins: 14; spacing: 12
+                                                Rectangle { width: 38; height: 38; radius: 12; color: Qt.rgba(violet.r,violet.g,violet.b,0.16); Text { anchors.centerIn: parent; text: "↗"; color: violet; font.pixelSize: 16; font.weight: Font.Bold } }
+                                                ColumnLayout { Layout.fillWidth: true; spacing: 4; Text { text: root.t("F95Zone 汉化整合原帖"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { Layout.fillWidth: true; text: root.t("查看使用说明、更新记录与作者声明"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap } }
+                                                AppButton { Layout.preferredWidth: 112; Layout.preferredHeight: 38; label: root.t("打开原帖"); fillColor: violet; labelColor: "#10151A"; onClicked: backend.openExternalUrl("https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-4-0.263276/post-20360819") }
                                             }
                                         }
                                         Rectangle {
-                                            Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
+                                            Layout.fillWidth: true; Layout.fillHeight: true; radius: 15
                                             color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: border
-                                            ColumnLayout {
-                                                anchors.fill: parent; anchors.margins: 18; spacing: 8
-                                                Rectangle { width: 42; height: 42; radius: 13; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.14); Text { anchors.centerIn: parent; text: "⌁"; color: cyan; font.pixelSize: 17; font.weight: Font.Bold } }
-                                                Text { text: root.t("作者文件目录"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                                Text { Layout.fillWidth: true; text: root.t("打开作者在原帖中提供的 Mega 目录"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap }
-                                                Item { Layout.fillHeight: true }
-                                                AppButton { Layout.fillWidth: true; Layout.preferredHeight: 38; label: root.t("打开目录"); fillColor: cyan; labelColor: "#10151A"; onClicked: backend.openExternalUrl("https://mega.nz/folder/QAEiCThB#V3T3H3c60jmQ_Pqm2R2eRA") }
+                                            RowLayout {
+                                                anchors.fill: parent; anchors.margins: 14; spacing: 12
+                                                Rectangle { width: 38; height: 38; radius: 12; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.14); Text { anchors.centerIn: parent; text: "⌁"; color: cyan; font.pixelSize: 16; font.weight: Font.Bold } }
+                                                ColumnLayout { Layout.fillWidth: true; spacing: 4; Text { text: root.t("作者文件目录"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { Layout.fillWidth: true; text: root.t("打开作者在原帖中提供的 Mega 目录"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap } }
+                                                AppButton { Layout.preferredWidth: 112; Layout.preferredHeight: 38; label: root.t("打开目录"); fillColor: cyan; labelColor: "#10151A"; onClicked: backend.openExternalUrl("https://mega.nz/folder/QAEiCThB#V3T3H3c60jmQ_Pqm2R2eRA") }
                                             }
                                         }
                                     }
-                                    Text { Layout.fillWidth: true; text: root.t("下载并解压整合包后，可使用专用向导安全备份、导入并应用精简启动预设。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
-                                    AppButton { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 260; Layout.preferredHeight: 42; label: root.t("导入 9527 汉化整合"); fillColor: violet; labelColor: "#10151A"; onClicked: { backend.reset9527Import(); pack9527Wizard.step = 0; pack9527Wizard.open() } }
-                                    Item { Layout.fillHeight: true }
+                                    Rectangle {
+                                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 230; radius: 18
+                                        color: darkMode ? "#171827" : "#F4F0FF"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.55); border.width: 1
+                                        ColumnLayout {
+                                            anchors.fill: parent; anchors.margins: 20; spacing: 13
+                                            Text { Layout.fillWidth: true; text: root.t("导入 9527 汉化整合"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 20; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter }
+                                            Text { Layout.fillWidth: true; text: root.t("下载并解压整合包后，可使用专用向导安全备份、导入并应用精简启动预设。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
+                                            RowLayout {
+                                                Layout.fillWidth: true; Layout.fillHeight: true; spacing: 10
+                                                Repeater {
+                                                    model: [
+                                                        { number: "1", title: root.t("下载整合包"), detail: root.t("从原帖或作者目录获取最新文件") },
+                                                        { number: "2", title: root.t("完整解压"), detail: root.t("保留文件夹结构，不要直接选择压缩包") },
+                                                        { number: "3", title: root.t("启动导入向导"), detail: root.t("自动校验、备份并应用精简预设") }
+                                                    ]
+                                                    delegate: Rectangle {
+                                                        required property var modelData
+                                                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.maximumHeight: 108; radius: 14
+                                                        color: darkMode ? "#141E2F" : "#FFFFFF"; border.color: border
+                                                        RowLayout {
+                                                            anchors.fill: parent; anchors.margins: 13; spacing: 10
+                                                            Rectangle { width: 38; height: 38; radius: 19; color: modelData.number === "3" ? violet : panel2; Text { anchors.centerIn: parent; text: modelData.number; color: modelData.number === "3" ? "#10151A" : root.fg; font.pixelSize: 16; font.weight: Font.Bold } }
+                                                            ColumnLayout { Layout.fillWidth: true; spacing: 3; Text { Layout.fillWidth: true; text: modelData.title; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.Wrap } Text { Layout.fillWidth: true; text: modelData.detail; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap } }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            AppButton { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 330; Layout.preferredHeight: 52; label: root.t("开始导入 9527 汉化整合"); fillColor: violet; labelColor: "#10151A"; onClicked: { backend.reset9527Import(); pack9527Wizard.step = 0; pack9527Wizard.open() } }
+                                        }
+                                    }
                                 }
                                 Text { Layout.fillWidth: true; visible: workshopPage.route === "f95"; text: root.t("支持 Mod 作者以及整合汉化工作者的劳动，是所有人都该守护的。"); color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
                             }

@@ -29,11 +29,15 @@ from manaka_9527_importer import Pack9527Error, Pack9527Importer
 from manaka_mod_manager import ManakaModManager, ModManagerError
 from manaka_trigger_engine import ManakaTriggerEngine, RollingPeakLimiter, TriggerFrame, clamp
 from manaka_waveforms import (
+    GAME_ACTION_TYPES,
     DEFAULT_WAVE_MAP,
     LEGACY_DEFAULT_WAVE_MAP,
     PRESETS,
     WaveformPreset,
     WaveformSelector,
+    action_label,
+    action_style,
+    recommended_wave_for_action,
     sanitize_wave_map,
 )
 try:
@@ -541,6 +545,24 @@ class ControlCenterBackend(QObject):
         self.custom_points_value = [int(clamp(float(value), 0, 100)) for value in points]
         self.custom_frequency_value = int(clamp(float(self.saved.get("custom_wave_frequency", 92)), 10, 240))
         self.custom_wave_library_value = self._read_custom_wave_library()
+        saved_actions = self.saved.get("known_actions", [])
+        if not isinstance(saved_actions, list):
+            saved_actions = []
+        self.known_actions_value = list(
+            dict.fromkeys(
+                list(GAME_ACTION_TYPES)
+                + [str(value).strip() for value in saved_actions if str(value).strip() not in {"", "None"}]
+            )
+        )
+        saved_action_map = self.saved.get("action_wave_map", {})
+        if not isinstance(saved_action_map, dict):
+            saved_action_map = {}
+        self.action_wave_map_value = {
+            str(action): str(wave_key)
+            for action, wave_key in saved_action_map.items()
+            if str(action).strip()
+            and self._is_assignable_wave_key(str(wave_key))
+        }
         self.wave_selector = WaveformSelector(hold_seconds=0.8)
         self.peak_limiter = RollingPeakLimiter(window_ms=5000, maximum_rise=15)
 
@@ -651,6 +673,7 @@ class ControlCenterBackend(QObject):
                     "points": clean_points,
                     "frequency": frequency,
                     "source": "我的波形库",
+                    "group": "custom",
                     "feelScale": 100,
                 }
             )
@@ -658,6 +681,56 @@ class ControlCenterBackend(QObject):
 
     def _library_entry(self, file_id: str) -> dict | None:
         return next((entry for entry in self.custom_wave_library_value if entry.get("id") == file_id), None)
+
+    def _library_entry_by_key(self, wave_key: str) -> dict | None:
+        return next((entry for entry in self.custom_wave_library_value if entry.get("key") == wave_key), None)
+
+    def _is_assignable_wave_key(self, wave_key: str) -> bool:
+        return wave_key == "off" or wave_key in PRESETS or self._library_entry_by_key(wave_key) is not None
+
+    def _waveform_from_key(self, wave_key: str) -> WaveformPreset | None:
+        if wave_key == "off":
+            return None
+        if wave_key in PRESETS:
+            return PRESETS[wave_key]
+        entry = self._library_entry_by_key(wave_key)
+        if entry is None:
+            return None
+        return WaveformPreset(
+            str(entry["key"]),
+            str(entry["name"]),
+            "保存的自定义包络",
+            "由用户分配的动作类型",
+            str(entry["color"]),
+            tuple(int(value) for value in entry["points"]),
+            (int(entry["frequency"]),),
+            source="我的波形库",
+        )
+
+    def _next_custom_waveform_name(self) -> str:
+        prefix = self._t("自定义波形")
+        used_numbers: set[int] = set()
+        for entry in self.custom_wave_library_value:
+            match = re.fullmatch(
+                r"(?:自定义波形|Custom Wave)\s+(\d+)",
+                str(entry.get("name", "")).strip(),
+                flags=re.IGNORECASE,
+            )
+            if match:
+                used_numbers.add(int(match.group(1)))
+        number = 1
+        while number in used_numbers:
+            number += 1
+        return f"{prefix} {number}"
+
+    def _selected_action_wave_key(self, action: str) -> str:
+        selected = self.action_wave_map_value.get(action, recommended_wave_for_action(action))
+        return selected if self._is_assignable_wave_key(selected) else recommended_wave_for_action(action)
+
+    def _display_custom_wave_name(self) -> str:
+        if self.custom_name_value in {"我的波形", "My Wave"}:
+            return self._t("我的波形")
+        return self.custom_name_value
 
     # ----- Generic properties -------------------------------------------------
     @Property(str, constant=True)
@@ -743,6 +816,10 @@ class ControlCenterBackend(QObject):
     @Property(str, notify=stateChanged)
     def action(self) -> str:
         return self.action_value
+
+    @Property(str, notify=stateChanged)
+    def actionDisplay(self) -> str:
+        return action_label(self.action_value, self.language_name)
 
     @Property(float, notify=stateChanged)
     def currentRp(self) -> float:
@@ -901,7 +978,7 @@ class ControlCenterBackend(QObject):
 
     @Property(str, notify=configChanged)
     def customName(self) -> str:
-        return self.custom_name_value
+        return self._display_custom_wave_name()
 
     @Property(int, notify=configChanged)
     def customFrequency(self) -> int:
@@ -919,6 +996,7 @@ class ControlCenterBackend(QObject):
                 "points": list(preset.amplitudes),
                 "frequency": int(round(sum(preset.frequency_codes) / len(preset.frequency_codes))),
                 "source": self._t(preset.source),
+                "group": "official" if preset.key.startswith("official_") else "builtin",
                 "feelScale": int(round(preset.feel_scale * 100)),
             }
             for preset in PRESETS.values()
@@ -926,13 +1004,14 @@ class ControlCenterBackend(QObject):
         values.append(
             {
                 "key": "custom",
-                "name": self.custom_name_value,
+                "name": self._display_custom_wave_name(),
                 "description": self._t("自定义 16 点包络"),
                 "bestFor": self._t("由用户自行分配"),
                 "color": "#59DCE7",
                 "points": list(self.custom_points_value),
                 "frequency": self.custom_frequency_value,
                 "source": self._t("用户自定义"),
+                "group": "custom",
                 "feelScale": 100,
             }
         )
@@ -951,6 +1030,51 @@ class ControlCenterBackend(QObject):
     @Property("QVariantList", notify=configChanged)
     def savedCustomWaveforms(self) -> list[dict]:
         return list(self.custom_wave_library_value)
+
+    @Property(str, notify=configChanged)
+    def nextCustomWaveformName(self) -> str:
+        return self._next_custom_waveform_name()
+
+    @Property("QVariantList", notify=configChanged)
+    def assignableWaveforms(self) -> list[dict]:
+        values = [
+            {
+                "key": "off",
+                "name": self._t("关闭 B 通道"),
+                "description": self._t("这个动作不产生动作通道输出"),
+                "color": "#667389",
+                "points": [0, 0, 0, 0],
+                "frequency": 0,
+                "group": "off",
+            }
+        ]
+        values.extend(value for value in self.presets if value.get("key") != "custom")
+        values.extend(self.custom_wave_library_value)
+        return values
+
+    @Property("QVariantList", notify=configChanged)
+    def actionWaveMappings(self) -> list[dict]:
+        options = {str(item["key"]): item for item in self.assignableWaveforms}
+        result: list[dict] = []
+        for action in self.known_actions_value:
+            selected = self._selected_action_wave_key(action)
+            option = options.get(selected, options["off"])
+            style = action_style(action)
+            style_label = {"off": "普通交互", "static": "静态姿势", "rhythmic": "规律动作"}[style]
+            result.append(
+                {
+                    "action": action,
+                    "actionLabel": action_label(action, self.language_name),
+                    "waveKey": selected,
+                    "waveName": str(option.get("name", selected)),
+                    "style": style,
+                    "styleLabel": self._t(style_label),
+                    "points": list(option.get("points", [0, 0, 0, 0])),
+                    "color": str(option.get("color", "#667389")),
+                    "isOverride": action in self.action_wave_map_value,
+                }
+            )
+        return result
 
     @Property(str, constant=True)
     def waveformLibraryFolder(self) -> str:
@@ -1618,8 +1742,7 @@ class ControlCenterBackend(QObject):
     def saveCustomWaveform(self, name: str, points: list, frequency: int) -> bool:
         name = str(name).strip()
         if not name:
-            self._toast("需要波形名称", "请先为自定义波形输入名称")
-            return False
+            name = self._next_custom_waveform_name()
         if len(points) != 16:
             self._toast("自定义波形无效", "波形必须包含 16 个控制点")
             return False
@@ -1659,6 +1782,40 @@ class ControlCenterBackend(QObject):
         self._toast("波形库已更新", f"{self.custom_name_value} 已保存到固定目录")
         return True
 
+    @Slot(str, str, result=bool)
+    def setActionWaveform(self, action: str, wave_key: str) -> bool:
+        action = str(action).strip()
+        wave_key = str(wave_key).strip()
+        if not action or action == "None" or not self._is_assignable_wave_key(wave_key):
+            self._toast("动作映射无效", "请选择有效的动作与波形")
+            return False
+        recommended = recommended_wave_for_action(action)
+        if wave_key == recommended:
+            self.action_wave_map_value.pop(action, None)
+        else:
+            self.action_wave_map_value[action] = wave_key
+        if action not in self.known_actions_value:
+            self.known_actions_value.append(action)
+        self.wave_selector.reset()
+        update_config(
+            {
+                "action_wave_map": self.action_wave_map_value,
+                "known_actions": self.known_actions_value,
+            }
+        )
+        self.configChanged.emit()
+        self._log(f"动作波形：{action} → {wave_key}")
+        return True
+
+    @Slot()
+    def resetActionWaveforms(self) -> None:
+        self.action_wave_map_value = {}
+        self.wave_selector.reset()
+        update_config({"action_wave_map": {}})
+        self.configChanged.emit()
+        self._log("动作波形已恢复推荐配置")
+        self._toast("已恢复推荐", "静态姿势、规律动作与普通交互已重新自动匹配")
+
     @Slot(str, result=bool)
     def loadCustomWaveform(self, file_id: str) -> bool:
         entry = self._library_entry(file_id)
@@ -1695,7 +1852,12 @@ class ControlCenterBackend(QObject):
         except OSError as error:
             self._toast("删除失败", str(error))
             return False
+        deleted_key = str(entry.get("key", ""))
+        self.action_wave_map_value = {
+            action: key for action, key in self.action_wave_map_value.items() if key != deleted_key
+        }
         self.custom_wave_library_value = self._read_custom_wave_library()
+        update_config({"action_wave_map": self.action_wave_map_value})
         self.configChanged.emit()
         self._log(f"已从波形库删除：{entry['name']}")
         self._toast("已删除", entry["name"])
@@ -1983,6 +2145,10 @@ class ControlCenterBackend(QObject):
         self.excitement_value = max(0.0, min(100.0, float(packet.get("ecstasy", 0) or 0) * 100))
         self.stage_value = str(packet.get("stage", "None"))
         self.action_value = str(packet.get("action", "None") or "None")
+        if self.action_value not in {"", "None"} and self.action_value not in self.known_actions_value:
+            self.known_actions_value.append(self.action_value)
+            update_config({"known_actions": self.known_actions_value})
+            self.configChanged.emit()
         self.current_rp_value = float(packet.get("currentRp", self.current_rp_value) or 0)
         self.expose_exp_value = int(packet.get("exposeExp", self.expose_exp_value) or 0)
         self.current_save_slot_value = int(packet.get("currentSaveSlot", self.current_save_slot_value))
@@ -1998,7 +2164,10 @@ class ControlCenterBackend(QObject):
             self._leave_safety_idle()
         self._show_frame(frame)
         if self.action_value != self.last_action:
-            self._log(f"动作：{self.last_action} → {self.action_value}")
+            action_title = "Action" if self.language_name == "en" else "动作"
+            previous_label = action_label(self.last_action, self.language_name)
+            current_label = action_label(self.action_value, self.language_name)
+            self._log(f"{action_title}：{previous_label} → {current_label}")
             self.last_action = self.action_value
         for event in frame.events:
             self._log(f"事件：{event}")
@@ -2029,9 +2198,14 @@ class ControlCenterBackend(QObject):
         wave_a = self.wave_selector.select(
             "A", frame.pattern_a, self.wave_mode_value, self.fixed_wave_value, self.wave_map_value, custom
         )
-        wave_b = self.wave_selector.select(
-            "B", frame.pattern_b, self.wave_mode_value, self.fixed_wave_value, self.wave_map_value, custom
-        )
+        if self.wave_mode_value == "smart" and frame.pattern_b == "action-ramp":
+            wave_b = self._waveform_from_key(self._selected_action_wave_key(self.action_value))
+            self.wave_selector.current["B"] = wave_b
+            self.wave_selector.pending["B"] = None
+        else:
+            wave_b = self.wave_selector.select(
+                "B", frame.pattern_b, self.wave_mode_value, self.fixed_wave_value, self.wave_map_value, custom
+            )
         self.current_wave_a = wave_a
         self.current_wave_b = wave_b
         self.current_output_a = frame.strength_a * wave_a.feel_scale if wave_a else 0.0

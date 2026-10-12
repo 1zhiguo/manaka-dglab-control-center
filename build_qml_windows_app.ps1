@@ -106,6 +106,9 @@ try {
     }
 
     Copy-Item -LiteralPath (Join-Path $root 'QUICKSTART_CN.md') -Destination (Join-Path $portable 'QUICKSTART_CN.md') -Force
+    Copy-Item -LiteralPath (Join-Path $root 'QUICKSTART_EN.md') -Destination (Join-Path $portable 'QUICKSTART_EN.md') -Force
+    Copy-Item -LiteralPath (Join-Path $root 'FAQ_CN.md') -Destination (Join-Path $portable 'FAQ_CN.md') -Force
+    Copy-Item -LiteralPath (Join-Path $root 'FAQ_EN.md') -Destination (Join-Path $portable 'FAQ_EN.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $portable 'THIRD_PARTY_NOTICES.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'USER_AGREEMENT_CN.md') -Destination (Join-Path $portable 'USER_AGREEMENT_CN.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'MOD_CONTENT_NOTICE_CN.md') -Destination (Join-Path $portable 'MOD_CONTENT_NOTICE_CN.md') -Force

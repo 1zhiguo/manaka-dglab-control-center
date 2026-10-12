@@ -7,6 +7,7 @@ preview and future DG-LAB V3 encoding, but never opens a socket or sends data.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 import time
 
 from dglab_official_waveforms import OFFICIAL_WAVEFORMS
@@ -209,6 +210,232 @@ LEGACY_DEFAULT_WAVE_MAP: dict[str, str] = {
     "action": "tide",
     "peak": "burst",
 }
+
+
+# Values exposed by ExposureUnnoticed2.Master.Action.ActionType in game 1.1.3.
+# Keeping the list in the desktop app makes the mapping editor useful before a
+# player has triggered every action once. Unknown values received from newer
+# game versions are added by the backend at runtime.
+GAME_ACTION_TYPES: tuple[str, ...] = (
+    "OldOnaniNormal", "OldGanimataWalk", "Pinpon", "ConbiniTakeGoods", "CrouchCry",
+    "EatMedicine", "SadHandcuffAtMap", "SwitchTimeStop", "SwitchPistonMachine",
+    "PickingCoat", "Pick", "Drop", "ChangeClothes", "DroppingClothes", "HandOver",
+    "InsertAnalPlug", "ExtractAnalPlug", "CommonEquip", "IntoWasher", "TakeFromWasher",
+    "UseBuyMachine", "DrinkWater", "PeeNormal", "TakeOffPants", "TakeOnPants",
+    "TakeOffBra", "TakeOnBra", "Sad", "AttachHandcuffs", "PutHandcuffsOnMap",
+    "HandcuffsAtMap", "UnlockHandcuffsAtMap", "AttachEyeMask", "SwitchVibrator",
+    "PickUpItem", "SitDown", "StandUp", "PutDildoFloor", "PutDildoWall",
+    "UseDildoFloorPussy1", "UseDildoFloorPussy2", "UseDildoFloorPussy3",
+    "UseDildoFloorPussy4", "UseDildoFloorPussy5", "UseDildoFloorAnal1",
+    "UseDildoFloorAnal2", "UseDildoFloorAnal3", "UseDildoFloorAnal4",
+    "UseDildoFloorAnal5", "UseDildoFloorFella1", "UseDildoFloorFella2",
+    "UseDildoFloorFella3", "UseDildoFloorFella4", "UseDildoFloorFella5",
+    "UseDildoWallPussy1", "UseDildoWallPussy2", "UseDildoWallPussy3",
+    "UseDildoWallPussy4", "UseDildoWallPussy5", "UseDildoWallAnal1",
+    "UseDildoWallAnal2", "UseDildoWallAnal3", "UseDildoWallAnal4", "UseDildoWallAnal5",
+    "UseDildoWallFella1", "UseDildoWallFella2", "UseDildoWallFella3",
+    "UseDildoWallFella4", "UseDildoWallFella5", "UseDildoFloorWaitPussy",
+    "UseDildoFloorWaitAnal", "UseDildoFloorWaitFella", "UseDildoWallWaitPussy",
+    "UseDildoWallWaitAnal", "UseDildoWallWaitFella", "UseDildoFloorPussyEcstasyA",
+    "UseDildoFloorAnalEcstasyA", "UseDildoFloorFellaEcstasyA",
+    "UseDildoWallPussyEcstasyA", "UseDildoWallAnalEcstasyA",
+    "UseDildoWallFellaEcstasyA", "PickDildo", "SitDildo", "SitDildoPut",
+    "SitDildoPick", "SitDildoMoveAnal", "SitDildoMovePussy", "PickDildoWall",
+    "GanimataWalk", "AhegaoDoublePiece", "HipShake", "GanimataHip", "KaikyakuFella",
+    "Dogeza", "DogTintin", "IBalance", "WakimiseCrouch", "MituasiOnani", "Tebura",
+    "PeeKaikyaku", "PeeDog", "ChikubiRotate", "OnaniYotuashi", "OnaniNeGanimata",
+    "OnaniNormal", "NeKataashiage", "OnaniArmKuri", "OnaniSikoru",
+    "GanimataKoshiHeko", "Haigure", "PeeStand", "DogezaUpHead", "PoseEnd",
+    "SexStandBack", "SexKijoui",
+)
+
+
+# The game sends compact enum keys.  Keep those keys for configuration and
+# matching, while presenting a readable name in the UI.
+_ACTION_LABELS_ZH: dict[str, str] = {
+    "None": "无动作",
+    "Walking": "行走",
+    "OldOnaniNormal": "旧版 · 普通自慰",
+    "OldGanimataWalk": "旧版 · 岔腿行走",
+    "Pinpon": "按门铃",
+    "ConbiniTakeGoods": "便利店取商品",
+    "CrouchCry": "蹲下哭泣",
+    "EatMedicine": "服药",
+    "SadHandcuffAtMap": "地图手铐 · 悲伤",
+    "SwitchTimeStop": "切换时间停止",
+    "SwitchPistonMachine": "切换活塞机",
+    "PickingCoat": "选择外套",
+    "Pick": "拾取",
+    "Drop": "放下",
+    "ChangeClothes": "更换服装",
+    "DroppingClothes": "脱下服装",
+    "HandOver": "递交物品",
+    "InsertAnalPlug": "塞入肛塞",
+    "ExtractAnalPlug": "取出肛塞",
+    "CommonEquip": "装备道具",
+    "IntoWasher": "放入洗衣机",
+    "TakeFromWasher": "从洗衣机取出",
+    "UseBuyMachine": "使用自动贩卖机",
+    "DrinkWater": "喝水",
+    "PeeNormal": "普通排尿",
+    "TakeOffPants": "脱下下装",
+    "TakeOnPants": "穿上下装",
+    "TakeOffBra": "脱下内衣",
+    "TakeOnBra": "穿上内衣",
+    "Sad": "悲伤",
+    "AttachHandcuffs": "戴上手铐",
+    "PutHandcuffsOnMap": "把手铐放到地图",
+    "HandcuffsAtMap": "使用地图手铐",
+    "UnlockHandcuffsAtMap": "解开地图手铐",
+    "AttachEyeMask": "戴上眼罩",
+    "SwitchVibrator": "切换跳蛋",
+    "PickUpItem": "拾取物品",
+    "SitDown": "坐下",
+    "StandUp": "起身",
+    "PutDildoFloor": "放置地面假阳具",
+    "PutDildoWall": "放置墙面假阳具",
+    "PickDildo": "拾取假阳具",
+    "SitDildo": "骑坐假阳具",
+    "SitDildoPut": "放置骑坐假阳具",
+    "SitDildoPick": "收起骑坐假阳具",
+    "SitDildoMoveAnal": "骑坐移动 · 肛门",
+    "SitDildoMovePussy": "骑坐移动 · 阴道",
+    "PickDildoWall": "拾取墙面假阳具",
+    "GanimataWalk": "岔腿行走",
+    "AhegaoDoublePiece": "阿黑颜双 V 手势",
+    "HipShake": "摇臀",
+    "GanimataHip": "岔腿挺胯",
+    "KaikyakuFella": "劈腿口交",
+    "Dogeza": "土下座",
+    "DogTintin": "小狗姿势",
+    "IBalance": "I 字平衡",
+    "WakimiseCrouch": "露腋蹲姿",
+    "MituasiOnani": "足部自慰",
+    "Tebura": "托胸姿势",
+    "PeeKaikyaku": "劈腿排尿",
+    "PeeDog": "小狗姿势排尿",
+    "ChikubiRotate": "旋转乳头",
+    "OnaniYotuashi": "四足自慰",
+    "OnaniNeGanimata": "躺姿岔腿自慰",
+    "OnaniNormal": "普通自慰",
+    "NeKataashiage": "躺姿单腿抬起",
+    "OnaniArmKuri": "手臂动作自慰",
+    "OnaniSikoru": "套弄自慰",
+    "GanimataKoshiHeko": "岔腿摆腰",
+    "Haigure": "高衩姿势",
+    "PeeStand": "站立排尿",
+    "DogezaUpHead": "抬头土下座",
+    "PoseEnd": "结束姿势",
+    "SexStandBack": "站立后入",
+    "SexKijoui": "骑乘位",
+}
+
+_ACTION_TOKEN_EN: dict[str, str] = {
+    "Onani": "Masturbation",
+    "Ganimata": "Wide-legged",
+    "Pee": "Urination",
+    "Kaikyaku": "Spread-legged",
+    "Fella": "Oral",
+    "Pussy": "Vaginal",
+    "Anal": "Anal",
+    "Dogeza": "Dogeza",
+    "Chikubi": "Nipple",
+    "Kijoui": "Cowgirl",
+}
+
+
+def _humanize_action_name(action: str) -> str:
+    value = str(action or "None").strip() or "None"
+    words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
+    words = re.sub(r"(?<=[A-Za-z])(?=[0-9])", " ", words)
+    for source, target in _ACTION_TOKEN_EN.items():
+        words = re.sub(rf"\b{re.escape(source)}\b", target, words)
+    return words
+
+
+def action_label(action: str, language: str = "zh") -> str:
+    """Return a localized display label without changing the enum key."""
+
+    value = str(action or "None").strip() or "None"
+    if language != "zh":
+        return _humanize_action_name(value)
+
+    fixed = _ACTION_LABELS_ZH.get(value)
+    if fixed:
+        return fixed
+
+    dildo_action = re.fullmatch(r"UseDildo(Floor|Wall)(Pussy|Anal|Fella)([1-5])", value)
+    if dildo_action:
+        location, action_type, number = dildo_action.groups()
+        location_label = {"Floor": "地面", "Wall": "墙面"}[location]
+        type_label = {"Pussy": "阴道", "Anal": "肛门", "Fella": "口交"}[action_type]
+        return f"{location_label}假阳具 · {type_label}动作 {number}"
+
+    dildo_wait = re.fullmatch(r"UseDildo(Floor|Wall)Wait(Pussy|Anal|Fella)", value)
+    if dildo_wait:
+        location, action_type = dildo_wait.groups()
+        location_label = {"Floor": "地面", "Wall": "墙面"}[location]
+        type_label = {"Pussy": "阴道", "Anal": "肛门", "Fella": "口交"}[action_type]
+        return f"{location_label}假阳具 · {type_label}待机"
+
+    dildo_peak = re.fullmatch(r"UseDildo(Floor|Wall)(Pussy|Anal|Fella)EcstasyA", value)
+    if dildo_peak:
+        location, action_type = dildo_peak.groups()
+        location_label = {"Floor": "地面", "Wall": "墙面"}[location]
+        type_label = {"Pussy": "阴道", "Anal": "肛门", "Fella": "口交"}[action_type]
+        return f"{location_label}假阳具 · {type_label}高潮"
+
+    # Newer game/plugin versions may introduce enums unknown to this release.
+    # A spaced fallback remains searchable and is much easier to read than the
+    # original compact identifier.
+    return _humanize_action_name(value)
+
+_ACTION_OFF = {
+    "None", "Pinpon", "ConbiniTakeGoods", "CrouchCry", "EatMedicine",
+    "SadHandcuffAtMap", "SwitchTimeStop", "SwitchPistonMachine", "PickingCoat",
+    "Pick", "Drop", "ChangeClothes", "DroppingClothes", "HandOver",
+    "InsertAnalPlug", "ExtractAnalPlug", "CommonEquip", "IntoWasher", "TakeFromWasher",
+    "UseBuyMachine", "DrinkWater", "PeeNormal", "TakeOffPants", "TakeOnPants",
+    "TakeOffBra", "TakeOnBra", "Sad", "AttachHandcuffs", "PutHandcuffsOnMap",
+    "HandcuffsAtMap", "UnlockHandcuffsAtMap", "AttachEyeMask", "SwitchVibrator",
+    "PickUpItem", "SitDown", "StandUp", "PutDildoFloor", "PutDildoWall", "PickDildo",
+    "SitDildoPut", "SitDildoPick", "PickDildoWall", "PeeKaikyaku", "PeeDog",
+    "PeeStand", "PoseEnd",
+}
+
+_ACTION_STATIC = {
+    "UseDildoFloorWaitPussy", "UseDildoFloorWaitAnal", "UseDildoFloorWaitFella",
+    "UseDildoWallWaitPussy", "UseDildoWallWaitAnal", "UseDildoWallWaitFella",
+    "SitDildo", "AhegaoDoublePiece", "Dogeza", "DogTintin", "IBalance",
+    "WakimiseCrouch", "Tebura", "NeKataashiage", "Haigure", "DogezaUpHead",
+}
+
+
+def action_style(action: str) -> str:
+    """Classify an action for UI labels and safe default waveform selection."""
+
+    value = str(action or "None")
+    if value in _ACTION_OFF:
+        return "off"
+    if value in _ACTION_STATIC:
+        return "static"
+    return "rhythmic"
+
+
+def recommended_wave_for_action(action: str) -> str:
+    """Return a conservative default based only on the game's action type."""
+
+    style = action_style(action)
+    if style == "off":
+        return "off"
+    if style == "static":
+        return "official_breath"
+    value = str(action or "")
+    if "Onani" in value or "Chikubi" in value:
+        return "official_heartbeat"
+    if value in {"OldGanimataWalk", "GanimataWalk"}:
+        return "official_tide"
+    return "official_pulsating"
 
 ZONE_LABELS: dict[str, str] = {
     "low": "低心率段",
