@@ -2,52 +2,52 @@
 
 ## Does the download include the game?
 
-No. Select your own legally obtained Secret Flasher Manaka v1.1.3 folder.
+No. The public project and release files do not include the game. Select your own legally obtained Secret Flasher Manaka v1.1.3 folder.
 
-## Do I need Python, Node.js, or BepInEx?
+## Do I need to install Python, Node.js, or BepInEx?
 
-The portable build does not require Python or Node.js. A clean game does not need BepInEx preinstalled; **Install and Launch Game** deploys the verified runtime and telemetry plugin.
+The portable Windows build does not require Python or Node.js. A clean game copy does not need BepInEx preinstalled; **Install and Launch Game** deploys the verified runtime and telemetry plugin.
 
 ## Why does Windows show “Unknown publisher”?
 
-The executable is not code-signed. Download only from the official website or GitHub Release and compare the published SHA-256 before using **More info → Run anyway**.
+The executable is not code-signed. Download only from the official website or GitHub Release, compare the SHA-256 checksum, and use **More info → Run anyway** only after verifying the source.
 
 ## Why does the QR code not connect?
 
 - Put the phone and PC on the same local network.
 - Allow the control center through Windows Firewall on private networks.
-- Connect the physical device before opening SOCKET Control.
-- Use the camera option inside **Connect server**.
+- In the DG-LAB app, connect the physical device before opening SOCKET Control.
+- Use the camera option inside **Connect server** to scan the desktop QR code.
 - Avoid guest Wi-Fi or client-isolated networks.
 
-## Why is no waveform sent?
+## Why is no waveform sent to the app?
 
-Confirm that game telemetry is live, DG-LAB is connected, output is not paused, and the game is not in safety idle. Enter a playable scene and wait for valid heart-rate or action data.
+Confirm that the game telemetry status is live, the DG-LAB device is connected, output is not paused, and the game is not in a safety-idle state. Enter a playable scene and wait for valid heart-rate or action data.
 
 ## What does Pause output do?
 
-It sets both software channels to zero and clears queued output while keeping the Socket connection alive. Press it again to resume after valid game data returns.
+It immediately sets both software output channels to zero and clears queued output while keeping the Socket connection alive. Press the button again to resume after valid game data returns.
 
-## Where are waveforms and backups stored?
+## Where are custom waveforms and save backups stored?
 
 ```text
 %APPDATA%\ManakaDGLab\waveforms
 %APPDATA%\ManakaDGLab\save_backups
 ```
 
-These are per-Windows-user folders, so the full path differs between computers.
+These are per-Windows-user folders, so the exact absolute path differs between computers.
 
-## Why did EXP not update the level?
+## Why did changing EXP not update the level?
 
-Edit while outdoors and paused. Then complete any mission and return home to trigger settlement.
+Edit the save while the character is outdoors and the game is paused. After writing EXP, complete any mission and return home to trigger settlement. The level refreshes during that settlement flow.
 
-## How does the Mod Manager toggle Mods?
+## How does the Mod Manager enable and disable Mods?
 
-Enabling copies managed files from the repository into the proper game folder. Disabling moves managed game files into `ManakaModManager/disabled`. Fully exit the game first.
+The repository keeps a managed source copy. Enabling synchronizes the selected files into the appropriate game folder. Disabling moves managed game files into `ManakaModManager/disabled`. Always fully exit the game before changing Mod state.
 
 ## Can I replace an imported Mod with a newer file of the same name?
 
-Yes. Put the newer item in `dropin_mods/incoming` and choose **Import & Scan**. Enabled game files are refreshed while the game is closed.
+Yes. Put the newer item in `dropin_mods/incoming` and choose **Import & Scan**. The Drop-in copy replaces the repository version; enabled game files are refreshed while the game is closed.
 
 ## Where can I report a problem?
 
