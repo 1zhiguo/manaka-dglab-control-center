@@ -7,6 +7,11 @@
   const search = document.querySelector("#docSearch");
   const searchStatus = document.querySelector("#searchStatus");
   const tabs = [...document.querySelectorAll(".doc-tab")];
+  const i18n = window.ManakaI18n;
+  const fileFor = (kind) => {
+    const suffix = i18n?.language === "en" ? "EN" : "CN";
+    return kind === "faq" ? `FAQ_${suffix}.md` : `QUICKSTART_${suffix}.md`;
+  };
 
   const escapeHtml = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
   const inline = (value) => {
@@ -73,17 +78,18 @@
   }
   function runSearch() {
     content.querySelectorAll(".search-hit").forEach((node) => node.classList.remove("search-hit"));
-    const query = search.value.trim().toLocaleLowerCase("zh-CN");
+    const locale = i18n?.language === "en" ? "en" : "zh-CN";
+    const query = search.value.trim().toLocaleLowerCase(locale);
     if (!query) { searchStatus.textContent = ""; return; }
-    const matches = [...content.querySelectorAll("h1,h2,h3,p,li,pre")].filter((node) => node.textContent.toLocaleLowerCase("zh-CN").includes(query));
+    const matches = [...content.querySelectorAll("h1,h2,h3,p,li,pre")].filter((node) => node.textContent.toLocaleLowerCase(locale).includes(query));
     matches.forEach((node) => node.classList.add("search-hit"));
-    searchStatus.textContent = matches.length ? `找到 ${matches.length} 处，已定位第一处` : "没有找到匹配内容";
+    searchStatus.textContent = matches.length ? i18n.t("guide.search.found", { count: String(matches.length) }) : i18n.t("guide.search.none");
     matches[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   async function loadDocument(fileName) {
-    content.innerHTML = '<p class="doc-loading">正在读取 Markdown 文档…</p>';
+    content.innerHTML = `<p class="doc-loading">${i18n.t("guide.loading")}</p>`;
     errorBox.hidden = true; search.value = ""; searchStatus.textContent = "";
-    sourceLabel.textContent = `读取 ${fileName}`; rawLink.href = fileName;
+    sourceLabel.textContent = i18n.t("guide.source", { file: fileName }); rawLink.href = fileName;
     try {
       const response = await fetch(fileName, { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -93,9 +99,13 @@
     }
   }
   tabs.forEach((tab) => tab.addEventListener("click", () => {
-    tabs.forEach((item) => item.classList.toggle("is-active", item === tab)); loadDocument(tab.dataset.doc);
+    tabs.forEach((item) => item.classList.toggle("is-active", item === tab)); loadDocument(fileFor(tab.dataset.docKind));
   }));
   search.addEventListener("search", runSearch);
   search.addEventListener("keydown", (event) => { if (event.key === "Enter") runSearch(); });
-  loadDocument("QUICKSTART_CN.md");
+  window.addEventListener("manaka:languagechange", () => {
+    const active = tabs.find((tab) => tab.classList.contains("is-active")) || tabs[0];
+    loadDocument(fileFor(active.dataset.docKind));
+  });
+  loadDocument(fileFor("quickstart"));
 })();

@@ -36,6 +36,16 @@
 
 完整说明见 [QUICKSTART_CN.md](QUICKSTART_CN.md)。
 
+## English Quick Start
+
+1. Download the latest portable Windows archive from the [English website](https://manaka-dglab.web.app/?lang=en) or [GitHub Releases](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest), then extract the complete ZIP.
+2. Run `ManakaQmlControlCenter.exe` and switch to **English** from the top bar or the first-run agreement window.
+3. Select the folder that directly contains `SecretFlasherManaka.exe`, then choose **Install and Launch Game**. A clean game copy does not need BepInEx preinstalled.
+4. In the DG-LAB 3.0 app, connect the device, open **SOCKET Control**, choose **Connect server**, and scan the QR code shown by the control center.
+5. Begin with **Low · 5–30**, keep the initial hard cap at 30, and use **Pause output** whenever you need to set A/B output to zero without disconnecting the device.
+
+The public build does **not** include the game. Read the full [English setup guide](QUICKSTART_EN.md) and [English FAQ](FAQ_EN.md) before first use.
+
 ## Mod 导入模型
 
 ```text

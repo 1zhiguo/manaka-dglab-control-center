@@ -50,10 +50,10 @@
     document.addEventListener("click", () => setOpen(false));
   }
   document.querySelectorAll("[data-version]").forEach((node) => {
-    node.textContent = config.version || "当前版本";
+    node.textContent = config.version || window.ManakaI18n?.t("download.current") || "当前版本";
   });
   document.querySelectorAll("[data-sha256]").forEach((node) => {
-    node.textContent = config.sha256 || "发布时提供";
+    node.textContent = config.sha256 || window.ManakaI18n?.t("download.pending") || "发布时提供";
   });
   document.querySelectorAll("[data-baidu-code]").forEach((node) => {
     node.textContent = config.baiduCode || "—";

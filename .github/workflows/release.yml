@@ -119,6 +119,8 @@ jobs:
             --output website/dist/download-config.js
           cp QUICKSTART_CN.md website/dist/QUICKSTART_CN.md
           cp FAQ_CN.md website/dist/FAQ_CN.md
+          cp QUICKSTART_EN.md website/dist/QUICKSTART_EN.md
+          cp FAQ_EN.md website/dist/FAQ_EN.md
 
       - name: Commit release manifest
         shell: bash
