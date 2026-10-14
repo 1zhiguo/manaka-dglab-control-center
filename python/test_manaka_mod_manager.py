@@ -40,6 +40,24 @@ class ManakaModManagerTests(unittest.TestCase):
         self.assertTrue(target.exists())
 
     @patch("manaka_mod_manager.game_is_running", return_value=False)
+    def test_local_plugin_disable_and_restore_when_game_is_source(self, _running) -> None:
+        target = self.game / "BepInEx" / "plugins" / "NPCBehaviorModifier.dll"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"local-plugin")
+        manager = ManakaModManager(self.game, self.game)
+
+        item = next(item for item in manager.scan() if item["name"] == "NPCBehaviorModifier")
+        manager.set_enabled(item["id"], False)
+        disabled = target.with_name("NPCBehaviorModifier.dll.disabled")
+        self.assertFalse(target.exists())
+        self.assertEqual(disabled.read_bytes(), b"local-plugin")
+
+        item = next(item for item in manager.scan() if item["name"] == "NPCBehaviorModifier")
+        manager.set_enabled(item["id"], True)
+        self.assertEqual(target.read_bytes(), b"local-plugin")
+        self.assertFalse(disabled.exists())
+
+    @patch("manaka_mod_manager.game_is_running", return_value=False)
     def test_saved_plugin_is_installed_to_plugin_root(self, _running) -> None:
         source_plugin = self.source / "BepInEx" / "plugins" / "save" / "Freer.dll"
         source_plugin.parent.mkdir(parents=True)

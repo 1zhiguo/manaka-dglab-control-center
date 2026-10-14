@@ -720,6 +720,18 @@ class ManakaModManager:
         target.parent.mkdir(parents=True, exist_ok=True)
         if enabled:
             source = Path(entry.source) if entry.source else None
+            # In local-only mode the selected game directory is also the scan
+            # root.  A disabled plug-in is therefore discovered as both the
+            # recoverable copy and its own "source".  Do not unlink that file
+            # before copying it; restoring the renamed DLL is the operation we
+            # want in this case.
+            if (
+                source is not None
+                and disabled.is_file()
+                and source.resolve(strict=False) == disabled.resolve(strict=False)
+            ):
+                disabled.replace(target)
+                return
             if source is not None and source.is_file():
                 disabled.unlink(missing_ok=True)
                 source_plugins = self._plugin_root_for(source)
