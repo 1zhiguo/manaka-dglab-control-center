@@ -23,7 +23,7 @@ namespace ManakaDGLab.Telemetry
     {
         public const string PluginGuid = "local.manaka.dglab.telemetry";
         public const string PluginName = "Manaka DG-LAB Telemetry";
-        public const string PluginVersion = "0.4.2-hud-compact";
+        public const string PluginVersion = "0.4.3-thread-safety";
 
         private Harmony _harmony;
         internal static ManualLogSource PluginLog;
@@ -198,13 +198,22 @@ namespace ManakaDGLab.Telemetry
                 Visible = parts[2] == "1",
                 Connected = parts[3] == "1",
                 Active = parts[4] == "1",
-                StrengthA = Mathf.Clamp(strengthA, 0f, 100f),
-                StrengthB = Mathf.Clamp(strengthB, 0f, 100f),
-                PulseA = Mathf.Clamp01(pulseA),
-                PulseB = Mathf.Clamp01(pulseB),
+                // This parser runs on the UDP receiver thread. Calling Unity APIs from
+                // that thread can crash IL2CPP, so keep clamping entirely in managed code.
+                StrengthA = Clamp(strengthA, 0f, 100f),
+                StrengthB = Clamp(strengthB, 0f, 100f),
+                PulseA = Clamp(pulseA, 0f, 1f),
+                PulseB = Clamp(pulseB, 0f, 1f),
                 ReceivedAt = Environment.TickCount64
             };
             return true;
+        }
+
+        private static float Clamp(float value, float minimum, float maximum)
+        {
+            if (value < minimum) return minimum;
+            if (value > maximum) return maximum;
+            return value;
         }
     }
 

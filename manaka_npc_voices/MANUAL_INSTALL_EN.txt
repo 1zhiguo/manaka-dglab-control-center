@@ -1,0 +1,26 @@
+Manaka NPC Reactions & Subtitles 0.6.0 — Manual Install
+
+Required:
+1. Secret Flasher Manaka (v1.1.1, v1.1.2, and v1.1.3 are officially supported)
+2. BepInEx 6 IL2CPP. BepInEx\core\BepInEx.Core.dll should already exist in the game folder.
+
+Install:
+1. Fully close the game.
+2. Copy the BepInEx folder from this ZIP into the game root, next to the game EXE.
+3. Allow Windows to merge folders and replace matching files. Only this plugin's own files are updated.
+4. Start the game. Settings are created at BepInEx\config\local.manaka.npcvoices.cfg.
+
+Optional integrations:
+- NPCBehaviorModifier is not required. Normal ambient, alert, found, and failure reactions work without it. If installed, it also enables dialogue during its post-failure NPC interaction.
+- Custom Missions 2 is not required. Only copy the BepInEx folder under Optional-CustomMissions2 when you want the settings page inside the CM2 phone.
+
+Custom subtitles:
+- The recommended editor is in Manaka x DG-LAB Control Center under Edit Subtitle Lines.
+- Overrides are stored in BepInEx\config\ManakaNpcVoices\lines and repair installs do not overwrite them.
+
+Uninstall:
+- Delete BepInEx\plugins\ManakaNpcVoices.
+- To reset personal settings too, delete BepInEx\config\local.manaka.npcvoices.cfg and BepInEx\config\ManakaNpcVoices.
+
+The runtime never accesses the network. Audio uses local Japanese reaction WAVs; subtitles can be Chinese, Japanese, or English.
+The control center prepares matching BepInEx Interop for v1.1.1, v1.1.2, and v1.1.3. Other game versions are not blocked, but plugin fields or events may differ. Keep the BepInEx log if data is missing or the plugin fails to load.

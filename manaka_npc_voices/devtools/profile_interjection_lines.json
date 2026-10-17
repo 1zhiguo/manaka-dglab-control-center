@@ -1,0 +1,113 @@
+{
+  "schema_version": 3,
+  "runtime_policy": "offline_only",
+  "description": "Japanese profile-specific reactions generated during development. The game never calls Fish Audio.",
+  "languages": {
+    "ja": {
+      "states": {
+        "phone": ["はぁ……", "うん……", "ちぇっ……"],
+        "watching": ["ん？", "え？", "ん……？"],
+        "alert": ["えっ？", "待って……", "ちょっと！"],
+        "found": ["あっ！", "おい！", "止まれ！"],
+        "failure": ["ふふ……", "ふん……", "なるほど……"]
+      },
+      "fish_voices": {
+        "young_female": {
+          "title": "Young female (selected Fish model)",
+          "reference_id": "0089dce5fefb4c6ba9b9f2f0debe1ddc",
+          "language": "ja",
+          "role": "female",
+          "output_profile": "young_female",
+          "file_prefix": "voice_a",
+          "states": {
+            "phone": ["はぁ……", "もう……", "ちぇっ……"],
+            "watching": ["ん？", "え？", "なに……？"],
+            "alert": ["えっ？", "待って……", "ちょっと！"],
+            "found": ["きゃっ！", "うそ！", "やだ！"],
+            "failure": ["うわ……", "最低……", "信じられない……"]
+          },
+          "delivery": {
+            "phone": ["[tired][muttering][whispering] はぁ……", "[annoyed][muttering] もう……", "[annoyed][whispering] ちぇっ……"],
+            "watching": ["[curious][whispering] ん？", "[surprised][whispering] え？", "[uncertain][muttering] なに……？"],
+            "alert": ["[surprised] えっ？", "[nervous][whispering] 待って……", "[warning] ちょっと！"],
+            "found": ["[shocked] きゃっ！", "[shocked] うそ！", "[disgusted] やだ！"],
+            "failure": ["[disgusted][whispering] うわ……", "[contemptuous][low voice] 最低……", "[shocked][whispering] 信じられない……"]
+          }
+        },
+        "young_male": {
+          "title": "Young male (selected Fish model)",
+          "reference_id": "8f99ad75c8184f1db0c21d3a906445a4",
+          "language": "ja",
+          "role": "male",
+          "output_profile": "young_male",
+          "file_prefix": "voice_b",
+          "states": {
+            "phone": ["はぁ……", "ん……", "ちぇっ……"],
+            "watching": ["ん？", "おっ？", "あれ……？"],
+            "alert": ["おっ？", "待て……", "おい！"],
+            "found": ["おっ！", "おい！", "止まれ！"],
+            "failure": ["へえ……", "ふっ……", "なるほど……"]
+          },
+          "delivery": {
+            "phone": ["[tired][muttering][whispering] はぁ……", "[distracted][muttering] ん……", "[annoyed][whispering] ちぇっ……"],
+            "watching": ["[curious][whispering] ん？", "[interested][whispering] おっ？", "[uncertain][muttering] あれ……？"],
+            "alert": ["[interested] おっ？", "[warning][low voice] 待て……", "[warning] おい！"],
+            "found": ["[excited] おっ！", "[shocked] おい！", "[commanding] 止まれ！"],
+            "failure": ["[interested][whispering] へえ……", "[amused][low voice] ふっ……", "[satisfied][whispering] なるほど……"]
+          }
+        },
+        "older_female": {
+          "title": "Older female (selected Fish model)",
+          "reference_id": "0429f2b252464b88b2ab2128f084290c",
+          "language": "ja",
+          "role": "female",
+          "output_profile": "older_female",
+          "file_prefix": "voice_a",
+          "states": {
+            "phone": ["はぁ……", "まあ……", "やれやれ……"],
+            "watching": ["あら？", "まあ？", "何かしら……？"],
+            "alert": ["まあ！", "ちょっと……", "あなた！"],
+            "found": ["あらまあ！", "ちょっと！", "お待ちなさい！"],
+            "failure": ["はぁ……", "まったく……", "やれやれ……"]
+          },
+          "delivery": {
+            "phone": ["[tired][sighing][whispering] はぁ……", "[distracted][muttering] まあ……", "[tired][muttering] やれやれ……"],
+            "watching": ["[curious][whispering] あら？", "[surprised][whispering] まあ？", "[uncertain][muttering] 何かしら……？"],
+            "alert": ["[surprised] まあ！", "[disappointed][low voice] ちょっと……", "[warning] あなた！"],
+            "found": ["[shocked] あらまあ！", "[angry] ちょっと！", "[commanding] お待ちなさい！"],
+            "failure": ["[disappointed][sighing] はぁ……", "[disgusted][low voice] まったく……", "[tired][muttering] やれやれ……"]
+          }
+        },
+        "older_male": {
+          "title": "Older male (selected Fish model)",
+          "reference_id": "a365c3050dd04026a81291145e017d6f",
+          "language": "ja",
+          "role": "male",
+          "output_profile": "older_male",
+          "file_prefix": "voice_b",
+          "states": {
+            "phone": ["ふう……", "ん……", "やれやれ……"],
+            "watching": ["ほう？", "おや？", "ん……？"],
+            "alert": ["ほう……", "待て……", "おい！"],
+            "found": ["おお……", "そこだ！", "待ちなさい！"],
+            "failure": ["ふふ……", "ほう……", "なるほど……"]
+          },
+          "delivery": {
+            "phone": ["[tired][low voice][whispering] ふう……", "[distracted][muttering] ん……", "[tired][muttering] やれやれ……"],
+            "watching": ["[curious][low voice] ほう？", "[interested][whispering] おや？", "[uncertain][muttering] ん……？"],
+            "alert": ["[interested][low voice] ほう……", "[warning][low voice] 待て……", "[warning] おい！"],
+            "found": ["[excited][low voice] おお……", "[commanding] そこだ！", "[commanding] 待ちなさい！"],
+            "failure": ["[amused][whispering] ふふ……", "[interested][low voice] ほう……", "[satisfied][whispering] なるほど……"]
+          }
+        }
+      },
+      "delivery": {
+        "phone": ["[tired][muttering][whispering] はぁ……", "[distracted][muttering] うん……", "[annoyed][whispering] ちぇっ……"],
+        "watching": ["[curious][whispering] ん？", "[surprised][whispering] え？", "[uncertain][muttering] ん……？"],
+        "alert": ["[surprised] えっ？", "[nervous][whispering] 待って……", "[warning] ちょっと！"],
+        "found": ["[shocked] あっ！", "[angry] おい！", "[commanding] 止まれ！"],
+        "failure": ["[amused][whispering] ふふ……", "[satisfied][low voice] ふん……", "[ominous][whispering] なるほど……"]
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": 2,
+  "runtime_policy": "offline_only",
+  "description": "Short non-verbal reactions. Spoken audio is selected independently from editable subtitles.",
+  "languages": {
+    "zh": {
+      "states": {
+        "phone": ["唉……", "嗯……", "啧……"],
+        "watching": ["嗯？", "诶？", "嗯……？"],
+        "alert": ["诶？", "等等……", "喂！"],
+        "found": ["啊！", "喂！", "站住！"],
+        "failure": ["呵……", "哼……", "嗯……"]
+      },
+      "fish_voices": {
+        "voice_a": {"title": "语彤 Yutong", "reference_id": "74c6aba5cbf94a15bbdc547ffce5cb38", "language": "zh", "role": "female"},
+        "voice_b": {"title": "梓轩 Zixuan", "reference_id": "5d29a99739c14d4ca3e4fe42193105b2", "language": "zh", "role": "male"}
+      },
+      "delivery": {
+        "phone": ["[tired][muttering][whispering] 唉……", "[distracted][muttering] 嗯……", "[annoyed][whispering] 啧……"],
+        "watching": ["[curious][whispering] 嗯？", "[surprised][whispering] 诶？", "[uncertain][muttering] 嗯……？"],
+        "alert": ["[surprised] 诶？", "[nervous][whispering] 等等……", "[warning] 喂！"],
+        "found": ["[shocked] 啊！", "[angry] 喂！", "[commanding] 站住！"],
+        "failure": ["[amused][whispering] 呵……", "[satisfied][low voice] 哼……", "[ominous][whispering] 嗯……"]
+      }
+    },
+    "ja": {
+      "states": {
+        "phone": ["はぁ……", "うん……", "ちぇっ……"],
+        "watching": ["ん？", "え？", "ん……？"],
+        "alert": ["えっ？", "待って……", "ちょっと！"],
+        "found": ["あっ！", "おい！", "止まれ！"],
+        "failure": ["ふふ……", "ふん……", "なるほど……"]
+      },
+      "fish_voices": {
+        "voice_a": {"title": "あかり（ラジオパーソナリティ）", "reference_id": "97eda32449cf443bbc4b8782853ca554", "language": "ja", "role": "female"},
+        "voice_b": {"title": "さとる(ナレーション)", "reference_id": "297a6fd278df47c3b9da9bfdf55ac89a", "language": "ja", "role": "male"}
+      },
+      "delivery": {
+        "phone": ["[tired][muttering][whispering] はぁ……", "[distracted][muttering] うん……", "[annoyed][whispering] ちぇっ……"],
+        "watching": ["[curious][whispering] ん？", "[surprised][whispering] え？", "[uncertain][muttering] ん……？"],
+        "alert": ["[surprised] えっ？", "[nervous][whispering] 待って……", "[warning] ちょっと！"],
+        "found": ["[shocked] あっ！", "[angry] おい！", "[commanding] 止まれ！"],
+        "failure": ["[amused][whispering] ふふ……", "[satisfied][low voice] ふん……", "[ominous][whispering] なるほど……"]
+      }
+    },
+    "en": {
+      "states": {
+        "phone": ["Ugh...", "Hmm...", "Tsk..."],
+        "watching": ["Hmm?", "Huh?", "Wait..."],
+        "alert": ["What?", "Hold on...", "Hey!"],
+        "found": ["Ah!", "Hey!", "Stop!"],
+        "failure": ["Heh...", "Hmph...", "Gotcha..."]
+      },
+      "fish_voices": {
+        "voice_a": {"title": "Sarah", "reference_id": "933563129e564b19a115bedd57b7406a", "language": "en", "role": "female"},
+        "voice_b": {"title": "Adrian", "reference_id": "bf322df2096a46f18c579d0baa36f41d", "language": "en", "role": "male"}
+      },
+      "delivery": {
+        "phone": ["[tired][muttering][whispering] Ugh...", "[distracted][muttering] Hmm...", "[annoyed][whispering] Tsk..."],
+        "watching": ["[curious][whispering] Hmm?", "[surprised][whispering] Huh?", "[uncertain][muttering] Wait..."],
+        "alert": ["[surprised] What?", "[nervous][whispering] Hold on...", "[warning] Hey!"],
+        "found": ["[shocked] Ah!", "[angry] Hey!", "[commanding] Stop!"],
+        "failure": ["[amused][whispering] Heh...", "[satisfied][low voice] Hmph...", "[ominous][whispering] Gotcha..."]
+      }
+    }
+  }
+}

@@ -1,0 +1,361 @@
+{
+  "languages": {
+    "zh": {
+      "voices": {
+        "voice_a": "zh-CN-XiaoxiaoNeural",
+        "voice_b": "zh-CN-YunxiNeural"
+      },
+      "states": {
+        "phone": [
+          "又要加班，真是受够了。",
+          "领导怎么又在群里催了。",
+          "今天也完全不想上班。",
+          "工资还没到账吗？",
+          "午休怎么这么快就结束了。",
+          "消息也太多了吧。",
+          "再看五分钟就去工作。",
+          "这个月的排班也太离谱了。"
+        ],
+        "watching": [
+          "她在那里做什么呢？",
+          "总觉得有点奇怪。",
+          "刚才是不是看错了？"
+        ],
+        "alert": [
+          "等等……刚才是不是有什么？",
+          "喂，那边的人！",
+          "我好像看见什么了。",
+          "你刚才在做什么？",
+          "别躲了，我已经注意到你了。",
+          "那边有点可疑。",
+          "奇怪，刚刚明明有动静。",
+          "站在那里别动。"
+        ],
+        "found": [
+          "喂！我看见了！",
+          "你在那里做什么！",
+          "别动，我发现你了！",
+          "站住，你刚才在做什么？",
+          "别想装作什么都没发生。",
+          "我可不会当作没看见。",
+          "你最好现在就停下来。",
+          "抓到你了，这次别想蒙混过关。"
+        ],
+        "failure": [
+          "抓到你了，这下你跑不掉了。",
+          "还想逃？已经来不及了。",
+          "胆子不小啊，被我逮个正着。",
+          "刚才不是很大胆吗？现在怎么不说话了？",
+          "别躲了，乖乖接受惩罚吧。",
+          "你以为没人发现？我一直都看着呢。",
+          "这回可要好好教训你一下。",
+          "游戏结束了，接下来轮到我说了算。",
+          "证据确凿，你可别想抵赖。",
+          "终于抓住你了，做好心理准备吧。"
+        ]
+      },
+      "fish_voices": {
+        "voice_a": {
+          "title": "语彤 Yutong",
+          "reference_id": "74c6aba5cbf94a15bbdc547ffce5cb38",
+          "language": "zh",
+          "role": "female"
+        },
+        "voice_b": {
+          "title": "梓轩 Zixuan",
+          "reference_id": "5d29a99739c14d4ca3e4fe42193105b2",
+          "language": "zh",
+          "role": "male"
+        }
+      },
+      "delivery": {
+        "phone": [
+          "[tired][whispering] 又要加班 [break] 真是受够了。",
+          "[annoyed][muttering][whispering] 领导怎么又在群里催了。",
+          "[bored][whispering] 今天也完全不想上班。",
+          "[puzzled][muttering] 工资还没到账吗？",
+          "[disappointed][whispering] 午休怎么这么快就结束了。",
+          "[overwhelmed][muttering][whispering] 消息也太多了吧。",
+          "[lazy][whispering] 再看五分钟就去工作。",
+          "[annoyed][muttering] 这个月的排班也太离谱了。"
+        ],
+        "watching": [
+          "[curious][whispering] 她在那里做什么呢？",
+          "[uncertain][whispering] 总觉得有点奇怪。",
+          "[confused][muttering][whispering] 刚才是不是看错了？"
+        ],
+        "alert": [
+          "[surprised][whispering] 等等 [break] 刚才是不是有什么？",
+          "[surprised] 喂 [break] 那边的人！",
+          "[nervous][whispering] 我好像看见什么了。",
+          "[suspicious][low voice] 你刚才在做什么？",
+          "[stern][low voice] 别躲了 [break] 我已经注意到你了。",
+          "[suspicious][whispering] 那边有点可疑。",
+          "[nervous][muttering][whispering] 奇怪 [break] 刚刚明明有动静。",
+          "[stern] 站在那里别动。"
+        ],
+        "found": [
+          "[shocked] 喂 [break] 我看见了！",
+          "[angry] 你在那里做什么！",
+          "[surprised][shouting] 别动 [break] 我发现你了！",
+          "[stern] 站住 [break] 你刚才在做什么？",
+          "[angry][low voice] 别想装作什么都没发生。",
+          "[disappointed][low voice] 我可不会当作没看见。",
+          "[warning][low voice] 你最好现在就停下来。",
+          "[confident] 抓到你了 [break] 这次别想蒙混过关。"
+        ],
+        "failure": [
+          "[confident][whispering] 抓到你了 [long-break] 这下你跑不掉了。",
+          "[taunting][whispering] 还想逃 [break] 已经来不及了。",
+          "[amused][low voice] 胆子不小啊 [break] 被我逮个正着。",
+          "[teasing][whispering] 刚才不是很大胆吗 [long-break] 现在怎么不说话了？",
+          "[commanding][low voice] 别躲了 [break] 乖乖接受惩罚吧。",
+          "[ominous][whispering] 你以为没人发现 [long-break] 我一直都看着呢。",
+          "[stern][whispering] 这回可要好好教训你一下。",
+          "[confident][low voice] 游戏结束了 [long-break] 接下来轮到我说了算。",
+          "[cold][whispering] 证据确凿 [break] 你可别想抵赖。",
+          "[satisfied][whispering] 终于抓住你了 [long-break] 做好心理准备吧。"
+        ]
+      }
+    },
+    "ja": {
+      "voices": {
+        "voice_a": "ja-JP-NanamiNeural",
+        "voice_b": "ja-JP-KeitaNeural"
+      },
+      "states": {
+        "phone": [
+          "また残業か……もう勘弁してよ。",
+          "上司がまたグループチャットで急かしてる。",
+          "今日は本当に仕事したくないな。",
+          "給料、まだ入ってないの？",
+          "昼休みって、どうしてこんなに短いんだろう。",
+          "メッセージ、多すぎない？",
+          "あと五分だけ見たら仕事に戻ろう。",
+          "今月のシフト、ひどすぎるよ。"
+        ],
+        "watching": [
+          "あの人、そこで何をしているんだろう？",
+          "なんだか少し変だな。",
+          "今のは見間違いかな？"
+        ],
+        "alert": [
+          "待って……今、何か見えたような。",
+          "ちょっと、そこの人！",
+          "何か見えた気がする。",
+          "今、何をしていたの？",
+          "隠れても無駄だよ。もう気づいてる。",
+          "あそこ、何か怪しいな。",
+          "おかしいな。今、物音がしたはず。",
+          "そこで止まって。"
+        ],
+        "found": [
+          "ちょっと！見つけた！",
+          "そこで何をしているの！",
+          "動かないで、見つけたよ！",
+          "止まりなさい。今、何をしていたの？",
+          "何もなかったふりは通用しないよ。",
+          "見なかったことにはできないな。",
+          "今すぐやめたほうがいいよ。",
+          "捕まえた。今回はごまかせないよ。"
+        ],
+        "failure": [
+          "捕まえた。もう逃げられないよ。",
+          "まだ逃げるつもり？もう遅いよ。",
+          "大胆だね。現行犯で捕まえたよ。",
+          "さっきまであんなに大胆だったのに、急に静かになったね。",
+          "隠れないで。おとなしく罰を受けなさい。",
+          "誰も見ていないと思った？ずっと見ていたよ。",
+          "今回は、しっかり反省してもらうからね。",
+          "ゲームオーバー。ここからは私の番だよ。",
+          "証拠は揃ってる。言い逃れはできないよ。",
+          "やっと捕まえた。覚悟してね。"
+        ]
+      },
+      "fish_voices": {
+        "voice_a": {
+          "title": "あかり（ラジオパーソナリティ）",
+          "reference_id": "97eda32449cf443bbc4b8782853ca554",
+          "language": "ja",
+          "role": "female"
+        },
+        "voice_b": {
+          "title": "さとる(ナレーション)",
+          "reference_id": "297a6fd278df47c3b9da9bfdf55ac89a",
+          "language": "ja",
+          "role": "male"
+        }
+      },
+      "delivery": {
+        "phone": [
+          "[tired][whispering] また残業か [break] もう勘弁してよ。",
+          "[annoyed][muttering][whispering] 上司がまたグループチャットで急かしてる。",
+          "[bored][whispering] 今日は本当に仕事したくないな。",
+          "[puzzled][muttering] 給料 [break] まだ入ってないの？",
+          "[disappointed][whispering] 昼休みって [break] どうしてこんなに短いんだろう。",
+          "[overwhelmed][muttering][whispering] メッセージ [break] 多すぎない？",
+          "[lazy][whispering] あと五分だけ見たら仕事に戻ろう。",
+          "[annoyed][muttering] 今月のシフト [break] ひどすぎるよ。"
+        ],
+        "watching": [
+          "[curious][whispering] あの人 [break] そこで何をしているんだろう？",
+          "[uncertain][whispering] なんだか少し変だな。",
+          "[confused][muttering][whispering] 今のは見間違いかな？"
+        ],
+        "alert": [
+          "[surprised][whispering] 待って [break] 今、何か見えたような。",
+          "[surprised] ちょっと [break] そこの人！",
+          "[nervous][whispering] 何か見えた気がする。",
+          "[suspicious][low voice] 今 [break] 何をしていたの？",
+          "[stern][low voice] 隠れても無駄だよ [break] もう気づいてる。",
+          "[suspicious][whispering] あそこ [break] 何か怪しいな。",
+          "[nervous][muttering][whispering] おかしいな。今 [break] 物音がしたはず。",
+          "[stern] そこで止まって。"
+        ],
+        "found": [
+          "[shocked] ちょっと [break] 見つけた！",
+          "[angry] そこで何をしているの！",
+          "[surprised][shouting] 動かないで [break] 見つけたよ！",
+          "[stern] 止まりなさい。今 [break] 何をしていたの？",
+          "[angry][low voice] 何もなかったふりは通用しないよ。",
+          "[disappointed][low voice] 見なかったことにはできないな。",
+          "[warning][low voice] 今すぐやめたほうがいいよ。",
+          "[confident] 捕まえた [break] 今回はごまかせないよ。"
+        ],
+        "failure": [
+          "[confident][whispering] 捕まえた [long-break] もう逃げられないよ。",
+          "[taunting][whispering] まだ逃げるつもり [break] もう遅いよ。",
+          "[amused][low voice] 大胆だね [break] 現行犯で捕まえたよ。",
+          "[teasing][whispering] さっきまであんなに大胆だったのに [long-break] 急に静かになったね。",
+          "[commanding][low voice] 隠れないで [break] おとなしく罰を受けなさい。",
+          "[ominous][whispering] 誰も見ていないと思った [long-break] ずっと見ていたよ。",
+          "[stern][whispering] 今回は [break] しっかり反省してもらうからね。",
+          "[confident][low voice] ゲームオーバー [long-break] ここからは私の番だよ。",
+          "[cold][whispering] 証拠は揃ってる [break] 言い逃れはできないよ。",
+          "[satisfied][whispering] やっと捕まえた [long-break] 覚悟してね。"
+        ]
+      }
+    },
+    "en": {
+      "voices": {
+        "voice_a": "en-US-JennyNeural",
+        "voice_b": "en-US-GuyNeural"
+      },
+      "states": {
+        "phone": [
+          "More overtime again? Give me a break.",
+          "Why is the boss chasing us in the group chat again?",
+          "I really do not want to work today.",
+          "Has my paycheck still not arrived?",
+          "How is lunch break over already?",
+          "There are way too many messages.",
+          "Five more minutes, then I will get back to work.",
+          "This month's schedule is ridiculous."
+        ],
+        "watching": [
+          "What is she doing over there?",
+          "Something seems a little strange.",
+          "Did I just imagine that?"
+        ],
+        "alert": [
+          "Wait... did I just see something?",
+          "Hey, you over there!",
+          "I think I saw something.",
+          "What were you just doing?",
+          "Do not hide. I have already noticed you.",
+          "Something over there looks suspicious.",
+          "That is strange. I definitely heard something.",
+          "Stay right there."
+        ],
+        "found": [
+          "Hey! I saw that!",
+          "What are you doing over there?",
+          "Stop! I found you!",
+          "Hold it. What were you just doing?",
+          "Do not pretend nothing happened.",
+          "I am not going to act like I did not see that.",
+          "You had better stop right now.",
+          "Caught you. You are not talking your way out of this one."
+        ],
+        "failure": [
+          "Got you. You are not getting away this time.",
+          "Still trying to run? It is already too late.",
+          "You are bold. I caught you red-handed.",
+          "You were so daring a moment ago. Why so quiet now?",
+          "Stop hiding and accept your punishment.",
+          "Did you think nobody noticed? I was watching the whole time.",
+          "You are going to learn your lesson this time.",
+          "Game over. From here on, I make the rules.",
+          "The evidence is clear. Do not even try to deny it.",
+          "I finally caught you. You had better be ready."
+        ]
+      },
+      "fish_voices": {
+        "voice_a": {
+          "title": "Sarah",
+          "reference_id": "933563129e564b19a115bedd57b7406a",
+          "language": "en",
+          "role": "female"
+        },
+        "voice_b": {
+          "title": "Adrian",
+          "reference_id": "bf322df2096a46f18c579d0baa36f41d",
+          "language": "en",
+          "role": "male"
+        }
+      },
+      "delivery": {
+        "phone": [
+          "[tired][whispering] More overtime again [break] Give me a break.",
+          "[annoyed][muttering][whispering] Why is the boss chasing us in the group chat again?",
+          "[bored][whispering] I really do not want to work today.",
+          "[puzzled][muttering] Has my paycheck still not arrived?",
+          "[disappointed][whispering] How is lunch break over already?",
+          "[overwhelmed][muttering][whispering] There are way too many messages.",
+          "[lazy][whispering] Five more minutes, then I will get back to work.",
+          "[annoyed][muttering] This month's schedule is ridiculous."
+        ],
+        "watching": [
+          "[curious][whispering] What is she doing over there?",
+          "[uncertain][whispering] Something seems a little strange.",
+          "[confused][muttering][whispering] Did I just imagine that?"
+        ],
+        "alert": [
+          "[surprised][whispering] Wait [break]  did I just see something?",
+          "[surprised] Hey, you over there!",
+          "[nervous][whispering] I think I saw something.",
+          "[suspicious][low voice] What were you just doing?",
+          "[stern][low voice] Do not hide [break] I have already noticed you.",
+          "[suspicious][whispering] Something over there looks suspicious.",
+          "[nervous][muttering][whispering] That is strange [break] I definitely heard something.",
+          "[stern] Stay right there."
+        ],
+        "found": [
+          "[shocked] Hey [break] I saw that!",
+          "[angry] What are you doing over there?",
+          "[surprised][shouting] Stop [break] I found you!",
+          "[stern] Hold it [break] What were you just doing?",
+          "[angry][low voice] Do not pretend nothing happened.",
+          "[disappointed][low voice] I am not going to act like I did not see that.",
+          "[warning][low voice] You had better stop right now.",
+          "[confident] Caught you [break] You are not talking your way out of this one."
+        ],
+        "failure": [
+          "[confident][whispering] Got you [long-break] You are not getting away this time.",
+          "[taunting][whispering] Still trying to run [break] It is already too late.",
+          "[amused][low voice] You are bold [break] I caught you red-handed.",
+          "[teasing][whispering] You were so daring a moment ago [long-break] Why so quiet now?",
+          "[commanding][low voice] Stop hiding and accept your punishment.",
+          "[ominous][whispering] Did you think nobody noticed [long-break] I was watching the whole time.",
+          "[stern][whispering] You are going to learn your lesson this time.",
+          "[confident][low voice] Game over [long-break] From here on, I make the rules.",
+          "[cold][whispering] The evidence is clear [break] Do not even try to deny it.",
+          "[satisfied][whispering] I finally caught you [long-break] You had better be ready."
+        ]
+      }
+    }
+  },
+  "schema_version": 2,
+  "runtime_policy": "offline_only",
+  "generator": "Fish Audio development API"
+}

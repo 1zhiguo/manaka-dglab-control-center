@@ -17,6 +17,7 @@ import subprocess
 import sys
 import threading
 import time
+import zipfile
 from pathlib import Path
 
 import qrcode
@@ -325,6 +326,7 @@ MOD_SOURCE_LINKS = (
     },
 )
 ALLOWED_EXTERNAL_HOSTS = {
+    "dlsite.com",
     "f95zone.to",
     "github.com",
     "mega.nz",
@@ -333,6 +335,17 @@ ALLOWED_EXTERNAL_HOSTS = {
 SUPPORTED_GAME_HASHES = {
     "GameAssembly.dll": "6003033049ac32e8712dc4101382534e21d65b97100c167ebec6bbca1462c18d",
     "SecretFlasherManaka_Data/il2cpp_data/Metadata/global-metadata.dat": "457203754abe77b346fd98086a5c787bd41088d808cc81b1d4e2cae5b85c72c8",
+}
+SUPPORTED_GAME_VERSIONS = ("1.1.1", "1.1.2", "1.1.3")
+SUPPORTED_GAME_BUILD_SIGNATURES = {
+    (
+        "adb0d15568c4f3ad70cbac881815e26e1d6f30ec42181e0cad59133373af9018",
+        "c709f95059b08713f5a06ae878379e85ac18e00c418f00ea31b16a0b4b20adcc",
+    ): "1.1.1",
+    (
+        SUPPORTED_GAME_HASHES["GameAssembly.dll"],
+        SUPPORTED_GAME_HASHES["SecretFlasherManaka_Data/il2cpp_data/Metadata/global-metadata.dat"],
+    ): "1.1.3",
 }
 USER_AGREEMENT = """Manaka × DG-LAB 使用协议与风险知情确认
 
@@ -446,6 +459,117 @@ def bundled_guide_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "assets" / "dglab_guide"
 
 
+def bundled_npc_voice_root() -> Path:
+    """Return the NPC voice payload bundled with the app."""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS")) / "assets" / "ManakaNpcVoices"
+    return Path(__file__).resolve().parents[2] / "manaka_npc_voices"
+
+
+NPC_VOICE_LANGUAGES = {"zh", "ja", "en"}
+NPC_VOICE_STATES = {"ambient", "phone", "watching", "alert", "found", "failure", "aftermath"}
+NPC_VOICE_AUDIO_STATES = {"phone", "watching", "alert", "found", "failure"}
+NPC_VOICE_PROFILES = {"young_female", "young_male", "older_female", "older_male"}
+NPC_VOICE_FILE_PATTERN = re.compile(r"^voice_[ab]_\d{2}\.wav$", re.IGNORECASE)
+
+
+def bundled_npc_subtitle_path(language: str, state: str) -> Path:
+    """Resolve a fixed bundled subtitle list without permitting path traversal."""
+    language = str(language).strip().lower()
+    state = str(state).strip().lower()
+    if language not in NPC_VOICE_LANGUAGES or state not in NPC_VOICE_STATES:
+        raise ValueError("不支持的字幕语言或场景")
+    if getattr(sys, "frozen", False):
+        return bundled_npc_voice_root() / "VoicePacks" / language / state / "lines.txt"
+    return Path(__file__).resolve().parents[2] / "manaka_npc_voices" / "SubtitleLines" / language / f"{state}.txt"
+
+
+def bundled_npc_profile_subtitle_path(language: str) -> Path:
+    language = str(language).strip().lower()
+    if language not in NPC_VOICE_LANGUAGES:
+        raise ValueError("不支持的字幕语言")
+    if getattr(sys, "frozen", False):
+        return bundled_npc_voice_root() / "VoicePacks" / language / "profiles.txt"
+    return Path(__file__).resolve().parents[2] / "manaka_npc_voices" / "SubtitleProfiles" / f"{language}.txt"
+
+
+def read_npc_profile_subtitle(path: Path, profile: str, state: str) -> str:
+    profile = str(profile).strip().lower()
+    state = str(state).strip().lower()
+    if profile not in NPC_VOICE_PROFILES or state not in NPC_VOICE_STATES:
+        raise ValueError("不支持的 NPC 角色或场景")
+    expected = f"[{profile}.{state}]"
+    collecting = False
+    selected: list[str] = []
+    for source_line in path.read_text(encoding="utf-8-sig").splitlines():
+        stripped = source_line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if collecting:
+                break
+            collecting = stripped.casefold() == expected.casefold()
+            continue
+        if collecting:
+            selected.append(source_line)
+    result = "\n".join(selected).strip()
+    if not result:
+        raise ValueError(f"缺少角色字幕：{profile}/{state}")
+    return result + "\n"
+
+
+def bundled_npc_voice_expected_files(payload_root: Path) -> list[tuple[Path, Path]]:
+    """Return only the Japanese runtime WAVs shipped in the user-facing package."""
+    voice_root = Path(payload_root) / "VoicePacks"
+    japanese_root = voice_root / "ja"
+    mappings: list[tuple[Path, Path]] = []
+    if not japanese_root.is_dir():
+        return mappings
+    for source in sorted(japanese_root.rglob("*.wav")):
+        relative = source.relative_to(voice_root)
+        parts = relative.parts
+        valid_layout = (
+            len(parts) in {3, 4}
+            and parts[0] == "ja"
+            and parts[1] in NPC_VOICE_AUDIO_STATES
+            and (len(parts) == 3 or parts[2] in NPC_VOICE_PROFILES)
+            and NPC_VOICE_FILE_PATTERN.fullmatch(parts[-1]) is not None
+        )
+        if valid_layout:
+            mappings.append((source, relative))
+    return mappings
+
+
+def update_bepinex_config(path: Path, updates: dict[tuple[str, str], str]) -> None:
+    """Update selected BepInEx settings while preserving unrelated comments/options."""
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except FileNotFoundError:
+        lines = []
+
+    for (section, key), value in updates.items():
+        section_pattern = re.compile(rf"^\s*\[{re.escape(section)}\]\s*$", re.IGNORECASE)
+        key_pattern = re.compile(rf"^\s*{re.escape(key)}\s*=", re.IGNORECASE)
+        section_start = next((index for index, line in enumerate(lines) if section_pattern.match(line)), -1)
+        if section_start < 0:
+            if lines and lines[-1].strip():
+                lines.append("")
+            lines.extend((f"[{section}]", f"{key} = {value}"))
+            continue
+        section_end = next(
+            (index for index in range(section_start + 1, len(lines)) if re.match(r"^\s*\[.+\]\s*$", lines[index])),
+            len(lines),
+        )
+        key_index = next(
+            (index for index in range(section_start + 1, section_end) if key_pattern.match(lines[index])),
+            -1,
+        )
+        if key_index >= 0:
+            lines[key_index] = f"{key} = {value}"
+        else:
+            lines.insert(section_end, f"{key} = {value}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
 def dropin_mods_path() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent / "dropin_mods"
@@ -470,14 +594,281 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def detect_supported_game_version(folder: Path) -> str | None:
+    """Identify supported releases from known files, with a folder-name fallback.
+
+    v1.1.1 and v1.1.3 have known IL2CPP signatures. The v1.1.2 installer
+    layout is supported by the per-build Interop generator, so its conventional
+    release folder name is also accepted until an official signature is added.
+    """
+
+    game_assembly = folder / "GameAssembly.dll"
+    metadata = folder / "SecretFlasherManaka_Data" / "il2cpp_data" / "Metadata" / "global-metadata.dat"
+    if game_assembly.is_file() and metadata.is_file():
+        signature = (sha256_file(game_assembly).lower(), sha256_file(metadata).lower())
+        known_version = SUPPORTED_GAME_BUILD_SIGNATURES.get(signature)
+        if known_version:
+            return known_version
+
+    match = re.search(r"(?<!\d)v?(1\.1\.[123])(?!\d)", folder.name, re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def uses_bundled_v113_interop(folder: Path) -> bool:
+    """Return whether the bundled v1.1.3 Interop is safe for this game build."""
+
+    return all(
+        (folder / Path(relative)).is_file()
+        and sha256_file(folder / Path(relative)).lower() == expected
+        for relative, expected in SUPPORTED_GAME_HASHES.items()
+    )
+
+
 def validate_supported_game_build(folder: Path) -> tuple[bool, str]:
-    for relative, expected in SUPPORTED_GAME_HASHES.items():
-        target = folder / Path(relative)
-        if not target.is_file():
+    """Validate the IL2CPP layout while allowing unverified game revisions."""
+
+    for relative in SUPPORTED_GAME_HASHES:
+        if not (folder / Path(relative)).is_file():
             return False, f"缺少游戏文件：{relative}"
-        if sha256_file(target).lower() != expected:
-            return False, "当前只验证了 SecretFlasherManaka v1.1.3；该副本文件版本不匹配"
-    return True, "SecretFlasherManaka v1.1.3"
+    version = detect_supported_game_version(folder)
+    if version:
+        suffix = "已支持" if version == "1.1.3" else "已支持；首次启动会生成对应运行库"
+        return True, f"SecretFlasherManaka v{version}（{suffix}）"
+    return True, "未验证版本（允许实验性安装与启动；正式支持 v1.1.1 / v1.1.2 / v1.1.3）"
+
+
+def game_build_fingerprint(folder: Path) -> str:
+    """Return a stable fingerprint for the IL2CPP files that define compatibility."""
+
+    build_hashes = {
+        relative: sha256_file(folder / Path(relative))
+        for relative in sorted(SUPPORTED_GAME_HASHES)
+    }
+    serialized = json.dumps(build_hashes, sort_keys=True, separators=(",", ":")).encode("ascii")
+    return hashlib.sha256(serialized).hexdigest()
+
+
+def read_install_manifest(folder: Path) -> dict:
+    try:
+        value = json.loads((folder / ".manaka-dglab-install.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+BUNDLED_UNITY_BASE_VERSION = "2022.3.40"
+
+
+def game_unity_version(folder: Path) -> str:
+    """Read the Unity player version embedded in the IL2CPP game binary."""
+
+    pattern = re.compile(rb"20\d{2}\.\d+\.\d+[abfp]\d+")
+    counts: dict[str, int] = {}
+    try:
+        with (folder / "GameAssembly.dll").open("rb") as stream:
+            carry = b""
+            while chunk := stream.read(1024 * 1024):
+                data = carry + chunk
+                for match in pattern.findall(data):
+                    version = match.decode("ascii")
+                    counts[version] = counts.get(version, 0) + 1
+                carry = data[-64:]
+    except OSError:
+        return ""
+    return max(counts, key=counts.get) if counts else ""
+
+
+def prepare_bundled_unity_base_libraries(folder: Path, runtime_source: Path) -> Path | None:
+    """Cache bundled Unity libraries in the filename expected by BepInEx be.735."""
+
+    version = game_unity_version(folder)
+    numeric_version = version.split("f", 1)[0].split("p", 1)[0].split("a", 1)[0].split("b", 1)[0]
+    if numeric_version != BUNDLED_UNITY_BASE_VERSION:
+        return None
+    source_dir = runtime_source / "BepInEx" / "unity-libs"
+    sources = sorted(source_dir.glob("*.dll"))
+    if not sources:
+        return None
+    target_dir = folder / "BepInEx" / "unity-libs"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / f"{numeric_version}.zip"
+    if target.is_file() and target.stat().st_size > 0:
+        try:
+            with zipfile.ZipFile(target) as archive:
+                archive.getinfo("UnityEngine.CoreModule.dll")
+            return target
+        except (OSError, KeyError, zipfile.BadZipFile):
+            pass
+    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for source in sources:
+            archive.write(source, source.name)
+    return target
+
+
+def bepinex_runtime_issue(
+    folder: Path,
+    runtime_source: Path,
+    *,
+    fingerprint: str,
+    verified_build: bool,
+    manifest: dict | None = None,
+) -> str | None:
+    """Describe a repairable BepInEx/Interop problem without changing the game."""
+
+    core = folder / "BepInEx" / "core" / "BepInEx.Core.dll"
+    if not core.is_file():
+        return "missing-runtime"
+
+    manifest = manifest or {}
+    previous_fingerprint = str(manifest.get("gameFingerprint", "")).strip()
+    if previous_fingerprint and previous_fingerprint != fingerprint:
+        return "game-build-changed"
+
+    interop = folder / "BepInEx" / "interop"
+    assembly_csharp = interop / "Assembly-CSharp.dll"
+    pending_generation = (
+        previous_fingerprint == fingerprint
+        and manifest.get("interopMode") == "generate-on-next-launch"
+        and not assembly_csharp.is_file()
+    )
+    if pending_generation:
+        return "interop-pending"
+    if not assembly_csharp.is_file():
+        return "missing-interop"
+
+    bundled_assembly = runtime_source / "BepInEx" / "interop" / "Assembly-CSharp.dll"
+    if bundled_assembly.is_file():
+        installed_hash = sha256_file(assembly_csharp)
+        bundled_hash = sha256_file(bundled_assembly)
+        if verified_build and installed_hash != bundled_hash:
+            return "wrong-interop"
+        if not verified_build and installed_hash == bundled_hash:
+            return "v113-interop-on-unverified-build"
+
+    assembly_hash = interop / "assembly-hash.txt"
+    if not verified_build and not assembly_hash.is_file() and previous_fingerprint != fingerprint:
+        return "unverified-interop"
+
+    log_path = folder / "BepInEx" / "LogOutput.log"
+    try:
+        log_tail = log_path.read_text(encoding="utf-8", errors="replace")[-160_000:].casefold()
+    except OSError:
+        log_tail = ""
+    fatal_markers = (
+        "unable to execute il2cpp chainloader",
+        "interop assemblies are possibly out of date",
+        "managed delegate has 3 parameters",
+    )
+    if any(marker in log_tail for marker in fatal_markers):
+        return "failed-chainloader"
+    return None
+
+
+def provision_bepinex_runtime(
+    folder: Path,
+    runtime_source: Path,
+    *,
+    verified_build: bool,
+    repair: bool,
+) -> tuple[str, Path | None]:
+    """Install or repair BepInEx while preserving user plugins and configuration.
+
+    Exact v1.1.3 builds receive the bundled pre-generated Interop. v1.1.1,
+    v1.1.2, and unknown builds receive an empty Interop directory so BepInEx
+    can regenerate it from that exact game's metadata on the next launch.
+    """
+
+    required_runtime_files = (
+        runtime_source / ".doorstop_version",
+        runtime_source / "doorstop_config.ini",
+        runtime_source / "winhttp.dll",
+        runtime_source / "BEPINEX_LICENSE.txt",
+        runtime_source / "dotnet",
+        runtime_source / "BepInEx" / "core",
+        runtime_source / "BepInEx" / "interop",
+        runtime_source / "BepInEx" / "unity-libs",
+        runtime_source / "BepInEx" / "config",
+    )
+    missing = [path for path in required_runtime_files if not path.exists()]
+    if missing:
+        raise FileNotFoundError(f"缺少 BepInEx 文件：{missing[0]}")
+
+    had_runtime = (folder / "BepInEx" / "core" / "BepInEx.Core.dll").is_file()
+    action = "repaired" if had_runtime and repair else "installed" if not had_runtime else "unchanged"
+    if action == "unchanged":
+        if not verified_build:
+            update_bepinex_config(
+                folder / "BepInEx" / "config" / "BepInEx.cfg",
+                {
+                    ("IL2CPP", "UpdateInteropAssemblies"): "true",
+                    ("IL2CPP", "UnityBaseLibrariesSource"): "https://unity.bepinex.dev/libraries/{VERSION}.zip",
+                },
+            )
+            prepare_bundled_unity_base_libraries(folder, runtime_source)
+        return action, None
+
+    backup_root: Path | None = None
+    bepinex_root = folder / "BepInEx"
+    if action == "repaired":
+        stamp = time.strftime("%Y%m%d-%H%M%S") + f"-{time.time_ns() % 1_000_000:06d}"
+        backup_root = bepinex_root / "manaka-backups" / f"runtime-{stamp}"
+        for relative in (
+            Path("dotnet"),
+            Path("BepInEx/core"),
+            Path("BepInEx/interop"),
+            Path("BepInEx/unity-libs"),
+        ):
+            source = folder / relative
+            if source.exists():
+                destination = backup_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(source), str(destination))
+        old_log = bepinex_root / "LogOutput.log"
+        if old_log.is_file():
+            destination = backup_root / "BepInEx" / "LogOutput.log"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(old_log), str(destination))
+        for root_file in (".doorstop_version", "doorstop_config.ini", "winhttp.dll"):
+            source = folder / root_file
+            if source.is_file():
+                destination = backup_root / root_file
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
+
+    bepinex_root.mkdir(parents=True, exist_ok=True)
+    for root_file in (".doorstop_version", "doorstop_config.ini", "winhttp.dll"):
+        shutil.copy2(runtime_source / root_file, folder / root_file)
+    shutil.copy2(runtime_source / "BEPINEX_LICENSE.txt", bepinex_root / "BEPINEX_LICENSE.txt")
+    shutil.copytree(runtime_source / "dotnet", folder / "dotnet", dirs_exist_ok=True)
+    for child in ("core", "unity-libs"):
+        shutil.copytree(
+            runtime_source / "BepInEx" / child,
+            bepinex_root / child,
+            dirs_exist_ok=True,
+        )
+    config_target = bepinex_root / "config"
+    if not config_target.exists():
+        shutil.copytree(runtime_source / "BepInEx" / "config", config_target, dirs_exist_ok=True)
+    interop_target = bepinex_root / "interop"
+    if verified_build:
+        shutil.copytree(
+            runtime_source / "BepInEx" / "interop",
+            interop_target,
+            dirs_exist_ok=True,
+        )
+    else:
+        interop_target.mkdir(parents=True, exist_ok=True)
+        update_bepinex_config(
+            config_target / "BepInEx.cfg",
+            {
+                ("IL2CPP", "UpdateInteropAssemblies"): "true",
+                ("IL2CPP", "UnityBaseLibrariesSource"): "https://unity.bepinex.dev/libraries/{VERSION}.zip",
+            },
+        )
+        prepare_bundled_unity_base_libraries(folder, runtime_source)
+    (bepinex_root / "patchers").mkdir(parents=True, exist_ok=True)
+    (bepinex_root / "plugins").mkdir(parents=True, exist_ok=True)
+    return action, backup_root
 
 
 class TelemetryWorker(threading.Thread):
@@ -550,6 +941,9 @@ class ControlCenterBackend(QObject):
         self.language_name = saved_language
         self.agreement_accepted_value = bool(
             demo or self.saved.get("agreement_version") == AGREEMENT_VERSION
+        )
+        self.onboarding_completed_value = bool(
+            demo or self.saved.get("onboarding_completed", False)
         )
 
         self.engine = ManakaTriggerEngine(
@@ -669,6 +1063,18 @@ class ControlCenterBackend(QObject):
         self.current_output_a = 18.0 if demo else 0.0
         self.current_output_b = 7.0 if demo else 0.0
         self.log_lines: list[str] = []
+        self.npc_voice_install_status_value = "请选择游戏目录后安装 NPC 语音"
+        self.npc_voice_installed_value = False
+        self.npc_voice_installed_clips_value = 0
+        self.npc_voice_bundled_clips_value = 0
+        self.npc_voice_cm2_bridge_value = False
+        self.npc_voice_enabled_value = True
+        self.npc_voice_language_value = "zh"
+        self.npc_voice_audio_enabled_value = True
+        self.npc_voice_subtitles_enabled_value = True
+        self.npc_voice_bundled_clips_value = len(
+            bundled_npc_voice_expected_files(bundled_npc_voice_root())
+        )
 
         self.worker: TelemetryWorker | None = None
         self.bridge: DGLabBridge | None = None
@@ -688,6 +1094,7 @@ class ControlCenterBackend(QObject):
         self.poll_timer.start()
         self.demo_phase = 0.0
         self.check_game()
+        self.check_npc_voice_install()
         if self.mod_source_folder_value:
             self.scan_mods(show_error=False)
 
@@ -795,6 +1202,10 @@ class ControlCenterBackend(QObject):
     @Property(str, notify=configChanged)
     def agreementText(self) -> str:
         return USER_AGREEMENT_EN if self.language_name == "en" else USER_AGREEMENT
+
+    @Property(bool, notify=configChanged)
+    def onboardingCompleted(self) -> bool:
+        return self.onboarding_completed_value
 
     @Property(str, notify=configChanged)
     def theme(self) -> str:
@@ -1148,6 +1559,429 @@ class ControlCenterBackend(QObject):
                 values.append(self._t(line))
         return values
 
+    @Property(str, notify=configChanged)
+    def voicePackFolder(self) -> str:
+        if self.game_folder_value:
+            return str(Path(self.game_folder_value) / "BepInEx" / "plugins" / "ManakaNpcVoices" / "VoicePacks")
+        return str(app_data_dir() / "VoicePacks")
+
+    @Property(str, notify=configChanged)
+    def npcVoiceInstallStatus(self) -> str:
+        if self.language_name == "en":
+            if not self.game_folder_value:
+                return "Select the game folder to install NPC Voices"
+            if self.npc_voice_installed_value:
+                suffix = "; phone settings enabled" if self.npc_voice_cm2_bridge_value else ""
+                return f"Installed: {self.npc_voice_installed_clips_value} Japanese reaction clips{suffix}"
+            if self.npc_voice_installed_clips_value:
+                return f"Voice pack incomplete: {self.npc_voice_installed_clips_value} / {self.npc_voice_bundled_clips_value}"
+            return "NPC Voices is not installed"
+        return self._t(self.npc_voice_install_status_value)
+
+    @Property(bool, notify=configChanged)
+    def npcVoiceInstalled(self) -> bool:
+        return self.npc_voice_installed_value
+
+    @Property(int, notify=configChanged)
+    def npcVoiceInstalledClips(self) -> int:
+        return self.npc_voice_installed_clips_value
+
+    @Property(int, notify=configChanged)
+    def npcVoiceBundledClips(self) -> int:
+        return self.npc_voice_bundled_clips_value
+
+    @Property(bool, notify=configChanged)
+    def npcVoiceCm2Bridge(self) -> bool:
+        return self.npc_voice_cm2_bridge_value
+
+    @Property(bool, notify=configChanged)
+    def npcVoiceEnabled(self) -> bool:
+        return self.npc_voice_enabled_value
+
+    @Property(str, notify=configChanged)
+    def npcVoiceLanguage(self) -> str:
+        return self.npc_voice_language_value
+
+    @Property(bool, notify=configChanged)
+    def npcVoiceAudioEnabled(self) -> bool:
+        return self.npc_voice_audio_enabled_value
+
+    @Property(bool, notify=configChanged)
+    def npcVoiceSubtitlesEnabled(self) -> bool:
+        return self.npc_voice_subtitles_enabled_value
+
+    def _npc_voice_config_path(self) -> Path:
+        return Path(self.game_folder_value.strip()) / "BepInEx" / "config" / "local.manaka.npcvoices.cfg"
+
+    def _npc_voice_subtitle_override_path(self, language: str, state: str) -> Path:
+        language = str(language).strip().lower()
+        state = str(state).strip().lower()
+        if language not in NPC_VOICE_LANGUAGES or state not in NPC_VOICE_STATES:
+            raise ValueError("不支持的字幕语言或场景")
+        return (
+            Path(self.game_folder_value.strip())
+            / "BepInEx"
+            / "config"
+            / "ManakaNpcVoices"
+            / "lines"
+            / language
+            / f"{state}.txt"
+        )
+
+    def _npc_voice_profile_override_path(self, language: str, state: str, profile: str) -> Path:
+        language = str(language).strip().lower()
+        state = str(state).strip().lower()
+        profile = str(profile).strip().lower()
+        if (language not in NPC_VOICE_LANGUAGES or state not in NPC_VOICE_STATES
+                or profile not in NPC_VOICE_PROFILES):
+            raise ValueError("不支持的字幕语言、角色或场景")
+        return (
+            Path(self.game_folder_value.strip())
+            / "BepInEx"
+            / "config"
+            / "ManakaNpcVoices"
+            / "lines"
+            / language
+            / f"{state}.{profile}.txt"
+        )
+
+    @staticmethod
+    def _normalize_npc_subtitle_text(contents: str, state: str = "") -> str:
+        raw_lines = [
+            line.strip()
+            for line in str(contents).replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        ]
+        meaningful = [line for line in raw_lines if line and not line.startswith("#")]
+        if not meaningful:
+            raise ValueError("至少保留一行台词")
+        if len(meaningful) > 80:
+            raise ValueError("每个分类最多保存 80 行台词")
+        if any(len(line) > 180 for line in meaningful):
+            raise ValueError("单行台词不能超过 180 个字符")
+
+        if str(state).strip().lower() != "aftermath":
+            return "\n".join(meaningful) + "\n"
+
+        # Interaction entries are paragraphs: consecutive non-empty lines stay
+        # together, while one or more blank lines separate selectable entries.
+        normalized: list[str] = []
+        pending_blank = False
+        for line in raw_lines:
+            if line.startswith("#"):
+                continue
+            if not line:
+                pending_blank = bool(normalized and normalized[-1] != "")
+                continue
+            if pending_blank:
+                normalized.append("")
+                pending_blank = False
+            normalized.append(line)
+        return "\n".join(normalized).rstrip() + "\n"
+
+    @Slot(str, str, str, result=str)
+    def loadNpcVoiceText(self, language: str, state: str, profile: str) -> str:
+        try:
+            override = self._npc_voice_profile_override_path(language, state, profile)
+            if override.is_file():
+                return override.read_text(encoding="utf-8-sig")
+            return read_npc_profile_subtitle(bundled_npc_profile_subtitle_path(language), profile, state)
+        except (OSError, ValueError) as error:
+            self._toast("无法读取字幕台词", str(error))
+            return ""
+
+    @Slot(str, str, str, str, result=bool)
+    def saveNpcVoiceText(self, language: str, state: str, profile: str, contents: str) -> bool:
+        if not self.game_folder_value.strip():
+            self._toast("尚未选择游戏目录", "请先在“设备与游戏”中选择游戏根目录")
+            return False
+        try:
+            normalized = self._normalize_npc_subtitle_text(contents, state)
+            destination = self._npc_voice_profile_override_path(language, state, profile)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            temporary = destination.with_name(destination.name + ".manaka-writing")
+            temporary.write_text(normalized, encoding="utf-8")
+            os.replace(temporary, destination)
+        except (OSError, ValueError) as error:
+            self._toast("字幕台词保存失败", str(error))
+            return False
+        self._log(f"NPC 字幕台词已保存：{language}/{profile}/{state}")
+        detail = (
+            "游戏下次进入互动时会完整显示其中一个段落"
+            if str(state).strip().lower() == "aftermath"
+            else "游戏下次触发该场景时会随机显示其中一行"
+        )
+        self._toast("字幕台词已保存", detail)
+        return True
+
+    @Slot(str, str, str, result=str)
+    def resetNpcVoiceText(self, language: str, state: str, profile: str) -> str:
+        if not self.game_folder_value.strip():
+            self._toast("尚未选择游戏目录", "请先在“设备与游戏”中选择游戏根目录")
+            return ""
+        try:
+            bundled = read_npc_profile_subtitle(bundled_npc_profile_subtitle_path(language), profile, state)
+            normalized = self._normalize_npc_subtitle_text(bundled, state)
+            destination = self._npc_voice_profile_override_path(language, state, profile)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            temporary = destination.with_name(destination.name + ".manaka-writing")
+            temporary.write_text(normalized, encoding="utf-8")
+            os.replace(temporary, destination)
+        except (OSError, ValueError) as error:
+            self._toast("恢复默认文案失败", str(error))
+            return ""
+        self._log(f"NPC 字幕台词已恢复默认：{language}/{profile}/{state}")
+        return normalized
+
+    def _read_npc_voice_settings(self) -> None:
+        path = self._npc_voice_config_path()
+        self.npc_voice_enabled_value = True
+        self.npc_voice_language_value = "zh"
+        self.npc_voice_audio_enabled_value = True
+        self.npc_voice_subtitles_enabled_value = True
+        try:
+            contents = path.read_text(encoding="utf-8-sig")
+        except OSError:
+            return
+
+        def setting(name: str, fallback: str) -> str:
+            match = re.search(rf"^\s*{re.escape(name)}\s*=\s*(.*?)\s*$", contents, re.IGNORECASE | re.MULTILINE)
+            return match.group(1).strip() if match else fallback
+
+        language = setting("Language", self.npc_voice_language_value).lower()
+        self.npc_voice_enabled_value = setting("Enabled", "true").lower() in {"1", "true", "yes", "on"}
+        self.npc_voice_language_value = language if language in {"zh", "ja", "en"} else "zh"
+        self.npc_voice_audio_enabled_value = setting("VoiceEnabled", "true").lower() in {"1", "true", "yes", "on"}
+        self.npc_voice_subtitles_enabled_value = setting("SubtitlesEnabled", "true").lower() in {"1", "true", "yes", "on"}
+
+    def check_npc_voice_install(self) -> bool:
+        folder = Path(self.game_folder_value.strip())
+        if not folder.is_dir():
+            self.npc_voice_install_status_value = "请选择游戏目录后安装 NPC 语音"
+            self.npc_voice_installed_value = False
+            self.npc_voice_installed_clips_value = 0
+            self.npc_voice_cm2_bridge_value = False
+            self.configChanged.emit()
+            return False
+
+        plugin_dir = folder / "BepInEx" / "plugins" / "ManakaNpcVoices"
+        core_installed = (plugin_dir / "ManakaNpcVoices.dll").is_file()
+        cm2_available = (folder / "BepInEx" / "plugins" / "SFM_custom_mission_v2.dll").is_file()
+        bridge_installed = (plugin_dir / "ManakaNpcVoices.CustomMissions2.dll").is_file()
+        installed = 0
+        try:
+            for _source, relative in bundled_npc_voice_expected_files(bundled_npc_voice_root()):
+                if relative.suffix.lower() == ".wav" and (plugin_dir / "VoicePacks" / relative).is_file():
+                    installed += 1
+        except (OSError, ValueError):
+            installed = 0
+        self.npc_voice_installed_clips_value = installed
+        self.npc_voice_cm2_bridge_value = bool(cm2_available and bridge_installed)
+        self.npc_voice_installed_value = bool(
+            core_installed
+            and installed == self.npc_voice_bundled_clips_value
+            and (not cm2_available or bridge_installed)
+        )
+        if self.npc_voice_installed_value:
+            bridge_note = "，手机设置页已启用" if self.npc_voice_cm2_bridge_value else ""
+            self.npc_voice_install_status_value = f"已安装 {installed} 条日文语气词{bridge_note}"
+        elif not core_installed:
+            self.npc_voice_install_status_value = "尚未安装 NPC 语音插件"
+        else:
+            self.npc_voice_install_status_value = f"语音包不完整：{installed} / {self.npc_voice_bundled_clips_value}"
+        self._read_npc_voice_settings()
+        self.configChanged.emit()
+        return self.npc_voice_installed_value
+
+    @staticmethod
+    def _copy_file_atomic(source: Path, destination: Path) -> None:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(destination.name + ".manaka-installing")
+        shutil.copy2(source, temporary)
+        os.replace(temporary, destination)
+
+    @staticmethod
+    def _remove_obsolete_npc_voice_assets(plugin_dir: Path) -> None:
+        """Remove only obsolete files formerly managed by our installer."""
+        voice_root = plugin_dir / "VoicePacks"
+        if not voice_root.is_dir():
+            return
+        obsolete_audio = re.compile(r"^voice_[ab]_\d{2}\.wav$", re.IGNORECASE)
+        obsolete_sidecar = re.compile(r"^voice_[ab]_\d{2}\.txt$", re.IGNORECASE)
+        for candidate in voice_root.rglob("*"):
+            if not candidate.is_file():
+                continue
+            relative = candidate.relative_to(voice_root)
+            remove = (
+                (relative.parts and relative.parts[0] in {"zh", "en"} and obsolete_audio.fullmatch(candidate.name))
+                or obsolete_sidecar.fullmatch(candidate.name) is not None
+                or candidate.name == ".fish_voice_ids.local.json"
+            )
+            if remove:
+                candidate.unlink()
+
+    @Slot(result=bool)
+    def installNpcVoices(self) -> bool:
+        folder = Path(self.game_folder_value.strip())
+        valid, detail = validate_game_folder(folder)
+        if not valid:
+            self._toast("无法安装 NPC 语音", detail)
+            return False
+        build_valid, build_detail = validate_supported_game_build(folder)
+        if not build_valid:
+            self._toast("游戏文件不完整", build_detail)
+            return False
+        experimental_build = build_detail.startswith("未验证版本")
+        if not (folder / "BepInEx" / "core" / "BepInEx.Core.dll").is_file() and not self.installPlugin():
+            return False
+
+        payload_root = bundled_npc_voice_root()
+        core_source = payload_root / "bin" / "ManakaNpcVoices.dll"
+        bridge_source = payload_root / "bin" / "ManakaNpcVoices.CustomMissions2.dll"
+        readme_source = payload_root / "VOICE_PACK_README.txt"
+        try:
+            mappings = bundled_npc_voice_expected_files(payload_root)
+        except (OSError, ValueError) as error:
+            self._toast("语音包不可用", str(error))
+            return False
+        subtitle_sources = [
+            bundled_npc_subtitle_path(language, state)
+            for language in sorted(NPC_VOICE_LANGUAGES)
+            for state in sorted(NPC_VOICE_STATES)
+        ]
+        profile_sources = [
+            bundled_npc_profile_subtitle_path(language)
+            for language in sorted(NPC_VOICE_LANGUAGES)
+        ]
+        required_sources = [core_source, readme_source] + subtitle_sources + profile_sources + [
+            source for source, _relative in mappings
+        ]
+        missing = next((source for source in required_sources if not source.is_file()), None)
+        if missing is not None:
+            self._toast("NPC 语音安装包不完整", str(missing))
+            return False
+
+        plugin_dir = folder / "BepInEx" / "plugins" / "ManakaNpcVoices"
+        cm2_available = (folder / "BepInEx" / "plugins" / "SFM_custom_mission_v2.dll").is_file()
+        try:
+            self._remove_obsolete_npc_voice_assets(plugin_dir)
+            self._copy_file_atomic(core_source, plugin_dir / "ManakaNpcVoices.dll")
+            if cm2_available:
+                if not bridge_source.is_file():
+                    raise FileNotFoundError(str(bridge_source))
+                self._copy_file_atomic(bridge_source, plugin_dir / "ManakaNpcVoices.CustomMissions2.dll")
+            else:
+                stale_bridge = plugin_dir / "ManakaNpcVoices.CustomMissions2.dll"
+                if stale_bridge.is_file():
+                    stale_bridge.unlink()
+            for source, relative in mappings:
+                self._copy_file_atomic(source, plugin_dir / "VoicePacks" / relative)
+            for language in sorted(NPC_VOICE_LANGUAGES):
+                for state in sorted(NPC_VOICE_STATES):
+                    self._copy_file_atomic(
+                        bundled_npc_subtitle_path(language, state),
+                        plugin_dir / "VoicePacks" / language / state / "lines.txt",
+                    )
+                self._copy_file_atomic(
+                    bundled_npc_profile_subtitle_path(language),
+                    plugin_dir / "VoicePacks" / language / "profiles.txt",
+                )
+            self._copy_file_atomic(readme_source, plugin_dir / "VoicePacks" / "README.txt")
+            update_bepinex_config(
+                self._npc_voice_config_path(),
+                {
+                    ("General", "Enabled"): str(self.npc_voice_enabled_value).lower(),
+                    ("General", "Language"): self.npc_voice_language_value,
+                    ("General", "VoiceEnabled"): str(self.npc_voice_audio_enabled_value).lower(),
+                    ("General", "SubtitlesEnabled"): str(self.npc_voice_subtitles_enabled_value).lower(),
+                },
+            )
+            install_manifest = {
+                "schema": 1,
+                "appVersion": APP_VERSION,
+                "gameBuild": build_detail,
+                "pluginVersion": "0.6.0",
+                "runtimeNetworkAccess": False,
+                "languages": ["zh", "ja", "en"],
+                "clipCount": self.npc_voice_bundled_clips_value,
+                "coreSha256": sha256_file(plugin_dir / "ManakaNpcVoices.dll"),
+                "cm2BridgeInstalled": cm2_available,
+            }
+            (plugin_dir / ".manaka-npc-voices-install.json").write_text(
+                json.dumps(install_manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        except PermissionError:
+            self._toast("文件正在使用", "请完全退出游戏后再安装或更新 NPC 语音")
+            return False
+        except (OSError, shutil.Error) as error:
+            self._toast("NPC 语音安装失败", str(error))
+            return False
+
+        self.check_npc_voice_install()
+        self.scan_mods(show_error=False)
+        self._log(f"NPC 语音插件已安装：{self.npc_voice_bundled_clips_value} 条日文语气词")
+        self._toast(
+            "NPC 语音安装完成",
+            "安装完成；当前游戏版本未验证，请自行测试兼容性"
+            if experimental_build else (
+                "日文语气词、三语字幕与手机设置页已部署"
+                if cm2_available else "日文语气词与三语字幕已部署；安装 Custom Mission 2 后可启用手机设置页"
+            ),
+        )
+        return True
+
+    @Slot(str, result=bool)
+    def setNpcVoiceLanguage(self, language: str) -> bool:
+        language = str(language).strip().lower()
+        if language not in {"zh", "ja", "en"}:
+            return False
+        self.npc_voice_language_value = language
+        return self._save_npc_voice_options()
+
+    @Slot(bool, result=bool)
+    def setNpcVoiceEnabled(self, enabled: bool) -> bool:
+        previous = self.npc_voice_enabled_value
+        self.npc_voice_enabled_value = bool(enabled)
+        if not self._save_npc_voice_options(
+            "NPC 语音已开启" if self.npc_voice_enabled_value else "NPC 语音已关闭",
+            "重新启动游戏后生效",
+        ):
+            self.npc_voice_enabled_value = previous
+            self.configChanged.emit()
+            return False
+        self._log("NPC 语音总开关：" + ("开启" if self.npc_voice_enabled_value else "关闭"))
+        return True
+
+    @Slot(bool, bool, result=bool)
+    def setNpcVoicePlayback(self, audio_enabled: bool, subtitles_enabled: bool) -> bool:
+        self.npc_voice_audio_enabled_value = bool(audio_enabled)
+        self.npc_voice_subtitles_enabled_value = bool(subtitles_enabled)
+        return self._save_npc_voice_options()
+
+    def _save_npc_voice_options(
+        self,
+        toast_title: str = "字幕与语音设置已保存",
+        toast_detail: str = "字幕语言已更新；重新启动游戏后生效",
+    ) -> bool:
+        if not self.game_folder_value:
+            self._toast("尚未选择游戏", "请先在“设备与游戏”选择游戏根目录")
+            return False
+        try:
+            update_bepinex_config(
+                self._npc_voice_config_path(),
+                {
+                    ("General", "Enabled"): str(self.npc_voice_enabled_value).lower(),
+                    ("General", "Language"): self.npc_voice_language_value,
+                    ("General", "VoiceEnabled"): str(self.npc_voice_audio_enabled_value).lower(),
+                    ("General", "SubtitlesEnabled"): str(self.npc_voice_subtitles_enabled_value).lower(),
+                },
+            )
+        except OSError as error:
+            self._toast("语音设置保存失败", str(error))
+            return False
+        self.configChanged.emit()
+        self._toast(toast_title, toast_detail)
+        return True
+
     # ----- QML actions ---------------------------------------------------------
     def _t(self, source: str) -> str:
         return translate(str(source), self.language_name)
@@ -1155,6 +1989,16 @@ class ControlCenterBackend(QObject):
     @Slot(str, result=str)
     def translate(self, source: str) -> str:
         return self._t(source)
+
+    @Slot(result=bool)
+    def openVoicePackFolder(self) -> bool:
+        folder = Path(self.voicePackFolder)
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            self._toast("无法打开目录", str(error))
+            return False
+        return bool(QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))))
 
     @staticmethod
     def _is_allowed_external_url(value: str) -> bool:
@@ -1223,6 +2067,15 @@ class ControlCenterBackend(QObject):
         self._start_runtime()
 
     @Slot()
+    def completeOnboarding(self) -> None:
+        if self.onboarding_completed_value:
+            return
+        self.onboarding_completed_value = True
+        update_config({"onboarding_completed": True})
+        self.configChanged.emit()
+        self._log("新手教程已完成或跳过；可从顶部按钮重新打开")
+
+    @Slot()
     def declineAgreement(self) -> None:
         self._log("用户不同意使用协议；应用即将退出")
         self.exitRequested.emit()
@@ -1246,7 +2099,7 @@ class ControlCenterBackend(QObject):
 
     @Slot(int)
     def setActivePage(self, index: int) -> None:
-        self.ui_page_index = max(0, min(8, int(index)))
+        self.ui_page_index = max(0, min(9, int(index)))
         # Values continue updating while a page is hidden. Emit one snapshot on
         # entry so the newly visible page catches up without background churn.
         self.statusChanged.emit()
@@ -1318,6 +2171,7 @@ class ControlCenterBackend(QObject):
             "mod_source_mode": "game",
         })
         self.check_game()
+        self.check_npc_voice_install()
         if self.mod_source_folder_value:
             self.scan_mods(show_error=False)
 
@@ -1632,12 +2486,32 @@ class ControlCenterBackend(QObject):
         folder = Path(self.game_folder_value.strip())
         valid, detail = validate_game_folder(folder)
         if valid:
+            build_valid, build_detail = validate_supported_game_build(folder)
+            if not build_valid:
+                detail = build_detail
+                valid = False
+            experimental = build_detail.startswith("未验证版本") if build_valid else False
             target = folder / "BepInEx" / "plugins" / "ManakaDGLabTelemetry" / "ManakaDGLabTelemetry.dll"
             has_bepinex = (folder / "BepInEx" / "core" / "BepInEx.Core.dll").is_file()
-            if target.is_file() and has_bepinex:
+            runtime_issue = None
+            if valid and has_bepinex:
+                runtime_issue = bepinex_runtime_issue(
+                    folder,
+                    bundled_bepinex_path(),
+                    fingerprint=game_build_fingerprint(folder),
+                    verified_build=uses_bundled_v113_interop(folder),
+                    manifest=read_install_manifest(folder),
+                )
+            if valid and runtime_issue == "interop-pending":
+                detail = "BepInEx 已安排按当前版本重建 Interop；请启动游戏完成首次生成"
+            elif valid and runtime_issue:
+                detail = "检测到 BepInEx / Interop 与当前游戏不匹配；请点击安装 / 修复运行环境"
+            elif valid and target.is_file() and has_bepinex:
                 detail = "游戏、BepInEx 和独立遥测插件均已就绪"
-            elif has_bepinex:
+            elif valid and has_bepinex:
                 detail = "已检测到 BepInEx；独立遥测插件尚未安装"
+            if valid and experimental:
+                detail += "；当前游戏版本未验证，已允许实验性运行"
         self.game_status_value = detail
         self.configChanged.emit()
         return valid
@@ -1649,54 +2523,38 @@ class ControlCenterBackend(QObject):
         if not valid:
             self._toast("无法安装", detail)
             return False
-        supported, build_detail = validate_supported_game_build(folder)
-        if not supported:
-            self._toast("版本不匹配", build_detail)
+        build_valid, build_detail = validate_supported_game_build(folder)
+        if not build_valid:
+            self._toast("游戏文件不完整", build_detail)
             return False
+        experimental_build = build_detail.startswith("未验证版本")
         source = bundled_plugin_path()
         if not source.is_file():
             self._toast("缺少文件", f"找不到遥测插件：{source}")
             return False
 
-        runtime_installed = False
-        runtime_core = folder / "BepInEx" / "core" / "BepInEx.Core.dll"
-        if not runtime_core.is_file():
-            runtime_source = bundled_bepinex_path()
-            required_runtime_files = (
-                runtime_source / ".doorstop_version",
-                runtime_source / "doorstop_config.ini",
-                runtime_source / "winhttp.dll",
-                runtime_source / "BEPINEX_LICENSE.txt",
-                runtime_source / "dotnet",
-                runtime_source / "BepInEx" / "core",
-                runtime_source / "BepInEx" / "interop",
-                runtime_source / "BepInEx" / "unity-libs",
+        runtime_source = bundled_bepinex_path()
+        fingerprint = game_build_fingerprint(folder)
+        previous_manifest = read_install_manifest(folder)
+        verified_build = uses_bundled_v113_interop(folder)
+        runtime_issue = bepinex_runtime_issue(
+            folder,
+            runtime_source,
+            fingerprint=fingerprint,
+            verified_build=verified_build,
+            manifest=previous_manifest,
+        )
+        repair_runtime = runtime_issue not in (None, "missing-runtime", "interop-pending")
+        try:
+            runtime_action, backup_root = provision_bepinex_runtime(
+                folder,
+                runtime_source,
+                verified_build=verified_build,
+                repair=repair_runtime,
             )
-            missing = [str(path) for path in required_runtime_files if not path.exists()]
-            if missing:
-                self._toast("安装包不完整", f"缺少 BepInEx 文件：{missing[0]}")
-                return False
-            try:
-                (folder / "BepInEx").mkdir(parents=True, exist_ok=True)
-                for root_file in (".doorstop_version", "doorstop_config.ini", "winhttp.dll"):
-                    shutil.copy2(runtime_source / root_file, folder / root_file)
-                shutil.copy2(
-                    runtime_source / "BEPINEX_LICENSE.txt",
-                    folder / "BepInEx" / "BEPINEX_LICENSE.txt",
-                )
-                shutil.copytree(runtime_source / "dotnet", folder / "dotnet", dirs_exist_ok=True)
-                for child in ("core", "interop", "unity-libs", "config"):
-                    shutil.copytree(
-                        runtime_source / "BepInEx" / child,
-                        folder / "BepInEx" / child,
-                        dirs_exist_ok=True,
-                    )
-                (folder / "BepInEx" / "patchers").mkdir(parents=True, exist_ok=True)
-                (folder / "BepInEx" / "plugins").mkdir(parents=True, exist_ok=True)
-                runtime_installed = True
-            except (OSError, shutil.Error) as error:
-                self._toast("运行环境安装失败", str(error))
-                return False
+        except (OSError, shutil.Error) as error:
+            self._toast("运行环境安装失败", str(error))
+            return False
 
         target_dir = folder / "BepInEx" / "plugins" / "ManakaDGLabTelemetry"
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -1704,16 +2562,26 @@ class ControlCenterBackend(QObject):
             plugin_target = target_dir / source.name
             shutil.copy2(source, plugin_target)
             manifest_path = folder / ".manaka-dglab-install.json"
-            try:
-                previous_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                previous_manifest = {}
-            runtime_owned = runtime_installed or bool(previous_manifest.get("runtimeInstalledByApp", False))
+            runtime_owned = runtime_action == "installed" or bool(
+                previous_manifest.get("runtimeInstalledByApp", False)
+            )
+            if verified_build:
+                interop_mode = "bundled-v113"
+            elif runtime_action in {"installed", "repaired"}:
+                interop_mode = "generate-on-next-launch"
+            else:
+                interop_mode = str(previous_manifest.get("interopMode", "external-current-build"))
             manifest = {
-                "schema": 1,
+                "schema": 2,
                 "appVersion": APP_VERSION,
                 "gameBuild": build_detail,
+                "gameFingerprint": fingerprint,
                 "bepInExVersion": "6.0.0-be.735+5fef357",
+                "bepInExProfile": "bundled-be.735" if runtime_action != "unchanged" else "existing-runtime",
+                "interopMode": interop_mode,
+                "runtimeAction": runtime_action,
+                "repairReason": runtime_issue or "",
+                "runtimeBackup": str(backup_root) if backup_root else "",
                 "telemetryVersion": "0.4.2-hud-compact",
                 "runtimeInstalledByApp": runtime_owned,
                 "pluginSha256": sha256_file(plugin_target),
@@ -1737,11 +2605,28 @@ class ControlCenterBackend(QObject):
             self._toast("插件安装失败", str(error))
             return False
         update_config({"game_folder": str(folder)})
-        self._log("BepInEx 与独立遥测插件安装完成" if runtime_installed else "独立遥测插件安装/更新完成")
+        if runtime_action == "repaired":
+            self._log(f"BepInEx / Interop 已修复；旧运行环境备份到 {backup_root}")
+        elif runtime_action == "installed":
+            self._log("BepInEx 与独立遥测插件安装完成")
+        else:
+            self._log("独立遥测插件安装/更新完成")
         self.check_game()
+        if not verified_build and runtime_action in {"installed", "repaired"}:
+            toast_detail = "运行环境已按当前游戏重置；首次启动会生成 Interop，耗时可能稍长"
+        elif runtime_action == "repaired":
+            toast_detail = "已修复 BepInEx / Interop，并保留原有插件与配置"
+        elif runtime_action == "installed":
+            toast_detail = "已安装 BepInEx 6 与独立遥测插件"
+        elif experimental_build:
+            toast_detail = "插件已更新；当前游戏版本未验证，请自行测试兼容性"
+        else:
+            toast_detail = "独立遥测插件已复制到游戏目录"
         self._toast(
-            "一键安装完成" if runtime_installed else "插件更新完成",
-            "已安装 BepInEx 6 与独立遥测插件" if runtime_installed else "独立遥测插件已复制到游戏目录",
+            "运行环境修复完成" if runtime_action == "repaired" else (
+                "一键安装完成" if runtime_action == "installed" else "插件更新完成"
+            ),
+            toast_detail,
         )
         return True
 

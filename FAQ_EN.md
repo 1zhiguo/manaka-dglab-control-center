@@ -2,11 +2,11 @@
 
 ## Does the download include the game?
 
-No. The public project and release files do not include the game. Select your own legally obtained Secret Flasher Manaka v1.1.3 folder.
+No. The public project and release files do not include the game. Select your own legally obtained Secret Flasher Manaka v1.1.1, v1.1.2, or v1.1.3 folder.
 
 ## Do I need to install Python, Node.js, or BepInEx?
 
-The portable Windows build does not require Python or Node.js. A clean game copy does not need BepInEx preinstalled; **Install and Launch Game** deploys the verified runtime and telemetry plugin.
+The portable Windows build does not require Python or Node.js. A clean v1.1.1, v1.1.2, or v1.1.3 game copy does not need BepInEx preinstalled; **Install and Launch Game** prepares the matching runtime and deploys the telemetry plugin.
 
 ## Why does Windows show “Unknown publisher”?
 

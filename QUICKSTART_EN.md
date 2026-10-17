@@ -5,7 +5,7 @@ This community-made Windows tool connects **Secret Flasher Manaka** to a **DG-LA
 ## 1. Before you start
 
 - Windows 10 or 11, 64-bit
-- A legally obtained copy of Secret Flasher Manaka v1.1.3
+- A legally obtained copy of Secret Flasher Manaka v1.1.1, v1.1.2, or v1.1.3
 - A DG-LAB 3.0 device and the current DG-LAB mobile app
 - The PC and phone connected to the same local network
 
@@ -32,7 +32,7 @@ SecretFlasherManaka_Data/
 
 Do not select `BepInEx`, `plugins`, or `SecretFlasherManaka_Data` itself.
 
-For a clean game copy, choose **Install and Launch Game**. The control center installs or repairs the verified BepInEx 6 IL2CPP runtime and the standalone Manaka telemetry plugin, then starts the game.
+For a clean game copy, choose **Install and Launch Game**. The control center supports v1.1.1, v1.1.2, and v1.1.3; it installs or repairs BepInEx 6 IL2CPP, prepares Interop for the selected game build, deploys the standalone Manaka telemetry plugin, and then starts the game.
 
 ## 4. Connect DG-LAB 3.0
 

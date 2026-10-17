@@ -21,3 +21,6 @@
 .download-trigger .download-arrow{display:block;width:18px;height:18px;flex:0 0 auto;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(0);transform-box:view-box;transform-origin:center;transition:transform .18s ease}.download-menu.is-open .download-trigger>span{transform:none}.download-menu.is-open .download-trigger .download-arrow{transform:rotate(180deg)}
 
 @media(max-width:520px){.header nav>a{display:none}.header nav .github-link{display:inline-flex}.github-link span{display:none}.github-link{width:34px;padding:0;justify-content:center}}
+
+/* Supported game versions are visible before the primary download action. */
+.compatibility{grid-column:1/-1;justify-self:start;order:-1;display:inline-flex;margin:0 0 -26px;padding:8px 14px;border:1px solid rgba(86,214,225,.34);border-radius:999px;background:rgba(86,214,225,.08);color:#56d6e1;font-size:13px;font-weight:800;letter-spacing:.02em}

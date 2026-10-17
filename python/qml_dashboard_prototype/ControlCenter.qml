@@ -16,11 +16,17 @@ ApplicationWindow {
     onPageIndexChanged: backend.setActivePage(pageIndex)
     property bool darkMode: backend.theme !== "light"
     property url guidePreviewSource: ""
+    property string npcTextLanguage: backend.npcVoiceLanguage
+    property string npcTextState: "ambient"
+    property string npcTextProfile: "young_female"
+    function reloadNpcTextEditor() {
+        npcTextArea.text = backend.loadNpcVoiceText(npcTextLanguage, npcTextState, npcTextProfile)
+    }
     function t(source) {
         const languageDependency = backend.language
         return backend.translate(source)
     }
-    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("A/B 波形监视"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("事件记录")]
+    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("A/B 波形监视"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("NPC 语音"), t("事件记录")]
     property var pageSubtitles: [
         t("游戏状态、心率与设备输出总览"),
         t("安装游戏插件并使用 DG-LAB 3.0 扫码"),
@@ -30,22 +36,25 @@ ApplicationWindow {
         t("安全修改当前存档的经验值与游戏货币"),
         t("管理你已有的插件、V1 任务与 V2 功能包"),
         t("从原作者页面发现任务、插件与工具"),
+        "",
         t("检查连接、安全归零和游戏事件")
     ]
 
-    readonly property color bg: darkMode ? "#070A11" : "#EEF2F8"
-    readonly property color panel: darkMode ? "#101725" : "#F8FAFD"
-    readonly property color panel2: darkMode ? "#172134" : "#E8EEF7"
-    readonly property color border: darkMode ? "#2A3850" : "#C8D3E3"
-    readonly property color fg: darkMode ? "#F7F9FD" : "#182033"
-    readonly property color muted: darkMode ? "#8E9AAF" : "#667389"
-    readonly property color track: darkMode ? "#253146" : "#CBD6E5"
-    readonly property color accent: darkMode ? "#FF6FAE" : "#DF4D86"
-    readonly property color violet: darkMode ? "#A78BFA" : "#7659D9"
-    readonly property color cyan: darkMode ? "#5DE0EA" : "#168F9B"
-    readonly property color green: darkMode ? "#4ADDA5" : "#168F68"
-    readonly property color amber: darkMode ? "#F7C55B" : "#C68114"
-    readonly property color red: darkMode ? "#FF5D7A" : "#D94362"
+    // DG-LAB inspired palette: ink-black surfaces, warm logo gold and ivory text.
+    // Cyan remains the B-channel color so live output stays easy to distinguish.
+    readonly property color bg: darkMode ? "#070604" : "#F8F1D8"
+    readonly property color panel: darkMode ? "#12100A" : "#FFFBEB"
+    readonly property color panel2: darkMode ? "#1B1710" : "#EFE2B4"
+    readonly property color border: darkMode ? "#4E4224" : "#C9AB57"
+    readonly property color fg: darkMode ? "#FFF4C7" : "#211A09"
+    readonly property color muted: darkMode ? "#B9A978" : "#786838"
+    readonly property color track: darkMode ? "#342D1B" : "#D7C58A"
+    readonly property color accent: darkMode ? "#F6D878" : "#B98310"
+    readonly property color violet: darkMode ? "#E9B949" : "#946B12"
+    readonly property color cyan: darkMode ? "#68D7E5" : "#167B88"
+    readonly property color green: darkMode ? "#80D5A0" : "#16725A"
+    readonly property color amber: darkMode ? "#FFC857" : "#A96B00"
+    readonly property color red: darkMode ? "#FF708C" : "#C84556"
 
     color: bg
     palette.window: bg
@@ -72,7 +81,7 @@ ApplicationWindow {
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
             anchors.leftMargin: 24; anchors.rightMargin: 24
             height: 1
-            color: darkMode ? "#50617A" : "#FFFFFF"
+            color: darkMode ? "#7B6731" : "#FFFDF3"
             opacity: 0.65
         }
         Item { id: cardContent; anchors.fill: parent }
@@ -263,7 +272,7 @@ ApplicationWindow {
         property string iconText: "•"
         property string label: "页面"
         Layout.fillWidth: true
-        Layout.preferredHeight: 46
+        Layout.preferredHeight: 40
         radius: 14
         color: root.pageIndex === targetPage ? Qt.rgba(accent.r, accent.g, accent.b, darkMode ? 0.14 : 0.11) : "transparent"
         border.color: root.pageIndex === targetPage ? Qt.rgba(accent.r, accent.g, accent.b, 0.30) : "transparent"
@@ -325,7 +334,7 @@ ApplicationWindow {
             const ctx = getContext("2d")
             ctx.reset()
             const w = width, h = height
-            ctx.strokeStyle = darkMode ? "#253249" : "#D7DFEA"
+            ctx.strokeStyle = darkMode ? "#3B3220" : "#DCCB93"
             ctx.lineWidth = 1
             for (let i = 1; i < 4; i++) { const y = h * i / 4; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke() }
             if (!points || points.length < 2) return
@@ -365,12 +374,37 @@ ApplicationWindow {
         Text { text: parent.detail; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
     }
 
+    component TutorialLine: Rectangle {
+        id: tutorialLine
+        property string numberText: "1"
+        property string title: ""
+        property string detail: ""
+        Layout.fillWidth: true
+        Layout.preferredHeight: 72
+        radius: 15
+        color: panel2
+        border.color: border
+        RowLayout {
+            anchors.fill: parent; anchors.margins: 13; spacing: 13
+            Rectangle {
+                Layout.preferredWidth: 38; Layout.preferredHeight: 38; radius: 19
+                color: Qt.rgba(accent.r, accent.g, accent.b, darkMode ? 0.18 : 0.14)
+                Text { anchors.centerIn: parent; text: tutorialLine.numberText; color: accent; font.family: "Segoe UI"; font.pixelSize: 15; font.weight: Font.Bold }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 3
+                Text { Layout.fillWidth: true; text: tutorialLine.title; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                Text { Layout.fillWidth: true; text: tutorialLine.detail; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
+            }
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: darkMode ? "#090D17" : "#EEF2F8" }
-            GradientStop { position: 1; color: darkMode ? "#070A11" : "#F7F9FC" }
+            GradientStop { position: 0; color: darkMode ? "#171206" : "#F4E8BE" }
+            GradientStop { position: 1; color: darkMode ? "#050504" : "#FFF9E9" }
         }
     }
 
@@ -381,7 +415,7 @@ ApplicationWindow {
         Rectangle {
             Layout.preferredWidth: 224
             Layout.fillHeight: true
-            color: darkMode ? "#0B101B" : "#F8FAFD"
+            color: darkMode ? "#0B0906" : "#FFF7DA"
             border.color: border
             Behavior on color { ColorAnimation { duration: 240 } }
             ColumnLayout {
@@ -407,7 +441,8 @@ ApplicationWindow {
                 NavItem { targetPage: 5; iconText: "✦"; label: root.t("存档工具") }
                 NavItem { targetPage: 6; iconText: "⬡"; label: root.t("Mod 管理器") }
                 NavItem { targetPage: 7; iconText: "✧"; label: root.t("创意工坊") }
-                NavItem { targetPage: 8; iconText: "◎"; label: root.t("事件记录") }
+                NavItem { targetPage: 8; iconText: "♫"; label: root.t("NPC 语音") }
+                NavItem { targetPage: 9; iconText: "◎"; label: root.t("事件记录") }
                 Item { Layout.fillHeight: true }
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredHeight: 98; radius: 17
@@ -473,6 +508,12 @@ ApplicationWindow {
                             anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: { hudTogglePress.restart(); backend.setGameHudEnabled(!hudToggle.checked) }
                         }
+                    }
+                    AppButton {
+                        Layout.leftMargin: 5
+                        Layout.preferredWidth: 106
+                        label: root.t("新手教程")
+                        onClicked: onboardingDialog.openFromStart()
                     }
                     Rectangle {
                         Layout.preferredWidth: 158; Layout.preferredHeight: 38; radius: 19
@@ -579,7 +620,7 @@ ApplicationWindow {
                                         RowLayout { Layout.fillWidth: true; AppButton { label: root.t("选择目录"); onClicked: folderDialog.open() } AppButton { label: root.t("安装 / 修复运行环境"); onClicked: backend.installPlugin() } }
                                         AppButton { Layout.fillWidth: true; Layout.preferredHeight: 48; label: root.t("一键安装并启动游戏"); fillColor: accent; labelColor: "#11151C"; onClicked: backend.installAndLaunch() }
                                         Item { Layout.fillHeight: true }
-                                        Text { text: root.t("纯原版无需预装 BepInEx；安装器会配置已验证的 v1.1.3 运行环境与独立遥测插件。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                                        Text { text: root.t("正式支持游戏 v1.1.1 / v1.1.2 / v1.1.3；纯原版无需预装 BepInEx，控制中心会自动配置对应运行库。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap; Layout.fillWidth: true }
                                     }
                                 }
                                 AppCard {
@@ -833,7 +874,7 @@ ApplicationWindow {
                                         anchors.fill: parent; anchors.margins: 20; spacing: 10
                                         SectionTitle { title: root.t("自定义波形设计器"); detail: root.t("独立窗口编辑") }
                                         Rectangle {
-                                            id: customSummary; Layout.fillWidth: true; Layout.fillHeight: true; radius: 15; color: darkMode ? "#0B1220" : "#F0F4F9"; border.color: customSummaryHover.hovered ? cyan : border
+                                            id: customSummary; Layout.fillWidth: true; Layout.fillHeight: true; radius: 15; color: darkMode ? "#100D07" : "#FFF8E5"; border.color: customSummaryHover.hovered ? cyan : border
                                             HoverHandler { id: customSummaryHover }
                                             ColumnLayout { anchors.fill: parent; anchors.margins: 14; spacing: 7; RowLayout { Layout.fillWidth: true; Text { Layout.fillWidth: true; text: wavePage.draftName; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold; elide: Text.ElideRight } Text { text: wavePage.draftFrequency+" Hz"; color: cyan; font.pixelSize: 10 } } WaveView { Layout.fillWidth: true; Layout.fillHeight: true; points: wavePage.draftPoints; waveColor: cyan; animated: customSummaryHover.hovered } Text { Layout.fillWidth: true; text: root.t("悬停查看播放位置；打开编辑器可使用模板、平滑、镜像与撤销。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9; wrapMode: Text.Wrap } }
                                         }
@@ -880,7 +921,7 @@ ApplicationWindow {
                                     AppButton { Layout.preferredWidth: 88; label: root.t("阶梯"); onClicked: wavePage.applyTemplate("steps") }
                                 }
                                 Rectangle {
-                                    Layout.fillWidth: true; Layout.fillHeight: true; radius: 16; color: darkMode ? "#090F1B" : "#F1F5FA"; border.color: cyan
+                                    Layout.fillWidth: true; Layout.fillHeight: true; radius: 16; color: darkMode ? "#0C0A06" : "#FBF3D9"; border.color: cyan
                                     Canvas {
                                         id: editorCanvas; anchors.fill: parent; anchors.margins: 18; antialiasing: true
                                         onPaint: { const ctx=getContext("2d");ctx.reset();const p=wavePage.draftPoints;ctx.strokeStyle=darkMode?"#29364E":"#D7DFEA";ctx.lineWidth=1;for(let i=0;i<=4;i++){let y=height*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}for(let i=0;i<16;i++){let x=width*i/15;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke()}if(!p||p.length<2)return;ctx.strokeStyle=cyan;ctx.lineWidth=4;ctx.lineJoin="round";ctx.beginPath();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();for(let i=0;i<p.length;i++){let x=i/(p.length-1)*width;let y=height-(p[i]/100)*height;ctx.fillStyle=root.fg;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()} }
@@ -1103,7 +1144,7 @@ ApplicationWindow {
                                 }
                                 AppCard {
                                     Layout.preferredWidth: 430; Layout.fillHeight: true
-                                    color: darkMode ? "#111A29" : "#F5F8FC"
+                                    color: darkMode ? "#16120B" : "#FFF9E6"
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 17; spacing: 8
                                         RowLayout { Layout.fillWidth: true; Rectangle { width: 42; height: 42; radius: 14; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.13); Text { anchors.centerIn: parent; text: "＋"; color: cyan; font.pixelSize: 22; font.weight: Font.Bold } } Column { Layout.fillWidth: true; Text { text: root.t("Drop-in 收件箱"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold } Text { text: "DLL / V1 JSON / V2 folders / ZIP"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 8 } } }
@@ -1139,7 +1180,7 @@ ApplicationWindow {
                                         }
                                         Rectangle {
                                             Layout.fillWidth: true; Layout.preferredHeight: 62; radius: 13
-                                            color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: border
+                                            color: darkMode ? "#1B160D" : "#F8EFCF"; border.color: border
                                             RowLayout {
                                                 anchors.fill: parent; anchors.margins: 10; spacing: 8
                                                 Column {
@@ -1193,7 +1234,7 @@ ApplicationWindow {
                                             delegate: Rectangle {
                                                 required property var modelData
                                                 width: modSourceList.cellWidth - 7; height: 134; radius: 14
-                                                color: modelData.pinned ? (darkMode ? "#182033" : "#E7F8FB") : (darkMode ? "#141E2F" : "#EDF2F8")
+                                                color: modelData.pinned ? (darkMode ? "#241D0F" : "#FFF5CF") : (darkMode ? "#1B160D" : "#F8EFCF")
                                                 border.color: modelData.pinned ? accent : border
                                                 RowLayout {
                                                     anchors.fill: parent; anchors.margins: 12; spacing: 11
@@ -1229,7 +1270,7 @@ ApplicationWindow {
                                             delegate: Rectangle {
                                                 required property var modelData
                                                 width: recommendedModList.cellWidth - 7; height: 106; radius: 15
-                                                color: darkMode ? "#141E2F" : "#EDF2F8"
+                                                color: darkMode ? "#1B160D" : "#F8EFCF"
                                                 border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.42) : border
                                                 RowLayout {
                                                     anchors.fill: parent; anchors.margins: 14; spacing: 13
@@ -1281,7 +1322,7 @@ ApplicationWindow {
                                                 delegate: Rectangle {
                                                     required property var modelData
                                                     width: modList.cellWidth - 7; height: 222; radius: 15
-                                                    color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.40) : border
+                                                    color: darkMode ? "#1B160D" : "#F8EFCF"; border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.40) : border
                                                     RowLayout {
                                                         anchors.fill: parent; anchors.margins: 14; spacing: 12
                                                         Rectangle {
@@ -1361,7 +1402,7 @@ ApplicationWindow {
                                             delegate: Rectangle {
                                                 required property var modelData
                                                 width: loadedModList.cellWidth - 7; height: 118; radius: 14
-                                                color: modelData.enabled ? (darkMode ? "#141E2F" : "#EDF2F8") : (darkMode ? "#111722" : "#E7EAF0")
+                                                color: modelData.enabled ? (darkMode ? "#1B160D" : "#F8EFCF") : (darkMode ? "#12100B" : "#EEE2BD")
                                                 border.color: modelData.enabled ? Qt.rgba(green.r,green.g,green.b,0.40) : Qt.rgba(muted.r,muted.g,muted.b,0.35)
                                                 opacity: modelData.enabled ? 1.0 : 0.72
                                                 RowLayout {
@@ -1412,7 +1453,7 @@ ApplicationWindow {
                                 anchors.fill: parent; anchors.margins: 16; spacing: 10
                                 Rectangle {
                                     Layout.fillWidth: true; Layout.preferredHeight: 58; radius: 13
-                                    color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: border
+                                    color: darkMode ? "#1B160D" : "#F8EFCF"; border.color: border
                                     RowLayout {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                                         AppButton { Layout.fillWidth: true; Layout.preferredHeight: 42; label: root.t("路线 1 · F95Zone 原帖"); fillColor: workshopPage.route === "f95" ? cyan : panel2; labelColor: workshopPage.route === "f95" ? "#10151A" : root.fg; onClicked: workshopPage.route = "f95" }
@@ -1460,7 +1501,7 @@ ApplicationWindow {
                                     delegate: Rectangle {
                                         required property var modelData
                                         width: workshopSourceList.cellWidth - 7; height: 150; radius: 14
-                                        color: modelData.pinned ? (darkMode ? "#182033" : "#E7F8FB") : (darkMode ? "#141E2F" : "#EDF2F8")
+                                        color: modelData.pinned ? (darkMode ? "#241D0F" : "#FFF5CF") : (darkMode ? "#1B160D" : "#F8EFCF")
                                         border.color: modelData.pinned ? accent : border
                                         RowLayout {
                                             anchors.fill: parent; anchors.margins: 12; spacing: 11
@@ -1485,7 +1526,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true; Layout.preferredHeight: 126; Layout.minimumHeight: 126; Layout.maximumHeight: 126; spacing: 12
                                         Rectangle {
                                             Layout.fillWidth: true; Layout.fillHeight: true; radius: 15
-                                            color: darkMode ? "#171827" : "#F2EFFB"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.38)
+                                            color: darkMode ? "#21190E" : "#F7EACA"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.38)
                                             RowLayout {
                                                 anchors.fill: parent; anchors.margins: 14; spacing: 12
                                                 Rectangle { width: 38; height: 38; radius: 12; color: Qt.rgba(violet.r,violet.g,violet.b,0.16); Text { anchors.centerIn: parent; text: "↗"; color: violet; font.pixelSize: 16; font.weight: Font.Bold } }
@@ -1495,7 +1536,7 @@ ApplicationWindow {
                                         }
                                         Rectangle {
                                             Layout.fillWidth: true; Layout.fillHeight: true; radius: 15
-                                            color: darkMode ? "#141E2F" : "#EDF2F8"; border.color: border
+                                            color: darkMode ? "#1B160D" : "#F8EFCF"; border.color: border
                                             RowLayout {
                                                 anchors.fill: parent; anchors.margins: 14; spacing: 12
                                                 Rectangle { width: 38; height: 38; radius: 12; color: Qt.rgba(cyan.r,cyan.g,cyan.b,0.14); Text { anchors.centerIn: parent; text: "⌁"; color: cyan; font.pixelSize: 16; font.weight: Font.Bold } }
@@ -1506,7 +1547,7 @@ ApplicationWindow {
                                     }
                                     Rectangle {
                                         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 230; radius: 18
-                                        color: darkMode ? "#171827" : "#F4F0FF"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.55); border.width: 1
+                                        color: darkMode ? "#21190E" : "#FFF2C9"; border.color: Qt.rgba(violet.r,violet.g,violet.b,0.55); border.width: 1
                                         ColumnLayout {
                                             anchors.fill: parent; anchors.margins: 20; spacing: 13
                                             Text { Layout.fillWidth: true; text: root.t("导入 9527 汉化整合"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 20; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter }
@@ -1522,7 +1563,7 @@ ApplicationWindow {
                                                     delegate: Rectangle {
                                                         required property var modelData
                                                         Layout.fillWidth: true; Layout.fillHeight: true; Layout.maximumHeight: 108; radius: 14
-                                                        color: darkMode ? "#141E2F" : "#FFFFFF"; border.color: border
+                                                        color: darkMode ? "#1B160D" : "#FFFDF5"; border.color: border
                                                         RowLayout {
                                                             anchors.fill: parent; anchors.margins: 13; spacing: 10
                                                             Rectangle { width: 38; height: 38; radius: 19; color: modelData.number === "3" ? violet : panel2; Text { anchors.centerIn: parent; text: modelData.number; color: modelData.number === "3" ? "#10151A" : root.fg; font.pixelSize: 16; font.weight: Font.Bold } }
@@ -1540,6 +1581,150 @@ ApplicationWindow {
                         }
                     }
 
+                    // NPC voice installer -------------------------------------
+                    Item {
+                        id: npcVoicePage
+                        AppCard {
+                            anchors.fill: parent
+                            ColumnLayout {
+                                anchors.fill: parent; anchors.margins: 24; spacing: 14
+                                RowLayout {
+                                    Layout.fillWidth: true; spacing: 14
+                                    Rectangle {
+                                        width: 48; height: 48; radius: 15
+                                        color: Qt.rgba(cyan.r, cyan.g, cyan.b, 0.14)
+                                        Text { anchors.centerIn: parent; text: "♫"; color: cyan; font.pixelSize: 23; font.weight: Font.Bold }
+                                    }
+                                    Text { Layout.fillWidth: true; text: root.t("NPC 语气与字幕"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 20; font.weight: Font.Bold }
+                                    Rectangle {
+                                        width: npcVoiceStatusText.width + 26; height: 34; radius: 12
+                                        color: Qt.rgba((backend.npcVoiceInstalled ? green : amber).r, (backend.npcVoiceInstalled ? green : amber).g, (backend.npcVoiceInstalled ? green : amber).b, 0.13)
+                                        Text { id: npcVoiceStatusText; anchors.centerIn: parent; text: backend.npcVoiceInstalled ? root.t("已就绪") : root.t("等待安装"); color: backend.npcVoiceInstalled ? green : amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: npcMasterCard
+                                    property bool active: backend.npcVoiceInstalled && backend.npcVoiceEnabled
+                                    Layout.fillWidth: true; Layout.preferredHeight: 112; radius: 18
+                                    color: Qt.rgba((active ? green : muted).r, (active ? green : muted).g, (active ? green : muted).b, darkMode ? 0.11 : 0.09)
+                                    border.color: Qt.rgba((active ? green : muted).r, (active ? green : muted).g, (active ? green : muted).b, 0.35)
+                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                    RowLayout {
+                                        anchors.fill: parent; anchors.margins: 18; spacing: 18
+                                        Rectangle {
+                                            Layout.preferredWidth: 54; Layout.preferredHeight: 54; radius: 18
+                                            color: Qt.rgba((npcMasterCard.active ? green : muted).r, (npcMasterCard.active ? green : muted).g, (npcMasterCard.active ? green : muted).b, 0.18)
+                                            Text { anchors.centerIn: parent; text: npcMasterCard.active ? "♫" : "×"; color: npcMasterCard.active ? green : muted; font.pixelSize: 24; font.weight: Font.Bold }
+                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 5
+                                            Text { text: root.t("NPC 功能总开关"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 17; font.weight: Font.Bold }
+                                            Text { text: !backend.npcVoiceInstalled ? root.t("尚未安装") : npcMasterCard.active ? root.t("NPC 语气词与字幕已开启") : root.t("NPC 语气词与字幕已关闭"); color: npcMasterCard.active ? green : muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                            Text { text: backend.npcVoiceInstalled ? root.t("切换后重新启动游戏生效；语言、台词和细分设置会保留。") : root.t("请先安装 NPC 语音插件，再使用总开关。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
+                                        }
+                                        Rectangle {
+                                            id: npcMasterSwitch
+                                            property bool active: npcMasterCard.active
+                                            Layout.preferredWidth: 166; Layout.preferredHeight: 58; radius: 29
+                                            opacity: backend.npcVoiceInstalled ? 1 : 0.45
+                                            color: active ? green : track
+                                            border.color: active ? Qt.lighter(green, 1.08) : border
+                                            Behavior on color { ColorAnimation { duration: 180 } }
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                anchors.left: active ? parent.left : undefined
+                                                anchors.right: active ? undefined : parent.right
+                                                anchors.leftMargin: 24; anchors.rightMargin: 24
+                                                text: active ? root.t("开启") : root.t("关闭")
+                                                color: active ? "#102018" : root.fg
+                                                font.family: "Microsoft YaHei UI"; font.pixelSize: 13; font.weight: Font.Bold
+                                            }
+                                            Rectangle {
+                                                width: 46; height: 46; radius: 23
+                                                y: 6; x: npcMasterSwitch.active ? npcMasterSwitch.width - width - 6 : 6
+                                                color: darkMode ? "#FFF4C7" : "#FFFFFF"
+                                                border.color: Qt.rgba(0, 0, 0, 0.12)
+                                                Behavior on x { NumberAnimation { duration: 190; easing.type: Easing.OutCubic } }
+                                            }
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                enabled: backend.npcVoiceInstalled
+                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                                onClicked: backend.setNpcVoiceEnabled(!backend.npcVoiceEnabled)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true; Layout.preferredHeight: 104; radius: 16
+                                    color: darkMode ? "#0E0C08" : "#FBF3D9"; border.color: border
+                                    RowLayout {
+                                        anchors.fill: parent; anchors.margins: 16; spacing: 18
+                                        ColumnLayout {
+                                            Layout.fillWidth: true; spacing: 5
+                                            Text { text: root.t("当前状态"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
+                                            Text { Layout.fillWidth: true; text: backend.npcVoiceInstallStatus; color: backend.npcVoiceInstalled ? green : amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 14; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
+                                            Text { Layout.fillWidth: true; text: backend.gameFolder.length ? backend.gameFolder : root.t("尚未选择游戏目录"); color: muted; font.family: "Cascadia Mono"; font.pixelSize: 9; elide: Text.ElideMiddle }
+                                        }
+                                        AppButton { Layout.preferredWidth: 260; Layout.preferredHeight: 48; label: backend.npcVoiceInstalled ? root.t("更新 / 修复 NPC 语音") : root.t("一键安装 NPC 语音"); fillColor: accent; labelColor: "#10151A"; enabled: backend.gameFolder.length > 0; onClicked: backend.installNpcVoices() }
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true; Layout.preferredHeight: 124; radius: 16
+                                    color: darkMode ? "#18140C" : "#F7EDCD"; border.color: border
+                                    ColumnLayout {
+                                        anchors.fill: parent; anchors.margins: 16; spacing: 10
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: root.t("字幕与语音设置"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 15; font.weight: Font.DemiBold }
+                                            Item { Layout.fillWidth: true }
+                                            AppButton {
+                                                Layout.preferredWidth: 150; Layout.preferredHeight: 38
+                                                label: root.t("编辑字幕台词")
+                                                enabled: backend.gameFolder.length > 0
+                                                onClicked: {
+                                                    root.npcTextLanguage = backend.npcVoiceLanguage
+                                                    root.npcTextState = "ambient"
+                                                    root.reloadNpcTextEditor()
+                                                    npcTextEditorDialog.open()
+                                                }
+                                            }
+                                        }
+                                        RowLayout {
+                                            Layout.fillWidth: true; spacing: 8
+                                            Text { text: root.t("字幕语言"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 }
+                                            Repeater {
+                                                model: [{key:"zh",label:"中文"},{key:"ja",label:"日本語"},{key:"en",label:"English"}]
+                                                delegate: AppButton {
+                                                    required property var modelData
+                                                    Layout.preferredWidth: 126; Layout.preferredHeight: 38
+                                                    label: modelData.label
+                                                    fillColor: backend.npcVoiceLanguage === modelData.key ? cyan : panel
+                                                    labelColor: backend.npcVoiceLanguage === modelData.key ? "#10151A" : root.fg
+                                                    onClicked: backend.setNpcVoiceLanguage(modelData.key)
+                                                }
+                                            }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: root.t("语气词"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 }
+                                            Switch { id: npcAudioSwitch; checked: backend.npcVoiceAudioEnabled; palette.highlight: green; onClicked: backend.setNpcVoicePlayback(checked, npcSubtitleSwitch.checked) }
+                                            Text { text: root.t("字幕"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11 }
+                                            Switch { id: npcSubtitleSwitch; checked: backend.npcVoiceSubtitlesEnabled; palette.highlight: green; onClicked: backend.setNpcVoicePlayback(npcAudioSwitch.checked, checked) }
+                                        }
+                                    }
+                                }
+
+                                Item { Layout.fillHeight: true }
+                                RowLayout {
+                                    Layout.alignment: Qt.AlignHCenter; spacing: 10
+                                    AppButton { Layout.preferredWidth: 170; Layout.preferredHeight: 44; label: root.t("打开安装目录"); enabled: backend.gameFolder.length > 0; onClicked: backend.openVoicePackFolder() }
+                                }
+                            }
+                        }
+                    }
+
                     // Logs ------------------------------------------------------
                     AppCard {
                         color: panel
@@ -1548,10 +1733,10 @@ ApplicationWindow {
                             RowLayout { Layout.fillWidth: true; Text { text: root.t("最近 ") + backend.logs.length + root.t(" 条记录"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } Item { Layout.fillWidth: true } AppButton { label: root.t("清空日志"); onClicked: backend.clearLogs() } }
                             Rectangle {
                                 Layout.fillWidth: true; Layout.fillHeight: true; radius: 14
-                                color: darkMode ? "#090E18" : "#F2F5FA"; border.color: border
+                                color: darkMode ? "#0E0C08" : "#FBF3D9"; border.color: border
                                 ListView {
                                     id: logList; anchors.fill: parent; anchors.margins: 8; clip: true; model: backend.logs; spacing: 2
-                                    delegate: Rectangle { required property var modelData; required property int index; width: logList.width; height: 34; radius: 8; color: index % 2 ? "transparent" : (darkMode ? "#111A2A" : "#E8EEF7"); Text { anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 10; text: modelData; color: darkMode ? "#E9EEF8" : "#182033"; font.family: "Cascadia Mono"; font.pixelSize: 11; elide: Text.ElideRight } }
+                                    delegate: Rectangle { required property var modelData; required property int index; width: logList.width; height: 34; radius: 8; color: index % 2 ? "transparent" : (darkMode ? "#18140C" : "#EFE4C0"); Text { anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 10; text: modelData; color: root.fg; font.family: "Cascadia Mono"; font.pixelSize: 11; elide: Text.ElideRight } }
                                     ScrollBar.vertical: ScrollBar { contentItem: Rectangle { implicitWidth: 5; radius: 3; color: muted } background: Rectangle { color: "transparent" } }
                                     onCountChanged: positionViewAtEnd()
                                 }
@@ -1575,6 +1760,126 @@ ApplicationWindow {
     }
 
     Dialog {
+        id: npcTextEditorDialog
+        anchors.centerIn: parent
+        width: Math.min(940, root.width - 70)
+        height: Math.min(700, root.height - 54)
+        modal: true
+        closePolicy: Popup.CloseOnEscape
+        padding: 0
+        background: Rectangle { color: panel; border.color: border; border.width: 1; radius: 20 }
+        contentItem: ColumnLayout {
+            spacing: 0
+            Rectangle {
+                Layout.fillWidth: true; Layout.preferredHeight: 82; radius: 20
+                color: darkMode ? "#21190E" : "#F7EACA"
+                Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 20; color: parent.color }
+                Column {
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 24; spacing: 3
+                    Text { text: root.t("NPC 字幕台词"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 20; font.weight: Font.Bold }
+                    Text { text: root.t("声音固定为日文短语气词；这里仅编辑字幕文本。"); color: cyan; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
+                }
+                AppButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.rightMargin: 20; width: 96; height: 40; label: root.t("关闭"); onClicked: npcTextEditorDialog.close() }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                Layout.margins: 22; spacing: 12
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Text { text: root.t("字幕语言"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; Layout.preferredWidth: 70 }
+                    Repeater {
+                        model: [{key:"zh",label:"中文"},{key:"ja",label:"日本語"},{key:"en",label:"English"}]
+                        delegate: AppButton {
+                            required property var modelData
+                            Layout.preferredWidth: 120; Layout.preferredHeight: 38
+                            label: modelData.label
+                            fillColor: root.npcTextLanguage === modelData.key ? cyan : panel2
+                            labelColor: root.npcTextLanguage === modelData.key ? "#10151A" : root.fg
+                            onClicked: { root.npcTextLanguage = modelData.key; root.reloadNpcTextEditor() }
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Text { text: root.t("分类"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; Layout.preferredWidth: 52 }
+                    Repeater {
+                        model: [
+                            {key:"ambient",label:root.t("碎碎念")},
+                            {key:"phone",label:root.t("手机闲聊")},
+                            {key:"watching",label:root.t("观察")},
+                            {key:"alert",label:root.t("警觉")},
+                            {key:"found",label:root.t("发现")},
+                            {key:"failure",label:root.t("失败")},
+                            {key:"aftermath",label:root.t("互动")}
+                        ]
+                        delegate: AppButton {
+                            required property var modelData
+                            Layout.fillWidth: true; Layout.preferredHeight: 38
+                            label: modelData.label
+                            fillColor: root.npcTextState === modelData.key ? violet : panel2
+                            labelColor: root.npcTextState === modelData.key ? "#10151A" : root.fg
+                            onClicked: { root.npcTextState = modelData.key; root.reloadNpcTextEditor() }
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Text { text: root.t("角色"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; Layout.preferredWidth: 52 }
+                    Repeater {
+                        model: [
+                            {key:"young_female",label:root.t("年轻女性")},
+                            {key:"young_male",label:root.t("年轻男性")},
+                            {key:"older_female",label:root.t("年长女性")},
+                            {key:"older_male",label:root.t("年长男性")}
+                        ]
+                        delegate: AppButton {
+                            required property var modelData
+                            Layout.fillWidth: true; Layout.preferredHeight: 38
+                            label: modelData.label
+                            fillColor: root.npcTextProfile === modelData.key ? cyan : panel2
+                            labelColor: root.npcTextProfile === modelData.key ? "#10151A" : root.fg
+                            onClicked: { root.npcTextProfile = modelData.key; root.reloadNpcTextEditor() }
+                        }
+                    }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.npcTextState === "aftermath"
+                          ? root.t("互动分类：连续多行组成一个段落，空行分隔不同段落；每次触发会完整显示其中一段。")
+                          : root.t("每行一条台词；空行会忽略。保存后游戏可读取本地覆盖。")
+                    color: muted
+                    font.family: "Microsoft YaHei UI"
+                    font.pixelSize: 10
+                    wrapMode: Text.Wrap
+                }
+                ScrollView {
+                    Layout.fillWidth: true; Layout.fillHeight: true
+                    clip: true
+                    background: Rectangle { color: darkMode ? "#0E0C08" : "#FFF9E6"; border.color: border; radius: 14 }
+                    TextArea {
+                        id: npcTextArea
+                        padding: 16
+                        color: root.fg
+                        selectionColor: accent
+                        selectedTextColor: "#10151A"
+                        font.family: "Microsoft YaHei UI"
+                        font.pixelSize: 15
+                        wrapMode: TextEdit.Wrap
+                        background: null
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 10
+                    AppButton { Layout.preferredWidth: 150; label: root.t("恢复默认文案"); onClicked: { const restored = backend.resetNpcVoiceText(root.npcTextLanguage, root.npcTextState, root.npcTextProfile); if (restored.length) npcTextArea.text = restored } }
+                    Item { Layout.fillWidth: true }
+                    AppButton { Layout.preferredWidth: 180; label: root.t("保存文案"); fillColor: accent; labelColor: "#10151A"; onClicked: backend.saveNpcVoiceText(root.npcTextLanguage, root.npcTextState, root.npcTextProfile, npcTextArea.text) }
+                }
+            }
+        }
+    }
+
+    Dialog {
         id: guidePreviewDialog
         anchors.centerIn: parent
         width: Math.min(1120, root.width - 64)
@@ -1583,7 +1888,7 @@ ApplicationWindow {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         padding: 14
         background: Rectangle {
-            color: darkMode ? "#090E18" : "#F8FAFD"
+            color: darkMode ? "#0E0C08" : "#FFF9E6"
             border.color: accent; border.width: 1; radius: 20
         }
         contentItem: Item {
@@ -1627,7 +1932,7 @@ ApplicationWindow {
             spacing: 0
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredHeight: 86; radius: 20
-                color: darkMode ? "#171827" : "#F2EFFB"
+                color: darkMode ? "#21190E" : "#F7EACA"
                 Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 20; color: parent.color }
                 Column {
                     anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 24; spacing: 4
@@ -1730,6 +2035,206 @@ ApplicationWindow {
     }
 
     Dialog {
+        id: onboardingDialog
+        property int step: 0
+        function openFromStart() { step = 0; open() }
+        function finishGuide() { backend.completeOnboarding(); close() }
+        anchors.centerIn: parent
+        width: Math.min(900, root.width - 64)
+        height: Math.min(680, root.height - 50)
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: panel; border.color: border; border.width: 1; radius: 22 }
+        contentItem: ColumnLayout {
+            spacing: 0
+            Rectangle {
+                Layout.fillWidth: true; Layout.preferredHeight: 92; radius: 22
+                color: darkMode ? "#21190E" : "#F7EACA"
+                Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 22; color: parent.color }
+                Column {
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 26; spacing: 4
+                    Text { text: root.t("第一次使用 Manaka × DG-LAB？"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 21; font.weight: Font.Bold }
+                    Text { text: root.t("从游戏准备到安全连接，一步一步完成；所有步骤都可以跳过"); color: accent; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 }
+                }
+                Row {
+                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.rightMargin: 25; spacing: 6
+                    Repeater {
+                        model: 7
+                        Rectangle {
+                            required property int index
+                            width: onboardingDialog.step === index ? 28 : 9; height: 9; radius: 5
+                            color: onboardingDialog.step === index ? accent : border
+                            Behavior on width { NumberAnimation { duration: 170; easing.type: Easing.OutCubic } }
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+                    }
+                }
+            }
+
+            StackLayout {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                currentIndex: onboardingDialog.step
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 34; spacing: 18
+                        Text { Layout.fillWidth: true; text: root.t("先告诉我你的情况"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter }
+                        Text { Layout.fillWidth: true; text: root.t("向导不会替你下载游戏，也不会上传任何文件。你可以稍后从窗口顶部重新打开它。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter }
+                        RowLayout {
+                            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 16
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.fillHeight: true; radius: 18; color: panel2; border.color: border
+                                ColumnLayout { anchors.fill: parent; anchors.margins: 22; spacing: 10
+                                    Rectangle { width: 52; height: 52; radius: 26; color: Qt.rgba(green.r,green.g,green.b,0.16); Text { anchors.centerIn: parent; text: "✓"; color: green; font.pixelSize: 25; font.weight: Font.Bold } }
+                                    Text { text: root.t("我已经有游戏"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 17; font.weight: Font.Bold }
+                                    Text { Layout.fillWidth: true; text: root.t("从选择 SecretFlasherManaka 游戏根目录开始，然后安装连接所需的运行环境与插件。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; lineHeight: 1.35; wrapMode: Text.Wrap }
+                                    Item { Layout.fillHeight: true }
+                                    AppButton { Layout.fillWidth: true; Layout.preferredHeight: 48; label: root.t("从安装开始"); fillColor: green; labelColor: "#10151A"; onClicked: onboardingDialog.step = 2 }
+                                }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.fillHeight: true; radius: 18; color: panel2; border.color: border
+                                ColumnLayout { anchors.fill: parent; anchors.margins: 22; spacing: 10
+                                    Rectangle { width: 52; height: 52; radius: 26; color: Qt.rgba(accent.r,accent.g,accent.b,0.16); Text { anchors.centerIn: parent; text: "↗"; color: accent; font.pixelSize: 23; font.weight: Font.Bold } }
+                                    Text { text: root.t("我还没有游戏"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 17; font.weight: Font.Bold }
+                                    Text { Layout.fillWidth: true; text: root.t("先前往 DLsite 购买并下载正版游戏。准备完成后，再回来继续安装。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; lineHeight: 1.35; wrapMode: Text.Wrap }
+                                    Item { Layout.fillHeight: true }
+                                    AppButton { Layout.fillWidth: true; Layout.preferredHeight: 48; label: root.t("查看购买步骤"); fillColor: accent; labelColor: "#10151A"; onClicked: onboardingDialog.step = 1 }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 34; spacing: 16
+                        Text { text: root.t("1 · 获取正版游戏"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        Text { Layout.fillWidth: true; text: root.t("在 DLsite 的作品页面购买并下载游戏。下载结束后完整解压，记住能直接看到 SecretFlasherManaka.exe 的文件夹位置。"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; lineHeight: 1.45; wrapMode: Text.Wrap }
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 120; radius: 17; color: panel2; border.color: accent
+                            RowLayout { anchors.fill: parent; anchors.margins: 18; spacing: 16
+                                Rectangle { width: 52; height: 52; radius: 16; color: Qt.rgba(accent.r,accent.g,accent.b,0.16); Text { anchors.centerIn: parent; text: "DL"; color: accent; font.pixelSize: 16; font.weight: Font.Bold } }
+                                ColumnLayout { Layout.fillWidth: true; spacing: 4
+                                    Text { text: "Secret Flasher Manaka · RJ01389782"; color: root.fg; font.family: "Segoe UI"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                    Text { Layout.fillWidth: true; text: root.t("官方购买页将在浏览器中打开；购买、下载和账号登录均由 DLsite 处理。"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap }
+                                }
+                                AppButton { Layout.preferredWidth: 150; label: root.t("打开 DLsite"); fillColor: accent; labelColor: "#10151A"; onClicked: backend.openExternalUrl("https://www.dlsite.com/maniax/work/=/product_id/RJ01389782.html") }
+                            }
+                        }
+                        TutorialLine { numberText: "1"; title: root.t("购买并下载"); detail: root.t("从订单或下载页面取得游戏压缩包") }
+                        TutorialLine { numberText: "2"; title: root.t("完整解压"); detail: root.t("不要直接在压缩包或网盘预览里运行游戏") }
+                        TutorialLine { numberText: "3"; title: root.t("确认根目录"); detail: root.t("文件夹内应直接包含 SecretFlasherManaka.exe") }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 34; spacing: 15
+                        Text { text: root.t("2 · 选择游戏目录"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        Text { Layout.fillWidth: true; text: root.t("请选择能直接看到 SecretFlasherManaka.exe 的文件夹。不要选择 BepInEx、plugins 或游戏 Data 文件夹。"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; lineHeight: 1.4; wrapMode: Text.Wrap }
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 120; radius: 17; color: panel2; border.color: backend.gameFolder.length > 0 ? green : border
+                            ColumnLayout { anchors.fill: parent; anchors.margins: 16; spacing: 8
+                                Text { text: root.t("当前游戏目录"); color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 9 }
+                                Text { Layout.fillWidth: true; text: backend.gameFolder || root.t("尚未选择游戏目录"); color: root.fg; font.family: "Cascadia Mono"; font.pixelSize: 10; elide: Text.ElideMiddle }
+                                Text { Layout.fillWidth: true; text: backend.gameStatus; color: backend.gameFolder.length > 0 ? green : amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; wrapMode: Text.Wrap }
+                            }
+                        }
+                        AppButton { Layout.preferredWidth: 210; Layout.preferredHeight: 48; label: root.t("选择游戏根目录"); fillColor: accent; labelColor: "#10151A"; onClicked: folderDialog.open() }
+                        TutorialLine { numberText: "✓"; title: root.t("正确示例"); detail: "D:\\Games\\SecretFlasherManaka\\SecretFlasherManaka.exe" }
+                        TutorialLine { numberText: "×"; title: root.t("不要选择"); detail: "...\\BepInEx  /  ...\\BepInEx\\plugins  /  ...\\SecretFlasherManaka_Data" }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 34; spacing: 16
+                        Text { text: root.t("3 · 安装连接插件"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        Text { Layout.fillWidth: true; text: root.t("关闭游戏后点击安装。软件会为纯原版配置 BepInEx 6，并安装 Manaka DG-LAB 遥测插件；已有环境则会检查并修复。"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; lineHeight: 1.45; wrapMode: Text.Wrap }
+                        TutorialLine { numberText: "1"; title: root.t("完全退出游戏"); detail: root.t("不要停留在标题画面，确认游戏进程已经关闭") }
+                        TutorialLine { numberText: "2"; title: root.t("安装运行环境"); detail: root.t("自动配置 BepInEx 与本软件的遥测插件") }
+                        TutorialLine { numberText: "3"; title: root.t("首次启动游戏"); detail: root.t("进入存档后，控制中心会开始收到游戏数据") }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 58; radius: 14; color: panel2; border.color: border; Text { anchors.fill: parent; anchors.margins: 14; text: backend.gameStatus; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; verticalAlignment: Text.AlignVCenter; wrapMode: Text.Wrap } }
+                        AppButton { Layout.preferredWidth: 230; Layout.preferredHeight: 48; label: root.t("安装 / 修复运行环境"); fillColor: accent; labelColor: "#10151A"; onClicked: backend.installPlugin() }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 34; spacing: 15
+                        Text { text: root.t("4 · 连接 DG-LAB"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        Text { Layout.fillWidth: true; text: root.t("让手机和电脑连接同一个 Wi‑Fi。先在 DG-LAB App 连接蓝牙主机，再进入 SOCKET 控制扫描下方二维码。"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 12; lineHeight: 1.4; wrapMode: Text.Wrap }
+                        RowLayout {
+                            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 22
+                            Rectangle { Layout.preferredWidth: 220; Layout.preferredHeight: 220; radius: 18; color: "white"; Image { anchors.fill: parent; anchors.margins: 10; source: backend.qrSource; fillMode: Image.PreserveAspectFit; visible: source !== "" } Text { anchors.centerIn: parent; visible: backend.qrSource === ""; text: root.t("正在生成二维码…"); color: "#4B5565"; font.pixelSize: 11 } }
+                            ColumnLayout { Layout.fillWidth: true; spacing: 10
+                                TutorialLine { numberText: "1"; title: root.t("同一 Wi‑Fi"); detail: root.t("暂时关闭手机流量以及电脑 VPN 或代理") }
+                                TutorialLine { numberText: "2"; title: root.t("连接蓝牙主机"); detail: root.t("在 DG-LAB App 中先确认主机已经在线") }
+                                TutorialLine { numberText: "3"; title: root.t("扫描 SOCKET 二维码"); detail: root.t("连接成功后，顶部状态会变为“DG-LAB 已连接”") }
+                                AppButton { Layout.preferredWidth: 190; label: root.t("连接不上？"); onClicked: networkHelpDialog.open() }
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 30; spacing: 10
+                        Text { text: root.t("5 · 常用页面"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        TutorialLine { numberText: "◈"; title: root.t("实时仪表盘"); detail: root.t("查看游戏心率、场景、动作以及 A/B 通道实时输出") }
+                        TutorialLine { numberText: "⌁"; title: root.t("设备与游戏"); detail: root.t("选择游戏、安装插件、启动游戏并扫描设备二维码") }
+                        TutorialLine { numberText: "◫"; title: root.t("个性化范围"); detail: root.t("设置心率触发区间、日常强度范围和安全硬上限") }
+                        TutorialLine { numberText: "〰"; title: root.t("波形工作台"); detail: root.t("选择官方波形、编辑自定义波形，并给不同动作分配反馈") }
+                        TutorialLine { numberText: "◉"; title: root.t("A/B 波形监视"); detail: root.t("单独观察心率通道与动作通道当前正在播放的波形") }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 30; spacing: 12
+                        Text { text: root.t("6 · 管理与排查页面"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 22; font.weight: Font.Bold }
+                        TutorialLine { numberText: "✦"; title: root.t("存档工具"); detail: root.t("备份并修改当前存档的经验与游戏货币；按页面提示触发结算") }
+                        TutorialLine { numberText: "⬡"; title: root.t("Mod 管理器"); detail: root.t("扫描本地插件和任务，查看说明，并在下次启动前启用或停用") }
+                        TutorialLine { numberText: "✧"; title: root.t("创意工坊"); detail: root.t("前往原作者页面获取 Mod，或使用 user9527 汉化整合导入向导") }
+                        TutorialLine { numberText: "◎"; title: root.t("事件记录"); detail: root.t("连接或输出异常时，查看最近的游戏事件与安全归零记录") }
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 78; radius: 15
+                            color: Qt.rgba(green.r,green.g,green.b,darkMode?0.10:0.09); border.color: Qt.rgba(green.r,green.g,green.b,0.35)
+                            Text { anchors.fill: parent; anchors.margins: 15; text: root.t("准备完成！建议第一次把强度保持在“低”，确认设备和动作反馈都符合预期后再逐步调整。教程以后可从顶部“新手教程”重新打开。"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; lineHeight: 1.35; wrapMode: Text.Wrap; verticalAlignment: Text.AlignVCenter }
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: border }
+            RowLayout {
+                Layout.fillWidth: true; Layout.preferredHeight: 78; Layout.leftMargin: 22; Layout.rightMargin: 22; spacing: 10
+                AppButton { visible: onboardingDialog.step > 0; label: root.t("上一步"); onClicked: onboardingDialog.step = Math.max(0, onboardingDialog.step - 1) }
+                AppButton { label: root.t("跳过教程"); labelColor: muted; onClicked: onboardingDialog.finishGuide() }
+                Item { Layout.fillWidth: true }
+                Text { visible: onboardingDialog.step > 0; text: (onboardingDialog.step + 1) + " / 7"; color: muted; font.family: "Cascadia Mono"; font.pixelSize: 10 }
+                AppButton {
+                    visible: onboardingDialog.step > 0
+                    Layout.preferredWidth: 150
+                    label: onboardingDialog.step === 6 ? root.t("完成教程") : root.t("下一步")
+                    fillColor: accent; labelColor: "#10151A"
+                    onClicked: {
+                        if (onboardingDialog.step === 6) onboardingDialog.finishGuide()
+                        else onboardingDialog.step += 1
+                    }
+                }
+            }
+        }
+    }
+
+    Dialog {
         id: progressConfirm; anchors.centerIn: parent; modal: true; title: root.t("确认修改当前存档"); standardButtons: Dialog.Yes | Dialog.No
         contentItem: Text { text: backend.language === "en" ? "Currency will be set to " + progressPage.draftRp + " and EXP to " + progressPage.draftExp + ".\nThe original save is backed up before the game save flow runs.\n\nConfirm that the character is outdoors. After editing EXP, complete any mission and return home to trigger settlement before the level updates." : "将把游戏货币修改为 " + progressPage.draftRp + "，经验值修改为 " + progressPage.draftExp + "。\n软件会先创建备份，再调用游戏自己的保存流程。\n\n请确认角色当前位于室外（非室内）。经验写入后，需要完成任意任务并回家触发结算，等级才会刷新。"; color: root.fg; font.family: "Microsoft YaHei UI"; padding: 18; wrapMode: Text.Wrap }
         background: Rectangle { color: panel; border.color: border; radius: 16 }
@@ -1804,7 +2309,7 @@ ApplicationWindow {
             spacing: 0
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredHeight: 82
-                color: darkMode ? "#171322" : "#FFF2F6"
+                color: darkMode ? "#22170E" : "#FFF3DA"
                 radius: 22
                 Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 22; color: parent.color }
                 Column { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.leftMargin: 24; spacing: 4; Text { text: root.t("使用协议与风险知情确认"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 20; font.weight: Font.Bold } Text { text: root.t("请完整阅读；不同意不会启动任何设备连接服务"); color: amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } }
@@ -1818,12 +2323,16 @@ ApplicationWindow {
             Rectangle { Layout.fillWidth: true; height: 1; color: border }
             RowLayout {
                 Layout.fillWidth: true; Layout.preferredHeight: 76; Layout.leftMargin: 18; Layout.rightMargin: 18; spacing: 12
-                AppButton { Layout.preferredWidth: 170; label: root.t("不同意并退出"); fillColor: darkMode ? "#241822" : "#F4E3E8"; labelColor: red; onClicked: backend.declineAgreement() }
+                AppButton { Layout.preferredWidth: 170; label: root.t("不同意并退出"); fillColor: darkMode ? "#24140F" : "#F4E3D2"; labelColor: red; onClicked: backend.declineAgreement() }
                 Item { Layout.fillWidth: true }
-                AppButton { Layout.preferredWidth: 210; label: root.t("我已阅读并同意"); fillColor: accent; labelColor: "#10151C"; onClicked: { backend.acceptAgreement(); agreementDialog.close() } }
+                AppButton { Layout.preferredWidth: 210; label: root.t("我已阅读并同意"); fillColor: accent; labelColor: "#10151C"; onClicked: { backend.acceptAgreement(); agreementDialog.close(); if (!backend.onboardingCompleted) Qt.callLater(function() { onboardingDialog.openFromStart() }) } }
             }
         }
     }
-    Component.onCompleted: { backend.setActivePage(pageIndex); if (!backend.agreementAccepted) agreementDialog.open() }
+    Component.onCompleted: {
+        backend.setActivePage(pageIndex)
+        if (!backend.agreementAccepted) agreementDialog.open()
+        else if (!backend.onboardingCompleted) onboardingDialog.openFromStart()
+    }
 
 }

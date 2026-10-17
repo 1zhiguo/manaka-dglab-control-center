@@ -42,6 +42,20 @@ class RuntimeTranslationTests(unittest.TestCase):
             with self.subTest(source=source):
                 self.assertEqual(translate(source, "en"), english)
 
+    def test_first_run_guide_is_bilingual(self) -> None:
+        expected = {
+            "新手教程": "Quick Start",
+            "我已经有游戏": "I already have the game",
+            "我还没有游戏": "I don't have the game yet",
+            "打开 DLsite": "Open DLsite",
+            "跳过教程": "Skip Guide",
+            "完成教程": "Finish Guide",
+        }
+
+        for source, english in expected.items():
+            with self.subTest(source=source):
+                self.assertEqual(translate(source, "en"), english)
+
     def test_action_mapping_and_wave_editor_are_bilingual(self) -> None:
         expected = {
             "官方波形": "Official",
@@ -57,6 +71,20 @@ class RuntimeTranslationTests(unittest.TestCase):
             "A 通道 · 心率": "Channel A · Heart Rate",
             "B 通道 · 动作": "Channel B · Actions",
             "无输出": "No output",
+        }
+
+        for source, english in expected.items():
+            with self.subTest(source=source):
+                self.assertEqual(translate(source, "en"), english)
+
+    def test_npc_voice_installer_and_text_editor_are_bilingual(self) -> None:
+        expected = {
+            "NPC 语气与字幕": "NPC Reactions & Subtitles",
+            "字幕与语音设置": "Subtitle & Audio Settings",
+            "语气词": "Reactions",
+            "碎碎念": "Muttering",
+            "编辑字幕台词": "Edit Subtitle Lines",
+            "一键安装 NPC 语音": "Install NPC Voices",
         }
 
         for source, english in expected.items():

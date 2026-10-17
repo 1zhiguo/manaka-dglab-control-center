@@ -15,6 +15,13 @@ $appIconIco = Join-Path $root 'python\qml_dashboard_prototype\assets\app_icon.ic
 $plugin = Join-Path $root 'manaka_telemetry\bin\ManakaDGLabTelemetry.dll'
 $bepinexPayload = Join-Path $root 'installer_payload\bepinex_v113'
 $guideAssets = Join-Path $root 'python\assets\dglab_guide'
+$npcVoiceCore = Join-Path $root 'manaka_npc_voices\bin\ManakaNpcVoices.dll'
+$npcVoiceBridge = Join-Path $root 'manaka_npc_voices\bin\ManakaNpcVoices.CustomMissions2.dll'
+$npcVoicePacks = Join-Path $root 'manaka_npc_voices\VoicePacks'
+$npcSubtitleLines = Join-Path $root 'manaka_npc_voices\SubtitleLines'
+$npcSubtitleProfiles = Join-Path $root 'manaka_npc_voices\SubtitleProfiles'
+$npcVoiceReadme = Join-Path $root 'manaka_npc_voices\VOICE_PACK_README.txt'
+$npcVoicePayload = Join-Path $root 'build\npc_voice_payload'
 $dropInTemplate = Join-Path $root 'dropin_mods'
 if (-not $DistPath) {
     $buildVersion = (Get-Content -LiteralPath $appVersionFile -Raw).Trim()
@@ -26,10 +33,53 @@ elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
 }
 $portable = Join-Path $DistPath 'ManakaQmlControlCenter'
 
-foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $dropInTemplate)) {
+foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $npcVoiceCore, $npcVoiceBridge, $npcVoicePacks, $npcSubtitleLines, $npcSubtitleProfiles, $npcVoiceReadme, $dropInTemplate)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing build input: $required"
     }
+}
+
+# Stage only Japanese runtime WAVs. Subtitle text is copied from the editable
+# source files below; generation manifests and API tooling stay developer-only.
+$buildRoot = [System.IO.Path]::GetFullPath((Join-Path $root 'build')).TrimEnd('\') + '\'
+$payloadRoot = [System.IO.Path]::GetFullPath($npcVoicePayload)
+if (-not ($payloadRoot + '\').StartsWith($buildRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to recreate NPC voice payload outside build directory: $payloadRoot"
+}
+if (Test-Path -LiteralPath $payloadRoot) {
+    Remove-Item -LiteralPath $payloadRoot -Recurse -Force
+}
+New-Item -ItemType Directory -Force -Path (Join-Path $payloadRoot 'bin') | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $payloadRoot 'VoicePacks') | Out-Null
+Copy-Item -LiteralPath $npcVoiceCore -Destination (Join-Path $payloadRoot 'bin\ManakaNpcVoices.dll') -Force
+Copy-Item -LiteralPath $npcVoiceBridge -Destination (Join-Path $payloadRoot 'bin\ManakaNpcVoices.CustomMissions2.dll') -Force
+Copy-Item -LiteralPath $npcVoiceReadme -Destination (Join-Path $payloadRoot 'VOICE_PACK_README.txt') -Force
+$japaneseVoiceRoot = Join-Path $npcVoicePacks 'ja'
+$runtimeVoiceFiles = @(Get-ChildItem -LiteralPath $japaneseVoiceRoot -Recurse -File -Filter '*.wav')
+if ($runtimeVoiceFiles.Count -ne 90) {
+    throw "Expected 90 Japanese NPC voice WAVs, found $($runtimeVoiceFiles.Count): $japaneseVoiceRoot"
+}
+foreach ($source in $runtimeVoiceFiles) {
+    $relative = $source.FullName.Substring($npcVoicePacks.Length).TrimStart('\')
+    $destination = Join-Path (Join-Path $payloadRoot 'VoicePacks') $relative
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+    Copy-Item -LiteralPath $source.FullName -Destination $destination -Force
+}
+foreach ($language in @('zh', 'ja', 'en')) {
+    foreach ($state in @('ambient', 'phone', 'watching', 'alert', 'found', 'failure', 'aftermath')) {
+        $subtitleSource = Join-Path $npcSubtitleLines "$language\$state.txt"
+        if (-not (Test-Path -LiteralPath $subtitleSource -PathType Leaf)) {
+            throw "Missing bundled NPC subtitle file: $subtitleSource"
+        }
+        $subtitleDestination = Join-Path $payloadRoot "VoicePacks\$language\$state\lines.txt"
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $subtitleDestination) | Out-Null
+        Copy-Item -LiteralPath $subtitleSource -Destination $subtitleDestination -Force
+    }
+    $profileSubtitleSource = Join-Path $npcSubtitleProfiles "$language.txt"
+    if (-not (Test-Path -LiteralPath $profileSubtitleSource -PathType Leaf)) {
+        throw "Missing bundled NPC profile subtitle file: $profileSubtitleSource"
+    }
+    Copy-Item -LiteralPath $profileSubtitleSource -Destination (Join-Path $payloadRoot "VoicePacks\$language\profiles.txt") -Force
 }
 
 & $python -c 'import PyInstaller, PySide6'
@@ -57,6 +107,7 @@ try {
         --add-data "$plugin;assets" `
         --add-data "$bepinexPayload;assets\bepinex_v113" `
         --add-data "$guideAssets;assets\dglab_guide" `
+        --add-data "$npcVoicePayload;assets\ManakaNpcVoices" `
         $entry
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller QML build failed.' }
 
@@ -114,9 +165,13 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'MOD_CONTENT_NOTICE_CN.md') -Destination (Join-Path $portable 'MOD_CONTENT_NOTICE_CN.md') -Force
 
     # Third-party plugins and missions are intentionally not redistributed.
-    # Users can select an extracted F95Zone pack or import individual files via
-    # the Drop-in inbox; the portable build contains only our telemetry plugin.
-    Copy-Item -LiteralPath $dropInTemplate -Destination $portable -Recurse -Force
+    # Never copy the whole local Drop-in tree: ignored repository/archive files
+    # may contain a maintainer's private test imports. Ship only the documented
+    # empty inbox; the importer creates repository, archive, and staging folders
+    # on first launch.
+    $portableDropIn = Join-Path $portable 'dropin_mods'
+    New-Item -ItemType Directory -Force -Path (Join-Path $portableDropIn 'incoming') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $dropInTemplate 'README.txt') -Destination (Join-Path $portableDropIn 'README.txt') -Force
 
     $smokeProcess = Start-Process -FilePath (Join-Path $portable 'ManakaQmlControlCenter.exe') `
         -ArgumentList '--demo', '--smoke-test' `

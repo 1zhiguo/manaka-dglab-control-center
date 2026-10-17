@@ -1,0 +1,135 @@
+[young_female.ambient]
+Seriously, why is today so busy...?
+Why is everyone around here acting so strange?
+
+[young_female.phone]
+They are chasing the deadline again. So annoying.
+This message is completely ridiculous.
+
+[young_female.watching]
+Wait, what is that person doing?
+No way... did I just see something really weird?
+
+[young_female.alert]
+Wait, what was that? That is seriously weird!
+No way... is she really doing that here?
+Hey! What exactly were you doing just now?
+
+[young_female.found]
+That is disgusting! I saw everything!
+Are you out of your mind? You did that here?
+Stop pretending. You are revolting.
+
+[young_female.failure]
+Got you. Stay away from me, you creep!
+I cannot believe you actually did that.
+Do not try to talk your way out of this, pervert!
+
+[young_female.aftermath]
+Do not touch me. You make me sick.
+You did all that and still pretend you are innocent?
+
+What were you even thinking? That was disgusting.
+I am not letting you off easily this time.
+
+[young_male.ambient]
+It is pretty lively today...
+Maybe something interesting will happen later.
+
+[young_male.phone]
+This actually looks pretty interesting.
+Maybe another notification will show up if I keep scrolling.
+
+[young_male.watching]
+Huh? Something interesting is happening over there.
+Wait, what is she doing?
+
+[young_male.alert]
+I did not imagine that just now, did I?
+Interesting. She is really going through with it.
+Wait, let me get a better look.
+
+[young_male.found]
+Ha, so you really were doing it!
+I saw you. Now this is getting interesting.
+Do not run yet. I have a few ideas.
+
+[young_male.failure]
+Finally caught you. I have been looking forward to this.
+You were so bold before, so do not get shy now.
+Now I get to decide how we have fun.
+
+[young_male.aftermath]
+Do not rush. I still have plenty of interesting ideas.
+Since I caught you, you are staying until the end.
+
+That bold look from earlier was pretty good.
+Let me see how far you can really go.
+
+[older_male.ambient]
+Heh, perhaps something pleasant will happen today...
+I may be old, but my eyes still work just fine.
+
+[older_male.phone]
+Young people certainly know all kinds of games these days.
+Heh, this deserves a closer look.
+
+[older_male.watching]
+Oh? Something rather special is happening over there.
+Heh, these old eyes are not mistaken.
+
+[older_male.alert]
+Well, well... did I just catch a glimpse of something?
+Heh, do not hide. Let me have a better look.
+What an unexpectedly lovely view.
+
+[older_male.found]
+Heh, I knew I would find you.
+No need to cover up now. I have already seen it.
+Quite daring, are you? How exciting.
+
+[older_male.failure]
+At last, you have fallen into my hands. Heh heh.
+After showing off so boldly, I cannot simply let you go.
+Do not be afraid. This old man will take good care of you.
+
+[older_male.aftermath]
+Heh, come closer and let me have a proper look.
+I do not meet such a daring young woman every day.
+
+No need to hurry. This old man has plenty of time.
+I will not be forgetting what I saw earlier.
+
+[older_female.ambient]
+Sigh... everyone is always in such a hurry these days.
+I have been working all day and now my back aches.
+
+[older_female.phone]
+Sigh... another pile of pointless messages.
+What do young people even talk about all day?
+
+[older_female.watching]
+Oh dear, what is that girl doing...?
+Honestly, she makes me worry just watching her.
+
+[older_female.alert]
+Goodness, what are you doing over there?
+Sigh... young people these days have no sense at all.
+Stop that now. Enough fooling around.
+
+[older_female.found]
+Sigh... I knew I saw something.
+Honestly, how could you do that in a place like this?
+Do not run. We need to have a proper talk.
+
+[older_female.failure]
+Sigh... what was the point of causing such a scene?
+You really have no sense of restraint, do you?
+Calm down and think carefully about what you have done.
+
+[older_female.aftermath]
+Sigh... look at the mess you have made.
+It is far too late to regret it now.
+
+Why can you not show yourself a little respect?
+You need to learn a proper lesson this time.

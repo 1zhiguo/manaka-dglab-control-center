@@ -1,0 +1,26 @@
+Manaka NPC 语气与字幕 0.6.0 — 手动安装
+
+必需：
+1. Secret Flasher Manaka（正式支持 v1.1.1、v1.1.2、v1.1.3）
+2. BepInEx 6 IL2CPP（游戏目录中应存在 BepInEx\core\BepInEx.Core.dll）
+
+安装：
+1. 完全退出游戏。
+2. 将本 ZIP 内的 BepInEx 文件夹放进游戏根目录，也就是与游戏 EXE 同一层。
+3. Windows 询问时选择“合并文件夹 / 替换同名文件”。这只会更新本插件自己的文件。
+4. 启动游戏。设置文件会创建在 BepInEx\config\local.manaka.npcvoices.cfg。
+
+可选功能：
+- NPCBehaviorModifier 不是前置。没有它，警觉、发现、失败等语气与字幕仍然工作；安装它后，失败后的 NPC 互动阶段会额外显示互动台词。
+- Custom Missions 2 不是前置。只有想在 CM2 手机中调整设置时，才把 Optional-CustomMissions2 目录里的 BepInEx 文件夹也合并到游戏根目录。
+
+自定义字幕：
+- 推荐使用 Manaka × DG-LAB Control Center 的“编辑字幕台词”。
+- 自定义内容保存在 BepInEx\config\ManakaNpcVoices\lines，不会被更新/修复覆盖。
+
+卸载：
+- 删除 BepInEx\plugins\ManakaNpcVoices。
+- 如果也想清除个人设置，再删除 BepInEx\config\local.manaka.npcvoices.cfg 与 BepInEx\config\ManakaNpcVoices。
+
+本插件运行时不联网；语气词固定读取本地日文 WAV，字幕可选中文、日文或英文。
+控制中心会为 v1.1.1、v1.1.2、v1.1.3 准备对应的 BepInEx Interop。其他游戏版本不会被阻止，但插件字段或事件可能不同，出现无数据或加载失败时请保留 BepInEx 日志。

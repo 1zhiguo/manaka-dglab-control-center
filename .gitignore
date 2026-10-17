@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 *.pdb
 manaka_telemetry/bin/compiler.rsp
+manaka_npc_voices/bin/*.rsp
 *.log
 .venv/
 node_modules/
@@ -13,8 +14,10 @@ node_modules/
 /SecretFlasherManaka/
 dropin_mods/incoming/*
 dropin_mods/repository/*
+dropin_mods/archive/*
 !dropin_mods/incoming/.gitkeep
 !dropin_mods/repository/.gitkeep
+!dropin_mods/archive/.gitkeep
 *.user.json
 *.local.json
 .DS_Store

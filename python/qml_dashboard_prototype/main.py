@@ -27,6 +27,7 @@ PAGE_SCREENSHOT_NAMES = (
     "save-tools",
     "mods",
     "workshop",
+    "voice-studio",
     "event-log",
 )
 
