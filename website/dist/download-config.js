@@ -5,5 +5,5 @@ window.MANAKA_DOWNLOADS = Object.freeze({
   baiduUrl: "https://pan.baidu.com/s/1Nx0EADe-FKhaHQ2eXaEyMw?pwd=wnm3",
   baiduCode: "wnm3",
   cosUrl: "https://manaka-dglab-downloads-1504229034.cos.ap-shanghai.myqcloud.com/releases/v1.1.0/ManakaQmlControlCenter-v1.1.0-win64.zip",
-  githubUrl: ""
+  githubUrl: "https://github.com/1zhiguo/manaka-dglab-control-center/releases/download/v1.1.0/ManakaQmlControlCenter-v1.1.0-win64.zip"
 });
