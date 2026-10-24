@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import sys
+import os
 import subprocess
 import ctypes
 from pathlib import Path
 
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
 from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl
-from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtGui import QGuiApplication, QIcon, QFont
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuick import QQuickItem  # noqa: F401 - registers QQuickItem converters
 
 PYTHON_ROOT = Path(__file__).resolve().parent.parent
 if str(PYTHON_ROOT) not in sys.path:
@@ -23,12 +27,13 @@ PAGE_SCREENSHOT_NAMES = (
     "connection",
     "personalization",
     "waveforms",
-    "channels",
+    "opossum",
     "save-tools",
     "mods",
     "workshop",
     "voice-studio",
     "event-log",
+    "settings",
 )
 
 
@@ -64,6 +69,7 @@ def main() -> int:
     app = QGuiApplication(sys.argv)
     app.setApplicationDisplayName("Manaka × DG-LAB Control Center")
     app.setOrganizationName("ManakaDGLab")
+    app.setFont(QFont("Microsoft YaHei UI", 10))
 
     lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation)) / "manaka-dglab-control-center.lock"
     instance_lock = QLockFile(str(lock_path))
@@ -112,11 +118,30 @@ def main() -> int:
     if capture_file is not None:
         capture_file.parent.mkdir(parents=True, exist_ok=True)
 
-        def save_screenshot() -> None:
-            window.screen().grabWindow(int(window.winId())).save(str(capture_file))
-            app.quit()
+        def grab_screenshot() -> None:
+            # Capture the QML content item directly. A desktop-level grab can
+            # include another window when the app is occluded.
+            content_item = window.property("contentItem")
+            grab_result = content_item.grabToImage()
 
-        QTimer.singleShot(900, save_screenshot)
+            def save_screenshot() -> None:
+                grab_result.saveToFile(str(capture_file))
+                app.quit()
+
+            grab_result.ready.connect(save_screenshot)
+
+        def prepare_screenshot() -> None:
+            # Bring the QML window to the foreground before using the Windows
+            # screen grabber; otherwise another app can be captured over it.
+            window.show()
+            window.raise_()
+            window.requestActivate()
+            QTimer.singleShot(250, grab_screenshot)
+
+        # The dashboard and connection pages need a little longer to finish
+        # their first render on Windows. Capturing too early can occasionally
+        # return the window that was previously in the same screen region.
+        QTimer.singleShot(1800, prepare_screenshot)
     if "--smoke-test" in sys.argv:
         QTimer.singleShot(1500, app.quit)
     return app.exec()

@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $scriptDir
-$version = '0.6.0'
+$version = '0.6.1'
 if (-not $OutputDir) {
     $OutputDir = Join-Path $root 'release'
 } elseif (-not [System.IO.Path]::IsPathRooted($OutputDir)) {
@@ -32,8 +32,8 @@ New-Item -ItemType Directory -Force -Path $voiceStage | Out-Null
 
 Copy-Item -LiteralPath (Join-Path $scriptDir 'bin\ManakaNpcVoices.dll') -Destination $pluginStage -Force
 Copy-Item -LiteralPath (Join-Path $scriptDir 'VOICE_PACK_README.txt') -Destination (Join-Path $voiceStage 'README.txt') -Force
-Copy-Item -LiteralPath (Join-Path $scriptDir 'MANUAL_INSTALL_CN.txt') -Destination (Join-Path $stage '安装说明.txt') -Force
-Copy-Item -LiteralPath (Join-Path $scriptDir 'MANUAL_INSTALL_EN.txt') -Destination (Join-Path $stage 'README_EN.txt') -Force
+Copy-Item -LiteralPath (Join-Path $scriptDir 'MANUAL_INSTALL_CN.txt') -Destination (Join-Path $stage 'README_FIRST_CN.txt') -Force
+Copy-Item -LiteralPath (Join-Path $scriptDir 'MANUAL_INSTALL_EN.txt') -Destination (Join-Path $stage 'README_FIRST_EN.txt') -Force
 
 $sourceVoiceRoot = Join-Path $scriptDir 'VoicePacks'
 $japaneseWavs = @(Get-ChildItem -LiteralPath (Join-Path $sourceVoiceRoot 'ja') -Recurse -File -Filter '*.wav')
@@ -57,9 +57,13 @@ foreach ($language in @('zh', 'ja', 'en')) {
 
 $bridge = Join-Path $scriptDir 'bin\ManakaNpcVoices.CustomMissions2.dll'
 if (Test-Path -LiteralPath $bridge -PathType Leaf) {
-    $optionalPluginDir = Join-Path $stage 'Optional-CustomMissions2\BepInEx\plugins\ManakaNpcVoices'
+    # Keep the optional bridge as one loose DLL. A second nested BepInEx tree
+    # looked like an alternative installer and made it easy to install only
+    # the bridge while omitting the required core plugin and voice pack.
+    $optionalPluginDir = Join-Path $stage '_OPTIONAL_CM2_PHONE_PAGE'
     New-Item -ItemType Directory -Force -Path $optionalPluginDir | Out-Null
     Copy-Item -LiteralPath $bridge -Destination $optionalPluginDir -Force
+    Copy-Item -LiteralPath (Join-Path $scriptDir 'OPTIONAL_CM2_README.txt') -Destination (Join-Path $optionalPluginDir 'README.txt') -Force
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null

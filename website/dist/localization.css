@@ -1,0 +1,4 @@
+html[lang="ja"] .hero h1{font-size:clamp(24px,5vw,64px);line-height:1.25;letter-spacing:-.02em}
+html[lang="ja"] body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic","Meiryo",sans-serif}
+.header-tools select.language{color-scheme:dark}
+.header-tools select.language option{background:#111722;color:#f3f6fa}

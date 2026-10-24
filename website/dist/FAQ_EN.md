@@ -1,5 +1,13 @@
 # Manaka × DG-LAB — Frequently Asked Questions
 
+## How do I activate the v1.1.0 HUD and Opossum support?
+
+Close the game and old control center. Extract the full new package, use **Install / Repair Runtime** in Setup, and restart the game. Opossum requires V4 and the DG-LAB 4 App; V3 remains available for Coyote. Device auto-selection does not enable output or prove Bluetooth/accessory readiness.
+
+## Why does output resume after a brief game-data interruption?
+
+V4 keeps the user-enabled state at zero output during a brief telemetry/producer gap. Only newly received fresh game data resumes it. Bluetooth disconnects, output errors and manual stops still require manual enabling.
+
 ## Does the download include the game?
 
 No. The public project and release files do not include the game. Select your own legally obtained Secret Flasher Manaka v1.1.1, v1.1.2, or v1.1.3 folder.
