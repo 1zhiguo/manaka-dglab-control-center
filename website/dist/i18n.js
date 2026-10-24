@@ -31,7 +31,7 @@
       "voice.meta": "NPC Voice Mod v0.6.1 · 可通过控制中心安装，也支持手动安装",
       "voice.preview": "实机预览：显示 NPC 类型、距离与当前反应字幕",
       "downloads.title": "选择下载通道", "downloads.lead": "大陆用户优先使用百度网盘；腾讯 COS 提供高速直链，海外用户可使用 GitHub Release。",
-      "download.baidu.title": "百度网盘", "download.baidu.badge": "大陆推荐", "download.baidu.desc": "适合中国大陆用户。提取码：<strong data-baidu-code>firk</strong>，打开分享页后保存或下载完整压缩包。", "download.baidu.button": "打开百度网盘",
+      "download.baidu.title": "百度网盘", "download.baidu.badge": "大陆推荐", "download.baidu.desc": "适合中国大陆用户。提取码：<strong data-baidu-code>wnm3</strong>，打开分享页后保存或下载完整压缩包。", "download.baidu.button": "打开百度网盘",
       "download.cos.title": "大陆高速直链", "download.backup": "备用", "download.cos.desc": "腾讯云 COS 中国大陆节点，点击后直接下载，无需进入网盘或 GitHub 页面。", "download.cos.button": "从腾讯 COS 下载",
       "download.github.title": "海外镜像", "download.github.desc": "GitHub Release 官方发布文件，适合海外网络或 COS 通道临时不可用时使用。", "download.github.button": "从 GitHub Release 下载",
       "download.version": "版本", "screens.title": "程序界面", "screens.lead": "v1.1.0 控制中心实际界面预览。",
@@ -59,6 +59,7 @@
       "release.fixes.title": "连接与导入修复",
       "release.fixes.desc": "更清晰的蓝牙/配件提示，短暂遥测中断归零待机，修复 9527 重叠目录导入。",
       "release.upgrade": "升级提示：关闭游戏，在新版“设备与游戏”执行“安装 / 修复运行环境”，再重启游戏以加载新版 HUD 与遥测。",
+      "download.github.pending": "GitHub 版待发布，请先使用百度网盘或 COS。",
     },
     en: {
       "nav.dashboard": "Back to Dashboard",
@@ -91,7 +92,7 @@
       "voice.meta": "NPC Voice Mod v0.6.1 · install through Control Center or use the manual package",
       "voice.preview": "Gameplay preview: NPC profile, distance, and reaction subtitle",
       "downloads.title": "Choose a Download Mirror", "downloads.lead": "Use GitHub Release outside mainland China. Baidu Netdisk and Tencent COS are provided for mainland China.",
-      "download.baidu.title": "Baidu Netdisk", "download.baidu.badge": "Mainland China", "download.baidu.desc": "Recommended for mainland China. Extraction code: <strong data-baidu-code>firk</strong>. Open the share page and download the complete archive.", "download.baidu.button": "Open Baidu Netdisk",
+      "download.baidu.title": "Baidu Netdisk", "download.baidu.badge": "Mainland China", "download.baidu.desc": "Recommended for mainland China. Extraction code: <strong data-baidu-code>wnm3</strong>. Open the share page and download the complete archive.", "download.baidu.button": "Open Baidu Netdisk",
       "download.cos.title": "China Direct Link", "download.backup": "Backup", "download.cos.desc": "Direct download from a Tencent COS mainland China region without opening Baidu Netdisk or GitHub.", "download.cos.button": "Download from Tencent COS",
       "download.github.title": "Global Mirror", "download.github.desc": "Official GitHub Release asset, recommended for users outside mainland China.", "download.github.button": "Download from GitHub Release",
       "download.version": "Version", "screens.title": "Application Screens", "screens.lead": "Actual v1.1.0 control-center interface previews.",
@@ -119,6 +120,7 @@
       "release.fixes.title": "Connection and import fixes",
       "release.fixes.desc": "Clearer Bluetooth/accessory feedback, zero standby during brief telemetry gaps, and overlapping user9527 path protection.",
       "release.upgrade": "Upgrading: close the game, use Install / Repair Runtime in the new Setup page, then restart the game to load the new HUD and telemetry.",
+      "download.github.pending": "The GitHub release is pending. Please use Baidu or COS for v1.1.0.",
     },
     ja: {
       "nav.dashboard": "Dashboard に戻る",
@@ -151,7 +153,7 @@
       "voice.meta": "NPC Voice Mod v0.6.1 · コントロールセンターから導入、または手動インストール",
       "voice.preview": "実機プレビュー：NPC の種類、距離、現在の字幕を表示",
       "downloads.title": "ダウンロード先を選択", "downloads.lead": "中国本土以外では GitHub Release をご利用ください。中国本土向けに百度網盤と Tencent COS も用意しています。",
-      "download.baidu.title": "百度網盤", "download.baidu.badge": "中国本土向け", "download.baidu.desc": "中国本土向けのダウンロード先です。取得コード：<strong data-baidu-code>firk</strong>。共有ページを開き、アーカイブ全体をダウンロードしてください。", "download.baidu.button": "百度網盤を開く",
+      "download.baidu.title": "百度網盤", "download.baidu.badge": "中国本土向け", "download.baidu.desc": "中国本土向けのダウンロード先です。取得コード：<strong data-baidu-code>wnm3</strong>。共有ページを開き、アーカイブ全体をダウンロードしてください。", "download.baidu.button": "百度網盤を開く",
       "download.cos.title": "中国向け直接リンク", "download.backup": "代替", "download.cos.desc": "Tencent COS の中国本土ノードから直接ダウンロードできます。網盤アプリは不要です。", "download.cos.button": "Tencent COS からダウンロード",
       "download.github.title": "海外向けミラー", "download.github.desc": "GitHub Release の正式配布ファイルです。中国本土以外のネットワークにおすすめです。", "download.github.button": "GitHub Release からダウンロード",
       "download.version": "バージョン", "screens.title": "ソフトウェア画面", "screens.lead": "v1.1.0 コントロールセンターの実際の画面プレビューです。",
@@ -179,6 +181,7 @@
       "release.fixes.title": "接続とインポートの修正",
       "release.fixes.desc": "Bluetooth・アクセサリーの案内、短いデータ途絶時のゼロ待機、user9527 の重複パス保護を改善しました。",
       "release.upgrade": "更新時：ゲームを終了し、新版の接続画面でランタイムのインストール／修復を実行してから、ゲームを再起動してください。新しい HUD とテレメトリーが読み込まれます。",
+      "download.github.pending": "GitHub 版は準備中です。v1.1.0 は百度網盤または COS からダウンロードしてください。",
     }
   };
 

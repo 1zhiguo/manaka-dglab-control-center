@@ -35,6 +35,11 @@ for (const version of ['v1.0.5','v1.1.0','v1.1.1','v1.2.0']) {
   assert.equal(pendingNode.hidden,version!=='v1.0.5');
   assert.equal(versionNode.textContent,version);
 }
+for (const githubUrl of ['', 'https://example.com/release.zip']) {
+  const node={dataset:{channelPending:'github'},hidden:false};
+  vm.runInNewContext(read('site.js'),{document:{querySelectorAll:selector=>selector==='[data-channel-pending]'?[node]:[]},window:{MANAKA_DOWNLOADS:{githubUrl}}});
+  assert.equal(node.hidden,Boolean(githubUrl));
+}
 for(const file of ['QUICKSTART_JA.md','FAQ_JA.md']) {
   const text=read(file);assert.ok(text.length>1500,file);assert.match(text,/ゲーム本体.*含まれ/);assert.match(text,/v1\.1\.3/);assert.match(text,/一時停止/);
 }

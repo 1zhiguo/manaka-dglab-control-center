@@ -11,6 +11,9 @@
   document.querySelectorAll("[data-release-pending]").forEach(node => {
     node.hidden = versionAtLeast(config.version, node.dataset.releasePending);
   });
+  document.querySelectorAll("[data-channel-pending]").forEach(node => {
+    node.hidden = Boolean(config[node.dataset.channelPending + "Url"]);
+  });
   const links = document.querySelectorAll("[data-download]");
   for (const link of links) {
     const channel = link.dataset.download;
