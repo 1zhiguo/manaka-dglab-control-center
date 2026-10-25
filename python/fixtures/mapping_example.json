@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "mode": "independent",
+  "global_cap": 30,
+  "A": {
+    "minimum": 0,
+    "maximum": 20,
+    "hard_cap": 25,
+    "combine": "weighted",
+    "bindings": [
+      {"source": "vibrator", "weak": 30, "strong": 70, "wave": "official_breath"},
+      {"source": "piston", "weak": 30, "medium": 50, "strong": 70, "weight": 0.2, "wave": "official_tide", "phase_ms": 100}
+    ]
+  },
+  "B": {
+    "minimum": 0,
+    "maximum": 10,
+    "hard_cap": 15,
+    "bindings": [{"source": "heart", "low": 90, "high": 160}]
+  }
+}

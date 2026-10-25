@@ -8,6 +8,12 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = Join-Path $root 'python\.venv\Scripts\python.exe'
 $entry = Join-Path $root 'python\qml_dashboard_prototype\main.py'
 $qml = Join-Path $root 'python\qml_dashboard_prototype\ControlCenter.qml'
+$channelQml = Join-Path $root 'python\qml_dashboard_prototype\ChannelSettingsEditor.qml'
+$waveQml = Join-Path $root 'python\qml_dashboard_prototype\WaveWorkbench.qml'
+$gameplayQml = Join-Path $root 'python\qml_dashboard_prototype\GameplaySettings.qml'
+$previewQml = Join-Path $root 'python\qml_dashboard_prototype\WavePreview.qml'
+$qmlIcons = Join-Path $PSScriptRoot "python/qml_dashboard_prototype/icons"
+$qmlComponents = Join-Path $root 'python\qml_dashboard_prototype\components'
 $qmlAssets = Join-Path $root 'python\qml_dashboard_prototype\assets'
 $appVersionFile = Join-Path $root 'python\qml_dashboard_prototype\VERSION'
 $appIconPng = Join-Path $root 'python\qml_dashboard_prototype\assets\app_icon.png'
@@ -33,7 +39,7 @@ elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
 }
 $portable = Join-Path $DistPath 'ManakaQmlControlCenter'
 
-foreach ($required in @($python, $entry, $qml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $npcVoiceCore, $npcVoiceBridge, $npcVoicePacks, $npcSubtitleLines, $npcSubtitleProfiles, $npcVoiceReadme, $dropInTemplate)) {
+foreach ($required in @($python, $entry, $qml, $channelQml, $waveQml, $gameplayQml, $previewQml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $npcVoiceCore, $npcVoiceBridge, $npcVoicePacks, $npcSubtitleLines, $npcSubtitleProfiles, $npcVoiceReadme, $dropInTemplate)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing build input: $required"
     }
@@ -101,9 +107,15 @@ try {
         --specpath (Join-Path $root 'build') `
         --paths (Join-Path $root 'python') `
         --add-data "$qml;qml" `
+        --add-data "$channelQml;qml" `
+        --add-data "$waveQml;qml" `
+        --add-data "$gameplayQml;qml" `
+        --add-data "$previewQml;qml" `
         --add-data "$appIconPng;assets" `
         --add-data "$appVersionFile;assets" `
         --add-data "$qmlAssets;qml\assets" `
+        --add-data "$qmlComponents;qml\components" `
+        --add-data "$qmlIcons;qml\icons" `
         --add-data "$plugin;assets" `
         --add-data "$bepinexPayload;assets\bepinex_v113" `
         --add-data "$guideAssets;assets\dglab_guide" `
