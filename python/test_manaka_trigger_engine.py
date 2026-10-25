@@ -170,15 +170,15 @@ class TriggerEngineTests(unittest.TestCase):
 
     def test_hard_cap_cannot_exceed_device_range(self):
         engine = ManakaTriggerEngine(
-            max_strength=200,
+            max_strength=250,
             min_strength=10,
             output_max=150,
             trigger_bpm=100,
             full_bpm=150,
         )
         frame = engine.evaluate(packet(heartRate=180), dt=10.0)
-        self.assertEqual(engine.hard_cap, 100.0)
-        self.assertLessEqual(frame.strength_a, 100.0)
+        self.assertEqual(engine.hard_cap, 200.0)
+        self.assertLessEqual(frame.strength_a, 200.0)
 
 
 if __name__ == "__main__":

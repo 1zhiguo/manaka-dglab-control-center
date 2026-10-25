@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuickControls2 import QQuickStyle
 
 PYTHON_ROOT = Path(__file__).resolve().parent.parent
 if str(PYTHON_ROOT) not in sys.path:
@@ -29,6 +30,7 @@ PAGE_SCREENSHOT_NAMES = (
     "workshop",
     "voice-studio",
     "event-log",
+    "gameplay",
 )
 
 
@@ -43,6 +45,13 @@ def option_value(prefix: str) -> str:
 
 
 def main() -> int:
+    # Native Windows controls retain native sub-items when their indicator or
+    # background is replaced. The app draws its own theme, so select the
+    # customizable style before any QML is loaded (also in packaged runs).
+    QQuickStyle.setStyle("Basic")
+    connection_report = option_value("--connection-check=")
+    if connection_report:
+        return check_connection(Path(connection_report))
     capture_dir = screenshot_output_dir()
     capture_page_value = option_value("--capture-page=")
     capture_file_value = option_value("--capture-file=")
@@ -68,7 +77,7 @@ def main() -> int:
     lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation)) / "manaka-dglab-control-center.lock"
     instance_lock = QLockFile(str(lock_path))
     instance_lock.setStaleLockTime(3000)
-    if not instance_lock.tryLock(0):
+    if "--demo" not in sys.argv and not instance_lock.tryLock(0):
         if sys.platform == "win32":
             ctypes.windll.user32.MessageBoxW(
                 0,
@@ -92,7 +101,7 @@ def main() -> int:
         demo=demo,
         language=language_override if language_override in {"zh", "en"} else None,
     )
-    if capture_file is not None:
+    if capture_file is not None or (demo and "--smoke-test" in sys.argv):
         backend.agreement_accepted_value = True
     app.aboutToQuit.connect(backend.shutdown)
     backend.exitRequested.connect(app.quit)
@@ -118,8 +127,68 @@ def main() -> int:
 
         QTimer.singleShot(900, save_screenshot)
     if "--smoke-test" in sys.argv:
-        QTimer.singleShot(1500, app.quit)
+        def finish_smoke():
+            destination = option_value("--smoke-report=")
+            if destination:
+                import json
+                from PySide6.QtCore import QObject
+                window.setProperty("pageIndex",3)
+                checkbox = window.findChild(QObject,"waveFavorites")
+                types = []
+                def visit(item):
+                    types.append(item.metaObject().className())
+                    for child in item.childItems(): visit(child)
+                visit(window.contentItem())
+                indicator = checkbox.property("indicator")
+                Path(destination).write_text(json.dumps(dict(style=QQuickStyle.name(),
+                    native_items=[name for name in types if "NativeStyle" in name],
+                    checkbox_indicator=[indicator.width(),indicator.height()]),indent=2),encoding="utf-8")
+                window.grabWindow().save(str(Path(destination).with_suffix(".png")))
+            app.quit()
+        QTimer.singleShot(1500, finish_smoke)
     return app.exec()
+
+
+def check_connection(destination: Path) -> int:
+    """Packaged diagnostic: isolated config and local Socket, no game/device output."""
+    import base64
+    import json
+    import os
+    import tempfile
+    import time
+    from PySide6.QtCore import QCoreApplication
+    from PySide6.QtGui import QImage
+    from manaka_dglab_bridge import DGLabBridge
+    app = QCoreApplication([])
+    with tempfile.TemporaryDirectory() as directory:
+        os.environ["APPDATA"] = directory
+        backend = ControlCenterBackend(demo=True)
+        backend.poll_timer.stop()
+        backend.demo_mode = False
+        backend.auto_output_enabled = False
+        bridge = DGLabBridge(backend.messages)
+        backend.bridge = bridge
+        # Only our internal controller connects. Output remains disabled.
+        bridge.start()
+        deadline = time.monotonic() + 8
+        try:
+            while time.monotonic() < deadline:
+                backend._poll()
+                if backend.qrSource or backend.connection_error_value:
+                    break
+                app.processEvents()
+                time.sleep(.02)
+            png = base64.b64decode(backend.qrSource.split(",", 1)[1]) if backend.qrSource else b""
+            report = dict(server_ready=backend.serverReady, address_count=len(backend.lanAddresses),
+                qr_png_valid=not QImage.fromData(png).isNull(),
+                fallback_used=bridge.port != bridge.requested_port,
+                output_enabled=bridge.auto_enabled,
+                error=backend.connection_error_value)
+        finally:
+            backend.shutdown()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        return 0 if report["server_ready"] and report["qr_png_valid"] and not report["output_enabled"] else 1
 
 
 if __name__ == "__main__":

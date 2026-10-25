@@ -1,5 +1,14 @@
 # Manaka × DG-LAB Control Center
 
+## A/B 独立通道开发分支
+
+本地开发版提供 A/B 独立强度、自由检测绑定和后台实时处理。
+“个性化范围”只调整强度；“波形工作台”管理波形库和循环动态预览；“玩法设置”先确认原版心率／动作或 A/B 独立玩法，再配置对应的动作、检测绑定和通道规则，可重新选择。
+每个通道同时只有一个波形，支持完整 V3 波形导入、循环或单次播放及优先级切换。
+A/B 各有硬上限，可选择独立、A→B 或 B→A 强度同步。每通道可绑定振动器或活塞机，以设备档位或游戏遥测控制强度，并独立设置波形条件；高潮事件可选且优先级最高。
+原版玩法保留原始强度与波形逻辑，单独保存配置，可与新版切换。参考波形按用户选定的「官方示例 - 呼吸」「默认 - 活塞机」「默认 - 高潮」移植完整帧。
+使用与验收见 [波形工作台说明](docs/WAVE_WORKBENCH.md)；此前阶段见 [通道重构说明](docs/CHANNEL_REWORK.md)。
+
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-58a6ff)](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest)
 [![Latest release](https://img.shields.io/github/v/release/1zhiguo/manaka-dglab-control-center?display_name=tag)](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest)
 [![Non-commercial](https://img.shields.io/badge/license-non--commercial-ff65ac)](LICENSE.md)
@@ -59,6 +68,8 @@ dropin_mods/repository
 导入不会立刻改动游戏。只有启用某项内容时，管理器才会把插件同步至 `BepInEx/plugins`，把 V1/V2 任务同步到对应任务目录。停用的受管内容会放进游戏目录的 `ManakaModManager/disabled`。
 
 ## 从源码运行
+
+当前 A/B 改版的界面规范、验证矩阵及性能测量见 [UI 统一优化验收](docs/UI_COHESION_VALIDATION.md)。波形库仅提供自适应预览；顶部按钮直接切换日间／夜间主题，不打开设置窗口。预览自动运行，隐藏时暂停，不改变设备实际播放速度。
 
 需要 Python 3.11：
 

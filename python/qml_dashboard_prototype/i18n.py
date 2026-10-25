@@ -9,6 +9,18 @@ from __future__ import annotations
 
 
 EN: dict[str, str] = {
+    "玩法设置": "Gameplay",
+    "选择玩法并配置通道规则与检测绑定": "Choose gameplay, channel rules and detection bindings",
+    "设置 A/B 强度与原版范围": "Set A/B intensity and original ranges",
+    "A/B 独立强度与检测绑定": "Independent A/B intensity and source mapping",
+    "混合波形": "Mixed waveform",
+    "使用独立通道设置": "Use independent channel settings",
+    "请在 A/B 独立设置中调整通道范围": "Adjust channel ranges in independent A/B settings",
+    "设置无效": "Invalid settings",
+    "未知波形": "Unknown waveform",
+    "正在处理文件": "Processing files",
+    "请等待当前操作完成": "Wait for the current operation to finish",
+    "文件操作失败": "File operation failed",
     "实时仪表盘": "Dashboard",
     "设备与游戏": "Setup",
     "个性化范围": "Intensity Range",
@@ -22,6 +34,7 @@ EN: dict[str, str] = {
     "游戏状态、心率与设备输出总览": "Game status, heart rate and device output at a glance",
     "安装游戏插件并使用 DG-LAB 3.0 扫码": "Install the game plugin and connect with DG-LAB 3.0",
     "设置心率映射范围与安全硬上限": "Configure heart-rate mapping and the safety hard cap",
+    "统一设置 A/B 强度、检测绑定与原版范围": "Configure A/B intensity, detection sources and original ranges",
     "选择官方预设或创建自定义波形": "Preview official presets or create your own waveform",
     "查看两个通道当前选择的波形和实际强度": "Monitor the selected waveform and live strength on both channels",
     "安全修改当前存档的经验值与游戏货币": "Safely edit EXP and RP in the current save",
