@@ -270,7 +270,14 @@ class ChannelEngine:
             self.components[key] = tuple(contributions)
             winner = max(contributions, key=lambda item: item[0], default=(0, None))
             self.selected[key] = winner[1]
-            target = sum(item[0] for item in contributions) if config.combine == "weighted" else winner[0]
+            if config.combine == "weighted":
+                # Keep inactive/unavailable sources in the denominator: losing
+                # one source must not amplify the remaining sources. Preserve
+                # the persisted weights and the existing "weighted" key.
+                total_weight = sum(binding.weight for binding in config.bindings)
+                target = sum(item[0] for item in contributions) / total_weight if total_weight > 0 else 0
+            else:
+                target = winner[0]
             target = max(0, min(config.maximum, target))
             pattern = "action-ramp" if winner[1] and winner[1].source == "action" else "heartbeat" if winner[1] and winner[1].source == "heart" else "source"
             if winner[1] and winner[1].source == "heart":

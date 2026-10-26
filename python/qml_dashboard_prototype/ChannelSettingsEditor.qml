@@ -139,10 +139,12 @@ ColumnLayout {
                             Caption { text: { editor.revision; return editor.t("最终软件上限：", "Effective software cap: ")+channel.config.hard_cap+editor.t("\n设备上限仍然生效。", "\nDevice limits also apply.") } }
                         }
                     }
+                    Caption { visible:channel.config.maximum > channel.config.hard_cap; color:editor.accent; text:editor.t("日常最高强度高于通道硬上限，输出可能较早封顶；加权平均不会改变硬上限。", "Ordinary maximum exceeds the channel cap, so output may reach the cap early. Weighted averaging does not change the cap.") }
                     RowLayout {
                         Caption { text:editor.t("多个强度来源的计算方式", "Combine intensity sources") }
-                        Choice { Layout.maximumWidth:300; model:[editor.t("取最大值", "Maximum"),editor.t("加权相加", "Weighted sum")]; currentIndex:channel.config.combine === "weighted" ? 1 : 0; onActivated:editor.edit(channel.config,"combine",currentIndex ? "weighted" : "max") }
+                        Choice { Layout.maximumWidth:300; model:[editor.t("取最大值", "Maximum"),editor.t("归一化加权平均", "Weighted average")]; currentIndex:channel.config.combine === "weighted" ? 1 : 0; onActivated:editor.edit(channel.config,"combine",currentIndex ? "weighted" : "max") }
                     }
+                    Caption { visible:channel.config.combine === "weighted"; text:editor.t("按所有来源的权重总和归一化；未激活或无数据的来源按 0 参与，仍保留其权重。", "Divides by the total weight of all sources. Inactive or unavailable sources contribute zero but keep their weights.") }
                     Repeater {
                         model:channel.config.bindings.length
                         delegate: Section {

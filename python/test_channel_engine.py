@@ -42,7 +42,7 @@ class IndependentChannelTests(unittest.TestCase):
         self.assertEqual((frame.strength_a, frame.strength_b), (6, 20))
         shared = ChannelEngine(MappingSettings(A=base, B=base)).evaluate(packet(ecstasy=.3), .5)
         self.assertEqual((shared.strength_a, shared.strength_b), (6, 6))
-        for combine, expected in (("max", 10), ("weighted", 16)):
+        for combine, expected in (("max", 10), ("weighted", round(16 / 1.5, 3))):
             channel = replace(base, combine=combine, bindings=(replace(heart, weight=.5), action))
             frame = ChannelEngine(MappingSettings(A=channel)).evaluate(packet(ecstasy=.3), .5)
             self.assertEqual(frame.strength_a, expected)
