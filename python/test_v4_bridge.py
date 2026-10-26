@@ -90,12 +90,13 @@ class V4UnitTests(unittest.TestCase):
         bridge.device_type = "OVC_1"
         bridge.update_auto_outputs(200, ["0A0A0A0A64646464"], wave_key_a="ovc_beat",
                                    strength_b=199, frames_b=[], wave_key_b="idle", hard_cap=200)
-        args = bridge._loop.call_soon_threadsafe.call_args.args
-        self.assertEqual((args[1], args[4], args[-1]), (200, 190, 200))
+        bridge._loop.call_soon_threadsafe.call_args.args[0]()
+        self.assertEqual((bridge._desired_strength["A"], bridge._desired_strength["B"], bridge._hard_cap), (200, 190, 200))
         bridge.device_type = "COYOTE_030"
         bridge.update_auto_outputs(200, [], wave_key_a="idle", strength_b=200,
                                    frames_b=[], wave_key_b="idle", hard_cap=200)
-        self.assertEqual(bridge._loop.call_soon_threadsafe.call_args.args[-1], 100)
+        bridge._loop.call_soon_threadsafe.call_args.args[0]()
+        self.assertEqual(bridge._hard_cap, 200)
         bridge._loop = None
 
     def test_accessory_and_fault_semantics_are_device_specific(self):

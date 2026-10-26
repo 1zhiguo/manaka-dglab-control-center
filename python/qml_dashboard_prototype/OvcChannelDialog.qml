@@ -1,8 +1,9 @@
 import QtQuick
+import "components" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
+UI.Dialog {
     id: dialog
     objectName: "ovcChannelDialog"
     required property var theme
@@ -18,7 +19,7 @@ Dialog {
         RowLayout {
             Layout.fillWidth:true
             Label {Layout.fillWidth:true;text:page.tr("通道策略 · ","Channel Strategy · ")+page.channel;color:dialog.theme.fg;font.pixelSize:22;font.bold:true}
-            CheckBox {text:page.tr("启用此通道","Use Channel");checked:page.policy.enabled||false;onClicked:page.setPolicy("enabled",checked)}
+            UI.CheckBox {text:page.tr("启用此通道","Use Channel");checked:page.policy.enabled||false;onClicked:page.setPolicy("enabled",checked)}
             WorkbenchButton {theme:dialog.theme;text:page.tr("完成配置","Done");onClicked:dialog.close()}
         }
         RowLayout {
@@ -74,11 +75,11 @@ Dialog {
                 HoverHandler{id:waveHover}
                 MouseArea {anchors.fill:parent;cursorShape:Qt.PointingHandCursor;onClicked:page.chooseWave(tile.modelData.key);onDoubleClicked:page.editWave(tile.modelData.key)}
             }
-            ScrollBar.vertical:ScrollBar{}
+            ScrollBar.vertical:UI.ScrollBar{}
         }
         RowLayout {
             visible:page.policy.mode==="action";Layout.fillWidth:true;spacing:8
-            TextField {Layout.fillWidth:true;implicitHeight:42;placeholderText:page.tr("搜索动作","Search Actions");onTextChanged:page.query=text;color:dialog.theme.fg;leftPadding:14;background:Rectangle{radius:13;color:dialog.theme.panel2;border.color:dialog.theme.border}}
+            UI.TextField {Layout.fillWidth:true;implicitHeight:42;placeholderText:page.tr("搜索动作","Search Actions");onTextChanged:page.query=text;color:dialog.theme.fg;leftPadding:14;background:Rectangle{radius:13;color:dialog.theme.panel2;border.color:dialog.theme.border}}
             Repeater {model:[{key:"all",name:page.tr("全部","All")},{key:"rhythmic",name:page.tr("规律动作","Rhythmic")},{key:"static",name:page.tr("静态姿势","Static")},{key:"off",name:page.tr("普通交互","Interaction")}]
                 WorkbenchButton {required property var modelData;theme:dialog.theme;implicitWidth:100;text:modelData.name;highlighted:page.actionFilter===modelData.key;onClicked:page.actionFilter=modelData.key}
             }
@@ -107,7 +108,7 @@ Dialog {
                     WorkbenchSpinBox {theme:dialog.theme;Layout.preferredWidth:110;from:0;to:page.draft.hard_cap||0;stepSize:10;value:Math.min(actionRow.rule.strength,page.draft.hard_cap||0);enabled:actionRow.rule.mode==="wave"||actionRow.rule.mode==="random";onValueModified:page.setRule(actionRow.modelData.key,"strength",value)}
                 }
             }
-            ScrollBar.vertical:ScrollBar{}
+            ScrollBar.vertical:UI.ScrollBar{}
         }
         Label {Layout.fillWidth:true;text:page.tr("修改保留在草稿中，回到工作台点击「保存负鼠配置」后应用。","Changes stay in the draft. Save Opossum in the workbench to apply them.");wrapMode:Text.Wrap;color:dialog.theme.amber;font.pixelSize:11}
     }

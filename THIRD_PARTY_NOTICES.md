@@ -38,3 +38,32 @@ NPC 语气包中的日文短语音是在开发阶段通过 Fish Audio API 生成
 
 模型页面可按 `https://fish.audio/app/m/<模型 ID>` 访问。相关音频属于 AI 生成内容，
 不应被描述为真人配音；使用与再分发仍须遵守 Fish Audio 条款及对应模型权利人的要求。
+
+
+## SecretFlasherManaka2_X_DGLAB
+
+Dungeonlab .pulse period/duration lookup tables and file-format interpretation in `python/manaka_wave_library.py`, as well as actual vibrator/piston mode sampling, are adapted from https://github.com/kusadact/SecretFlasherManaka2_X_DGLAB. The independent channel architecture and mapping UI are maintained by this project. The adapted portions retain the following license:
+
+The three selected presets in `python/manaka_waveforms.py` are copied frame-for-frame from the local reference client's `DEFAULT_WAVEFORMS`: `官方示例 - 呼吸` (vibrator, 12 frames), `默认 - 活塞机` (4 frames), and `默认 - 高潮` (4 frames). The breathing example is attributed there to DG-LAB's `coyote/v3/example.md`; the piston and climax presets are labeled `Codex built-in` in that local client. They must not be represented as three official DG-LAB presets. Exact source data and its SHA-256 are recorded in `python/fixtures/donor_selected_waves.json`.
+
+# MIT License
+
+Copyright (c) 2026 kusadact
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

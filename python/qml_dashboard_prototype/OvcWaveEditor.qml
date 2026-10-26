@@ -1,8 +1,9 @@
 import QtQuick
+import "components" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
+UI.Dialog {
     id: editor
     objectName: "ovcWaveEditor"
     popupType: Popup.Item
@@ -33,7 +34,7 @@ Dialog {
             WorkbenchButton {theme:editor.theme; text: editor.tr("关闭", "Close"); onClicked: editor.close() }
         }
         Label { text: editor.tr("拖动 16 个控制点。只编辑振动包络，不改变郊狼波形或输出强度。", "Draw 16 control points. This edits a vibration envelope, not electrical frequency or strength."); wrapMode: Text.Wrap; Layout.fillWidth: true; color: editor.theme.muted }
-        TextField { id: name; Layout.fillWidth: true; placeholderText: editor.tr("留空自动命名：自定义振动 1、2、3…", "Leave blank for automatic numbering") }
+        UI.TextField { id: name; Layout.fillWidth: true; placeholderText: editor.tr("留空自动命名：自定义振动 1、2、3…", "Leave blank for automatic numbering") }
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true; radius: 14; color: editor.theme.bg; border.color: editor.theme.cyan
             Item { id: draw; anchors.fill: parent; anchors.margins: 18

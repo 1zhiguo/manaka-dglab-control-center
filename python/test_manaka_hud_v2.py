@@ -14,7 +14,7 @@ class HudV2Tests(unittest.TestCase):
         self.assertEqual(len(parts), 24)
         self.assertEqual(parts[0], "MANAKA_HUD_V2")
         self.assertEqual(parts[-1], "END")
-        self.assertEqual(parts[11:15], ["100.00", "0.00", "200.00", "0.00"])
+        self.assertEqual(parts[11:15], ["120.00", "0.00", "200.00", "0.00"])
         self.assertLess(len(data), 512)
 
     def test_content_mask_and_custom_placement(self):

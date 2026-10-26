@@ -10,7 +10,9 @@ Wire reference: dungeonlab-open/dglab-kit, README_CN.md (V4 protocol reference).
 from __future__ import annotations
 
 import asyncio
+import errno
 from copy import deepcopy
+from functools import lru_cache
 import hashlib
 import json
 import math
@@ -25,6 +27,8 @@ import websockets
 
 from . import audit
 from .dglab_bridge import DGLabBridge, clamp_strength
+from manaka_dglab_bridge import clamp_strength as clamp_channel_strength
+from manaka_wave_player import ChannelPlayer
 
 
 V4_PORT = 9998
@@ -40,7 +44,7 @@ ZERO_TIMEOUT = 1.5
 def protocol_strength(value: float, hard_cap: int, device_type: str) -> int:
     """OVC App tasks require ten-unit steps; never round intensity upward."""
     if device_type != "OVC_1":
-        return clamp_strength(value, hard_cap)
+        return clamp_channel_strength(value, hard_cap)
     try:
         requested, cap = float(value), float(hard_cap)
     except (TypeError, ValueError, OverflowError):
@@ -59,6 +63,12 @@ def validate_v4_frames(frames: Iterable[str]) -> tuple[str, ...]:
                 or any(char not in "0123456789ABCDEF" for char in value)):
             raise ValueError("V4 waveform frames must contain complete hexadecimal byte pairs")
     return result
+
+
+@lru_cache(maxsize=128)
+def validate_v4_stream(frames: tuple[str, ...]) -> None:
+    for offset in range(0, len(frames), 100):
+        validate_v4_frames(frames[offset:offset+100])
 
 
 def _merge(target: dict, delta: dict) -> None:
@@ -121,6 +131,48 @@ class DGLabV4Bridge(DGLabBridge):
         self._public_devices: list[dict] = []
         self._last_device_state_signature = None
         self._last_discovery_signature = None
+        self._channel_caps = {"A": 200, "B": 200}
+        self._desired_loop = {"A": True, "B": True}
+        self._desired_transition = {"A": "immediate", "B": "immediate"}
+        self._sent_strengths = {"A": 0, "B": 0}
+        self.playback_state = {key: ("", "stopped") for key in "AB"}
+
+    @property
+    def auto_enabled(self):
+        return self._auto_enabled
+
+    def channel_limit(self, channel):
+        device = self._selected_device()
+        maximum = device.get("slotState", {}).get("channel"+channel, {}).get("intensityMax", 200)
+        return clamp_channel_strength(maximum)
+
+    def channel_output(self, channel):
+        return self._sent_strengths[channel] if self.connected and self.auto_enabled else 0
+
+    def configure_limits(self, global_cap, cap_a, cap_b):
+        values = tuple(clamp_channel_strength(v) for v in (global_cap, cap_a, cap_b))
+        def apply():
+            self._hard_cap = values[0]
+            self._channel_caps = dict(A=min(values[0], values[1]), B=min(values[0], values[2]))
+        if self._loop is not None and self._loop.is_running():
+            self._loop.call_soon_threadsafe(apply)
+        else:
+            apply()
+
+    def zero_output(self):
+        # Keep the UI's enable intent; the transport must await a fresh frame
+        # and the existing acknowledged zero barrier before it can resume.
+        def clear_if_needed():
+            if self._auto_enabled or any(self._desired_strength.values()) or any(self._desired_frames.values()):
+                self._request_emergency_in_loop()
+        if self._loop is not None and self._loop.is_running():
+            self._loop.call_soon_threadsafe(clear_if_needed)
+
+    def _playback(self, channel, key, state):
+        value = (key.split("|", 1)[0], state)
+        if self.playback_state[channel] != value:
+            self.playback_state[channel] = value
+            self._emit("playback", channel=channel, wave=value[0], state=state)
 
     def _build_qr_url(self) -> str:
         address = f"ws://{self.lan_ip}:{self.port}/?tid={self.controller_id}"
@@ -184,6 +236,8 @@ class DGLabV4Bridge(DGLabBridge):
         self._desired_frames = {"A": (), "B": ()}
         self._desired_wave_key = {"A": "", "B": ""}
         self._desired_updated_at = 0.0
+        self._sent_strengths = {"A": 0, "B": 0}
+        self.playback_state = {key: ("", "stopped") for key in "AB"}
 
     def _route_zero_pending(self, client_id: str = "", slot_id: str = "") -> bool:
         route = (client_id or self.selected_client_id, slot_id or self.selected_slot_id)
@@ -378,6 +432,32 @@ class DGLabV4Bridge(DGLabBridge):
         if was_connected or old[1]:
             self._emit("disconnected", reason=reason, target_id=old[0], slot_id=old[1], device_type=old_type)
 
+    async def _listen(self) -> bool:
+        """Prefer the configured port, then let the OS choose an available one.
+
+        Windows can reserve 9998 even when no process is listening on it.
+        Both routes and the QR must use the actual bound socket's port.
+        """
+        self.server_ready = False
+        self.qr_url = ""
+        self._server = None
+        ports = (self.requested_port, 0) if self.requested_port else (0,)
+        for port in ports:
+            try:
+                self._server = await websockets.serve(
+                    self._server_handler, "0.0.0.0", port, ping_interval=20,
+                    ping_timeout=20, close_timeout=.5, max_size=1024 * 1024)
+            except OSError as error:
+                retryable = (error.errno in {errno.EADDRINUSE, errno.EACCES, 10013, 10048}
+                             or getattr(error, "winerror", None) in {10013, 10048})
+                if port and retryable:
+                    continue
+                self._emit("server_error", detail=f"无法启动 V4 监听服务（首选端口 {self.requested_port}，尝试端口 {port}）：{error}")
+                return False
+            self.port = int(self._server.sockets[0].getsockname()[1])
+            return True
+        return False
+
     async def _run(self) -> None:
         self._loop = asyncio.get_running_loop()
         self._stop_event = asyncio.Event()
@@ -395,15 +475,8 @@ class DGLabV4Bridge(DGLabBridge):
         self.selected_client_id = self.selected_slot_id = self.device_type = self.target_id = ""
         self.connected = self.app_connected = self._baseline_ready = False
         self.controller_id = str(uuid.uuid4())
-        try:
-            self._server = await websockets.serve(self._server_handler, "0.0.0.0", self.requested_port,
-                                                  ping_interval=20, ping_timeout=20, close_timeout=.5,
-                                                  max_size=1024 * 1024)
-        except OSError as error:
-            self._emit("server_error", detail=f"无法监听 V4 端口 {self.requested_port}：{error}")
+        if not await self._listen():
             return
-        if self._server.sockets:
-            self.port = int(self._server.sockets[0].getsockname()[1])
         self.server_ready = True
         self.qr_url = self._build_qr_url()
         self._emit("ready", qr_url=self.qr_url, lan_ip=self.lan_ip, port=self.port,
@@ -425,6 +498,7 @@ class DGLabV4Bridge(DGLabBridge):
             if zeros:
                 await asyncio.gather(*zeros, return_exceptions=True)
             self.server_ready = False
+            self.qr_url = ""
             self._mark_disconnected()
 
     async def _server_handler(self, websocket) -> None:
@@ -774,13 +848,32 @@ class DGLabV4Bridge(DGLabBridge):
 
     def update_auto_outputs(self, strength_a: float, frames_a: Iterable[str], *,
                             wave_key_a: str, strength_b: float, frames_b: Iterable[str],
-                            wave_key_b: str, hard_cap: int) -> None:
-        a, b = validate_v4_frames(frames_a), validate_v4_frames(frames_b)
+                            wave_key_b: str, hard_cap: int, received_at=None,
+                            cap_a=None, cap_b=None, loop_a=True, loop_b=True,
+                            transition_a="immediate", transition_b="immediate") -> None:
+        a, b = tuple(frames_a), tuple(frames_b)
+        for frames in (a, b):
+            validate_v4_stream(frames)
+        received_at = time.monotonic() if received_at is None else float(received_at)
+        if not math.isfinite(received_at) or not 0 <= time.monotonic()-received_at < .5:
+            return
         if self._loop is not None and self._loop.is_running():
-            cap = max(0, min(200 if self.device_type == "OVC_1" else 100, int(hard_cap)))
-            self._loop.call_soon_threadsafe(self._set_desired_outputs_in_loop,
-                protocol_strength(strength_a, cap, self.device_type), a, str(wave_key_a),
-                protocol_strength(strength_b, cap, self.device_type), b, str(wave_key_b), cap)
+            cap = clamp_channel_strength(hard_cap)
+            caps = {"A": min(cap, clamp_channel_strength(cap if cap_a is None else cap_a)),
+                    "B": min(cap, clamp_channel_strength(cap if cap_b is None else cap_b))}
+            generation = self._generation
+            def apply():
+                if generation != self._generation or not 0 <= time.monotonic()-received_at < .5:
+                    return
+                self._channel_caps = caps
+                self._desired_loop = dict(A=bool(loop_a), B=bool(loop_b))
+                self._desired_transition = dict(A=transition_a, B=transition_b)
+                self._set_desired_outputs_in_loop(
+                    protocol_strength(strength_a, caps["A"], self.device_type), a, str(wave_key_a),
+                    protocol_strength(strength_b, caps["B"], self.device_type), b, str(wave_key_b), cap)
+                # Queueing in the GUI/Socket loop cannot renew old telemetry.
+                self._desired_updated_at = min(self._desired_updated_at, received_at)
+            self._loop.call_soon_threadsafe(apply)
 
     def manual_test(self, strength: int, frames: Iterable[str], *, hard_cap: int, channel: str = "A") -> bool:
         # Device tests are deliberately unavailable in V4. The user exercises
@@ -791,13 +884,14 @@ class DGLabV4Bridge(DGLabBridge):
         device = self._selected_device()
         if channel_block_reason(device, channel):
             return 0
-        cap = self._hard_cap
+        cap = min(self._hard_cap, self._channel_caps[channel])
         maximum = device.get("slotState", {}).get("channel" + channel, {}).get("intensityMax")
         if type(maximum) in {int, float} and math.isfinite(maximum):
             cap = min(cap, max(0, int(maximum)))
         return protocol_strength(self._desired_strength[channel], cap, self.device_type)
 
     async def _output_loop(self) -> None:
+        players = {key: ChannelPlayer(lookahead=.1, settle=0) for key in "AB"}
         last_wave = {"A": "", "B": ""}
         cursor = {"A": 0, "B": 0}
         active = {"A": False, "B": False}
@@ -823,6 +917,8 @@ class DGLabV4Bridge(DGLabBridge):
                 cursor = {"A": 0, "B": 0}
                 last_send = {"A": 0.0, "B": 0.0}
                 active = {"A": False, "B": False}
+                players = {key: ChannelPlayer(lookahead=.1, settle=0) for key in "AB"}
+                self._sent_strengths = {"A": 0, "B": 0}
             if not self.connected or not self._auto_enabled or self._paused or self._global_emergency_stop.is_set():
                 continue
             generation = self._generation
@@ -836,6 +932,9 @@ class DGLabV4Bridge(DGLabBridge):
                     continue
                 try:
                     if strength <= 0 or not frames:
+                        players[channel].plan(now, "idle", (), enabled=False)
+                        self._sent_strengths[channel] = 0
+                        self._playback(channel, "", "stopped")
                         if active[channel]:
                             # End-of-event A must not block B's 100 ms stream
                             # while APP processes the acknowledged clear.
@@ -844,18 +943,33 @@ class DGLabV4Bridge(DGLabBridge):
                             last_wave[channel] = ""
                         continue
                     wave_key = self._desired_wave_key[channel]
-                    if wave_key != last_wave[channel]:
-                        last_wave[channel], cursor[channel] = wave_key, 0
-                        last_send[channel] = 0
                     if now - last_send[channel] < FRAME_MS / 1000:
+                        continue
+                    plan = players[channel].plan(now, wave_key, frames,
+                        loop=self._desired_loop[channel], transition=self._desired_transition[channel])
+                    if plan.clear:
+                        # V4 sends only one 100 ms frame with im=True, replacing
+                        # this channel's task. The selection baseline already
+                        # acknowledged zero; no second baseline is needed.
+                        plan = players[channel].plan(now, wave_key, frames,
+                            loop=self._desired_loop[channel], transition=self._desired_transition[channel])
+                    if plan.finished:
+                        if active[channel]:
+                            self._start_channel_zero(self.selected_client_id, self.selected_slot_id, c)
+                            active[channel] = False
+                        self._sent_strengths[channel] = 0
+                        self._playback(channel, wave_key, "completed")
+                        continue
+                    if not plan.frames:
                         continue
                     await self._rpc("device.op", {"s": self.selected_slot_id, "t": 4, "c": c, "p": 1,
                                                    "d": LEASE_MS, "v": strength, "im": True})
                     if generation != self._generation or not self._auto_enabled:
                         break
                     await self._rpc("device.op", {"s": self.selected_slot_id, "t": 0, "c": c, "p": 1,
-                                                   "d": FRAME_MS, "v": [frames[cursor[channel] % len(frames)]], "im": True})
-                    cursor[channel] = (cursor[channel] + 1) % len(frames)
+                                                   "d": FRAME_MS, "v": list(plan.frames), "im": True})
+                    self._sent_strengths[channel] = strength
+                    self._playback(channel, players[channel].identity[0], "playing")
                     last_send[channel], active[channel] = now, True
                 except (websockets.ConnectionClosed, ConnectionError, ValueError, TimeoutError):
                     self._request_emergency_in_loop()

@@ -19,13 +19,15 @@ import threading
 import tempfile
 import time
 import zipfile
+import uuid
+from dataclasses import replace
 from pathlib import Path
 
 import qrcode
 from PySide6.QtCore import QObject, Property, QLocale, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
-from manaka_dglab_bridge import DEFAULT_PORT, DGLabBridge
+from manaka_dglab_bridge import DEFAULT_PORT, DGLabBridge, discover_lan_ips
 from manaka_game_process import find_game_process
 from manaka_pulse_routing import sanitize_sources, route_frame, heart_rate_bands
 from manaka_devices import audit as device_audit
@@ -34,6 +36,10 @@ from manaka_dropin_importer import DropInModImporter
 from manaka_9527_importer import Pack9527Error, Pack9527Importer
 from manaka_mod_manager import ManakaModManager, ModManagerError
 from manaka_trigger_engine import ManakaTriggerEngine, RollingPeakLimiter, TriggerFrame, clamp
+from manaka_channel_engine import ChannelEngine, ChannelPeakLimiter, MappingSettings, migrate_settings
+from manaka_runtime import DisplayMailbox, RealtimeProcessor, RuntimeConfig, OutputSnapshot
+from manaka_wave_rules import WavePolicy, WaveRouter, migrate_policy
+from manaka_wave_library import parse_import, parse_text, frames_valid, preview_samples, MAX_BYTES
 from manaka_waveforms import (
     GAME_ACTION_TYPES,
     DEFAULT_WAVE_MAP,
@@ -412,34 +418,34 @@ def load_config() -> dict:
         return {}
 
 
+CONFIG_LOCK = threading.RLock()
+
+
 def update_config(values: dict) -> None:
-    current = load_config()
-    current.update(values)
-    target = config_path()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
+    update_device_config(values)
 
 
 def update_device_config(values: dict) -> None:
     """Atomically merge settings, preserving existing user settings."""
-    target = config_path()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        current = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
-        if not isinstance(current, dict):
-            raise ValueError("Config root must be an object")
-    except (ValueError, UnicodeError) as error:
-        raise OSError("配置文件无法读取，未覆盖原设置 / Invalid config; original preserved") from error
-    current.update(values)
-    pending = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent, prefix="device-settings-", suffix=".tmp", delete=False) as stream:
-            pending = Path(stream.name)
-            json.dump(current, stream, ensure_ascii=False, indent=2)
-        os.replace(pending, target)
-    finally:
-        if pending is not None and pending.exists():
-            pending.unlink()
+    with CONFIG_LOCK:
+        target = config_path()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            current = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+            if not isinstance(current, dict):
+                raise ValueError("Config root must be an object")
+        except (ValueError, UnicodeError) as error:
+            raise OSError("配置文件无法读取，未覆盖原设置 / Invalid config; original preserved") from error
+        current.update(values)
+        pending = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent, prefix="device-settings-", suffix=".tmp", delete=False) as stream:
+                pending = Path(stream.name)
+                json.dump(current, stream, ensure_ascii=False, indent=2)
+            os.replace(pending, target)
+        finally:
+            if pending is not None and pending.exists():
+                pending.unlink()
 
 
 def build_hud_packet(
@@ -461,8 +467,8 @@ def build_hud_packet(
         "1" if visible else "0",
         "1" if connected else "0",
         "1" if active else "0",
-        f"{clamp(float(strength_a), 0, 100):.2f}",
-        f"{clamp(float(strength_b), 0, 100):.2f}",
+        f"{clamp(float(strength_a), 0, 200):.2f}",
+        f"{clamp(float(strength_b), 0, 200):.2f}",
         f"{clamp(float(pulse_a), 0, 1):.3f}",
         f"{clamp(float(pulse_b), 0, 1):.3f}",
         "END",
@@ -900,18 +906,84 @@ def provision_bepinex_runtime(
     return action, backup_root
 
 
+def install_plugin_payload(folder: Path, source: Path, runtime_source: Path):
+    """File-only install worker. Never reads or mutates a Qt object."""
+    valid, detail = validate_game_folder(folder)
+    if not valid:
+        raise ValueError(detail)
+    valid, build = validate_supported_game_build(folder)
+    if not valid:
+        raise ValueError(build)
+    if not source.is_file():
+        raise FileNotFoundError("Telemetry plugin is missing")
+    fingerprint = game_build_fingerprint(folder)
+    previous = read_install_manifest(folder)
+    verified = uses_bundled_v113_interop(folder)
+    issue = bepinex_runtime_issue(folder, runtime_source, fingerprint=fingerprint, verified_build=verified, manifest=previous)
+    if issue is None and not (runtime_source/"BepInEx/core").is_dir():
+        # A development build may update only this project's DLL in an already
+        # valid installation, without bundling game-generated interop files.
+        action, backup = "unchanged", None
+    else:
+        action, backup = provision_bepinex_runtime(folder, runtime_source, verified_build=verified,
+            repair=issue not in (None, "missing-runtime", "interop-pending"))
+    target = folder / "BepInEx/plugins/ManakaDGLabTelemetry" / source.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
+    owned = action == "installed" or bool(previous.get("runtimeInstalledByApp", False))
+    manifest = dict(schema=2, appVersion=APP_VERSION, gameBuild=build, gameFingerprint=fingerprint,
+        bepInExVersion="6.0.0-be.735+5fef357", bepInExProfile="existing-runtime" if action == "unchanged" else "bundled-be.735",
+        interopMode="bundled-v113" if verified else "generate-on-next-launch" if action in {"installed","repaired"}
+            else previous.get("interopMode", "external-current-build"),
+        runtimeAction=action, repairReason=issue or "", runtimeBackup=str(backup) if backup else "",
+        telemetryVersion="0.5.0-channel-telemetry", runtimeInstalledByApp=owned, pluginSha256=sha256_file(target),
+        ownedRootItems=[".doorstop_version","doorstop_config.ini","winhttp.dll","dotnet","BepInEx"] if owned
+            else ["BepInEx/plugins/ManakaDGLabTelemetry/ManakaDGLabTelemetry.dll"])
+    (folder/".manaka-dglab-install.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
+    return dict(action=action, backup=str(backup) if backup else "", build=build)
+
+
+def inspect_game_files(folder: Path):
+    valid, detail = validate_game_folder(folder)
+    if not valid:
+        return valid, detail
+    valid, build = validate_supported_game_build(folder)
+    if not valid:
+        return valid, build
+    target = folder/"BepInEx/plugins/ManakaDGLabTelemetry/ManakaDGLabTelemetry.dll"
+    has_runtime = (folder/"BepInEx/core/BepInEx.Core.dll").is_file()
+    issue = bepinex_runtime_issue(folder,bundled_bepinex_path(),fingerprint=game_build_fingerprint(folder),
+        verified_build=uses_bundled_v113_interop(folder),manifest=read_install_manifest(folder)) if has_runtime else None
+    if issue == "interop-pending":
+        detail = "BepInEx 已安排按当前版本重建 Interop；请启动游戏完成首次生成"
+    elif issue:
+        detail = "检测到 BepInEx / Interop 与当前游戏不匹配；请点击安装 / 修复运行环境"
+    elif target.is_file() and has_runtime:
+        detail = "游戏、BepInEx 和独立遥测插件均已就绪"
+    elif has_runtime:
+        detail = "已检测到 BepInEx；独立遥测插件尚未安装"
+    else:
+        detail = build
+    if build.startswith("未验证版本"):
+        detail += "；当前游戏版本未验证，已允许实验性运行"
+    return valid, detail
+
+
 class TelemetryWorker(threading.Thread):
-    def __init__(self, messages: queue.Queue) -> None:
+    def __init__(self, messages, processor=None, *, port=UDP_PORT) -> None:
         super().__init__(name="manaka-qml-telemetry", daemon=True)
         self.messages = messages
         self.stop_event = threading.Event()
         self.receiver: socket.socket | None = None
+        self.processor = processor
+        self.port = port
         self.last_packet_received = 0.0
 
     def run(self) -> None:
         try:
             self.receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.receiver.bind((UDP_HOST, UDP_PORT))
+            self.receiver.bind((UDP_HOST, self.port))
+            self.port = self.receiver.getsockname()[1]
             self.receiver.settimeout(0.2)
             self.messages.put(("listener", "ready"))
             while not self.stop_event.is_set():
@@ -922,6 +994,8 @@ class TelemetryWorker(threading.Thread):
                     continue
                 try:
                     decoded = json.loads(payload.decode("utf-8"))
+                    if not isinstance(decoded, dict):
+                        continue
                     packet_type = decoded.get("type")
                     if packet_type == "progressResult":
                         kind = "progress_result"
@@ -932,7 +1006,10 @@ class TelemetryWorker(threading.Thread):
                         self.last_packet_received = received_at
                         # Local receipt time overrides any field sent by the game.
                         decoded["_received_monotonic"] = received_at
-                    self.messages.put((kind, decoded))
+                    if kind == "telemetry" and self.processor is not None:
+                        self.processor.process(decoded, received_at)
+                    else:
+                        self.messages.put((kind, decoded))
                 except (UnicodeDecodeError, json.JSONDecodeError) as error:
                     self.messages.put(("listener", f"遥测数据格式错误：{error}"))
         except Exception as error:  # socket ownership and shutdown failures are surfaced in the UI
@@ -951,7 +1028,16 @@ class TelemetryWorker(threading.Thread):
                 pass
 
 
+try:
+    from . import workbench_api as workbench
+except ImportError:
+    import workbench_api as workbench
+
+
 class ControlCenterBackend(V4DeviceBackend):
+    fileJobFinished = Signal(object)
+    fileJobChanged = Signal()
+    sourceChanged = Signal()
     gameProcessChanged = Signal()
     stateChanged = Signal()
     statusChanged = Signal()
@@ -969,7 +1055,11 @@ class ControlCenterBackend(V4DeviceBackend):
     def __init__(self, *, demo: bool = False, language: str | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.demo_mode = bool(demo)
-        self.messages: queue.Queue = queue.Queue()
+        self.file_job_active = False
+        self._file_closing = False
+        self.file_job_thread = None
+        self.fileJobFinished.connect(self._finish_file_job)
+        self.messages = DisplayMailbox()
         self._last_telemetry_latency_log = 0.0
         self.saved = load_config()
         self.theme_name = "light" if self.saved.get("theme") == "light" else "dark"
@@ -996,22 +1086,32 @@ class ControlCenterBackend(V4DeviceBackend):
         self.min_strength_value = int(self.engine.min_strength)
         self.output_max_value = int(self.engine.output_max)
         self.hard_cap_value = int(self.engine.hard_cap)
+        try:
+            self.channel_settings = migrate_settings(self.saved)
+        except (ValueError, TypeError, KeyError):
+            # Invalid/future configuration must never fall back to active output.
+            safe = MappingSettings()
+            self.channel_settings = replace(safe, A=replace(safe.A, enabled=False), B=replace(safe.B, enabled=False))
+        self.hard_cap_value = 200
+        self.engine.max_strength = 200
+        self.engine.channel_caps = (self.channel_settings.A.hard_cap, self.channel_settings.B.hard_cap)
+        self.channel_engine = ChannelEngine(self.channel_settings)
+        self.channel_peak_limiter = ChannelPeakLimiter()
         # HUD is enabled by default for the first run; the visible control-center
         # switch persists an explicit opt-out.
         self.game_hud_enabled_value = bool(self.saved.get("game_hud_enabled", True))
         self.hud_sequence = 0
         self.hud_last_sent = 0.0
         self.ui_last_telemetry_emit = 0.0
+        self.ui_pending = dict(vitals=False, context=False, output=False)
+        self._logs_dirty = False
         self.ui_page_index = 0
-        try:
-            self.hud_socket: socket.socket | None = None if demo else socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        except OSError:
-            self.hud_socket = None
+        self.hud_socket: socket.socket | None = None
 
         self.wave_mode_value = "fixed" if self.saved.get("wave_mode") == "fixed" else "smart"
         self.pulse_channel_sources_value = sanitize_sources(self.saved.get("pulse_channel_sources"))
         fixed = str(self.saved.get("fixed_wave", "official_heartbeat"))
-        self.fixed_wave_value = fixed if fixed in PRESETS or fixed == "custom" else "official_heartbeat"
+        self.fixed_wave_value = fixed if fixed in PRESETS or fixed == "custom" or fixed.startswith("library:") else "official_heartbeat"
         saved_map = self.saved.get("wave_map", DEFAULT_WAVE_MAP)
         if saved_map == LEGACY_DEFAULT_WAVE_MAP:
             saved_map = DEFAULT_WAVE_MAP
@@ -1025,6 +1125,8 @@ class ControlCenterBackend(V4DeviceBackend):
         self.custom_points_value = [int(clamp(float(value), 0, 100)) for value in points]
         self.custom_frequency_value = int(clamp(float(self.saved.get("custom_wave_frequency", 92)), 10, 240))
         self.custom_wave_library_value = self._read_custom_wave_library()
+        if isinstance(saved_map, dict):
+            self.wave_map_value.update({zone:key for zone,key in saved_map.items() if zone in self.wave_map_value and self._library_entry_by_key(key)})
         saved_actions = self.saved.get("known_actions", [])
         if not isinstance(saved_actions, list):
             saved_actions = []
@@ -1043,6 +1145,20 @@ class ControlCenterBackend(V4DeviceBackend):
             if str(action).strip()
             and self._is_assignable_wave_key(str(wave_key))
         }
+        try:
+            self.wave_policy = migrate_policy(self.saved, self.channel_settings)
+        except (ValueError, TypeError, KeyError):
+            self.wave_policy = WavePolicy.parse({"schema":1,"A":{"default_wave":"off"},"B":{"default_wave":"off"}})
+        # Deprecated waveform/phase fields are migrated above; only workbench
+        # rules own waveform selection from this point onward.
+        for key in "AB":
+            channel = getattr(self.channel_settings,key)
+            self.channel_settings = replace(self.channel_settings, **{key:replace(channel,bindings=tuple(
+                replace(binding,wave="auto",phase_ms=0,weight=0 if binding.wave == "off" else binding.weight)
+                for binding in channel.bindings))})
+        self.channel_engine = ChannelEngine(self.channel_settings)
+        self.wave_rule_reasons = {"A":"default","B":"default"}
+        self.preview_router = WaveRouter(self.wave_policy)
         self.wave_selector = WaveformSelector(hold_seconds=0.8)
         self.peak_limiter = RollingPeakLimiter(window_ms=5000, maximum_rise=15)
 
@@ -1079,8 +1195,9 @@ class ControlCenterBackend(V4DeviceBackend):
         self.auto_output_enabled = bool(demo)
         self.server_ready_value = bool(demo)
         self.lan_address_value = "192.168.x.x:9999" if demo else "正在准备…"
-        self.lan_addresses_value = ["192.168.x.x"] if demo else []
+        self.lan_addresses_value = ["192.168.x.x"] if demo else list(discover_lan_ips())
         self.qr_source_value = ""
+        self.connection_error_value = ""
 
         self.heart_rate_value = 128.0 if demo else 0.0
         self.alert_level_value = 32.0 if demo else 0.0
@@ -1122,6 +1239,8 @@ class ControlCenterBackend(V4DeviceBackend):
 
         self.worker: TelemetryWorker | None = None
         self.bridge: DGLabBridge | None = None
+        self.processor: RealtimeProcessor | None = None
+        self.missing_sources = {"A": (), "B": ()}
         self.runtime_started = False
         if not demo and self.agreement_accepted_value:
             self._start_runtime()
@@ -1133,14 +1252,15 @@ class ControlCenterBackend(V4DeviceBackend):
             self._log("视觉演示模式：不会连接游戏、Socket 或设备")
 
         self.poll_timer = QTimer(self)
+        self.configChanged.connect(self._sync_runtime)
+        self.configChanged.connect(self.sourceChanged.emit)
         self.poll_timer.setInterval(50)
         self.poll_timer.timeout.connect(self._poll)
         self.poll_timer.start()
         self.demo_phase = 0.0
-        self.check_game()
         self.check_npc_voice_install()
         if self.mod_source_folder_value:
-            self.scan_mods(show_error=False)
+            QTimer.singleShot(0,self.scanModsAsync)
 
     def _read_custom_wave_library(self) -> list[dict]:
         directory = waveform_library_dir()
@@ -1152,6 +1272,15 @@ class ControlCenterBackend(V4DeviceBackend):
         for path in files:
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
+                if "frames" in data:
+                    frames = frames_valid(data["frames"])
+                    points = [sum(bytes.fromhex(frame)[4:])/4 for frame in frames]
+                    entries.append(dict(id=path.name,key="library:"+path.stem,name=str(data.get("name",path.stem)),
+                        description="完整 V3 波形",bestFor="工作台规则",color="#59DCE7",points=points,
+                        frequency=int(frames[0][:2],16),frames=list(frames),source=str(data.get("source","Imported")),
+                        category=str(data.get("category","Imported")),favorite=bool(data.get("favorite",False)),
+                        group="custom",feelScale=100))
+                    continue
                 points = data.get("points")
                 if not isinstance(points, list) or len(points) != 16:
                     continue
@@ -1184,11 +1313,13 @@ class ControlCenterBackend(V4DeviceBackend):
         return next((entry for entry in self.custom_wave_library_value if entry.get("key") == wave_key), None)
 
     def _is_assignable_wave_key(self, wave_key: str) -> bool:
-        return wave_key == "off" or wave_key in PRESETS or self._library_entry_by_key(wave_key) is not None
+        return wave_key in {"off", "custom"} or wave_key in PRESETS or self._library_entry_by_key(wave_key) is not None
 
     def _waveform_from_key(self, wave_key: str) -> WaveformPreset | None:
         if wave_key == "off":
             return None
+        if wave_key == "custom":
+            return self._custom_waveform()
         if wave_key in PRESETS:
             return PRESETS[wave_key]
         entry = self._library_entry_by_key(wave_key)
@@ -1202,7 +1333,7 @@ class ControlCenterBackend(V4DeviceBackend):
             str(entry["color"]),
             tuple(int(value) for value in entry["points"]),
             (int(entry["frequency"]),),
-            source="我的波形库",
+            source="我的波形库", raw_frames=tuple(entry.get("frames",())),
         )
 
     def _next_custom_waveform_name(self) -> str:
@@ -1299,6 +1430,22 @@ class ControlCenterBackend(V4DeviceBackend):
     def qrSource(self) -> str:
         return self.qr_source_value
 
+    @Property(str, notify=connectionChanged)
+    def connectionHint(self) -> str:
+        if self.demo_mode:
+            return "Demo mode: no QR code" if self.language_name == "en" else "演示模式不生成二维码"
+        if self.connection_error_value:
+            return self.connection_error_value
+        if not self.agreement_accepted_value:
+            return "Accept the agreement to connect" if self.language_name == "en" else "同意使用协议后启动连接"
+        if not self.lan_addresses_value:
+            return "No LAN IPv4 address. Connect to a network and refresh." if self.language_name == "en" else "未找到局域网 IPv4 地址，请连接网络后刷新"
+        return "Generating QR code…" if self.language_name == "en" else "正在生成二维码…"
+
+    @Property(int, notify=connectionChanged)
+    def socketPort(self) -> int:
+        return self.bridge.port if self.bridge is not None else int(self.saved.get("socket_port", DEFAULT_PORT))
+
     @Property(float, notify=vitalsChanged)
     def heartRate(self) -> float:
         return self.heart_rate_value
@@ -1351,27 +1498,41 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Property(float, notify=outputChanged)
     def outputA(self) -> float:
-        return self.current_output_a if self.auto_output_enabled and not self.safety_wait_reason else 0.0
+        if not self.auto_output_enabled or self.safety_wait_reason:
+            return 0.0
+        return float(self.bridge.channel_output("A")) if self.bridge is not None else self.current_output_a
 
     @Property(float, notify=outputChanged)
     def outputB(self) -> float:
-        return self.current_output_b if self.auto_output_enabled and not self.safety_wait_reason else 0.0
+        if not self.auto_output_enabled or self.safety_wait_reason:
+            return 0.0
+        return float(self.bridge.channel_output("B")) if self.bridge is not None else self.current_output_b
+
+    def _display_wave(self, key):
+        if self.bridge is not None and hasattr(self.bridge, "playback_state"):
+            wave, state = self.bridge.playback_state[key]
+            return self._waveform_from_key(wave) if state == "playing" else None
+        return self.current_wave_a if key == "A" else self.current_wave_b
 
     @Property(str, notify=waveChanged)
     def waveAName(self) -> str:
-        return self._t(self.current_wave_a.name if self.current_wave_a else "待机")
+        wave = self._display_wave("A")
+        return self._t(("Climax" if wave.key == "climax" else wave.name) if wave else "待机")
 
     @Property(str, notify=waveChanged)
     def waveBName(self) -> str:
-        return self._t(self.current_wave_b.name if self.current_wave_b else "待机")
+        wave = self._display_wave("B")
+        return self._t(("Climax" if wave.key == "climax" else wave.name) if wave else "待机")
 
     @Property("QVariantList", notify=waveChanged)
     def waveAPoints(self) -> list[int]:
-        return list(self.current_wave_a.amplitudes) if self.current_wave_a else [0, 0, 0, 0]
+        wave = self._display_wave("A")
+        return list(wave.amplitudes) if wave else [0, 0, 0, 0]
 
     @Property("QVariantList", notify=waveChanged)
     def waveBPoints(self) -> list[int]:
-        return list(self.current_wave_b.amplitudes) if self.current_wave_b else [0, 0, 0, 0]
+        wave = self._display_wave("B")
+        return list(wave.amplitudes) if wave else [0, 0, 0, 0]
 
     @Property(bool, notify=configChanged)
     def gameHudEnabled(self) -> bool:
@@ -1483,6 +1644,307 @@ class ControlCenterBackend(V4DeviceBackend):
     def hardCap(self) -> int:
         return self.hard_cap_value
 
+    @Property("QVariantMap", notify=configChanged)
+    def channelSettings(self) -> dict:
+        result = self.channel_settings.to_dict()
+        result["legacy"] = dict(trigger_bpm=self.trigger_bpm_value, full_bpm=self.full_bpm_value,
+            min_strength=self.min_strength_value, output_max=self.output_max_value)
+        return result
+
+    @Property(str, notify=configChanged)
+    def configurationRevision(self):
+        return workbench.revision(self)
+
+    @Property("QVariantMap", notify=configChanged)
+    def legacyWaveSettings(self):
+        return dict(mode=self.wave_mode_value, fixed=self.fixed_wave_value,
+            zones=dict(self.wave_map_value), actions=dict(self.action_wave_map_value), sources=dict(self.pulse_channel_sources_value))
+
+    @Property("QVariantList", notify=configChanged)
+    def actionChoices(self):
+        return [dict(key=key,label=action_label(key,self.language_name)) for key in self.known_actions_value if key != "None"]
+
+    @Slot(str, result=str)
+    def actionSummary(self, value):
+        if not value:
+            return "所有动作" if self.language_name == "zh" else "All actions"
+        labels = [action_label(key,self.language_name) for key in value.split("|")]
+        return "、".join(labels) if len(labels) <= 2 else labels[0]+(" 等 %d 项" % len(labels) if self.language_name == "zh" else f" + {len(labels)-1} more")
+
+    @Property("QVariantMap", notify=configChanged)
+    def waveWorkbench(self):
+        return workbench.draft(self)
+
+    @Property("QVariantList", notify=configChanged)
+    def waveAssets(self):
+        return workbench.assets(self)
+
+    @Property("QVariantMap", notify=waveChanged)
+    def waveRuleReasons(self):
+        result = dict(self.wave_rule_reasons)
+        names = {"always":"始终", "action":"游戏动作", "heart":"心率", "ecstasy":"兴奋度", "vibrator":"振动器", "piston":"活塞机", "npc_alert":"NPC 警觉度", "climax":"高潮", "failure":"失败"}
+        for key, value in result.items():
+            if value.startswith("legacy:"):
+                pattern = value.split(":",1)[1]
+                labels = {"idle":"无输出", "action-ramp":"动作渐升", "heartbeat-soft":"低心率波形", "heartbeat":"中等心率波形", "heartbeat-fast":"高心率波形", "peak":"高潮 / 失败"}
+                result[key] = "原版 · "+labels.get(pattern,pattern) if self.language_name == "zh" else "Original · "+pattern
+            elif value in {"default", "stopped"}:
+                result[key] = {"default":"默认波形", "stopped":"已停止"}[value] if self.language_name == "zh" else value.title()
+            else:
+                rule = next((r for r in getattr(self.wave_policy,key).rules if value == f"{r.id} · {r.source}"), None)
+                if rule is not None:
+                    source = names.get(rule.source,rule.source) if self.language_name == "zh" else rule.source
+                    detail = self.actionSummary(rule.value) if rule.source == "action" else ""
+                    result[key] = source+(" · "+detail if detail else "")
+        if self.bridge is not None:
+            labels = {"playing":"播放中 / Playing", "switching":"切换中 / Switching", "finished":"单次结束 / Finished", "stopped":"已停止 / Stopped"}
+            for key, (wave, state) in getattr(self.bridge, "playback_state", {}).items():
+                result[key] += " · " + labels[state]
+        return result
+
+    @Slot(str, str, bool, result=bool)
+    def saveIntensitySettings(self, encoded, revision, confirmed=False):
+        try:
+            if revision != self.configurationRevision:
+                raise ValueError("设置已更新，请先重新载入 / Settings changed; reload the draft")
+            merged = workbench.merge_intensity(self, json.loads(encoded))
+            return self.saveChannelSettings(json.dumps(merged), confirmed)
+        except (ValueError, KeyError, TypeError, IndexError, OSError) as error:
+            self._toast("保存失败", str(error))
+            return False
+
+    @Slot(str, result="QVariantMap")
+    def saveWaveWorkbench(self, encoded):
+        try:
+            return workbench.save_workbench(self, encoded)
+        except (ValueError, KeyError, TypeError, IndexError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, result="QVariantMap")
+    def waveAsset(self, key):
+        try:
+            return dict(ok=True, **workbench.asset(self, key))
+        except (ValueError, KeyError, TypeError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, result="QVariantMap")
+    def importWaveFile(self, path):
+        try:
+            return workbench.import_file(self, path, waveform_library_dir())
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, str, str, str, result="QVariantMap")
+    def saveWaveAsset(self, key, name, category, frames):
+        try:
+            return workbench.save_asset(self, key, name, category, frames, waveform_library_dir())
+        except (ValueError, KeyError, TypeError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, result="QVariantMap")
+    def duplicateWaveAsset(self, key):
+        try:
+            data = workbench.asset(self, key)
+            return workbench.save_asset(self, "", data["name"]+" (copy)", data["category"], data["framesText"], waveform_library_dir())
+        except (ValueError, KeyError, TypeError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, result="QVariantMap")
+    def deleteWaveAsset(self, key):
+        try:
+            return workbench.delete_asset(self, key, waveform_library_dir())
+        except (ValueError, KeyError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, bool, result="QVariantMap")
+    def favoriteWaveAsset(self, key, favorite):
+        try:
+            workbench.asset(self, key)
+            preferences = dict(self.saved.get("wave_favorites", {}))
+            preferences[key] = favorite
+            update_config(dict(wave_favorites=preferences))
+            self.saved["wave_favorites"] = preferences
+            self.configChanged.emit()
+            return dict(ok=True, error="")
+        except (ValueError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Slot(str, str, result="QVariantMap")
+    def exportWaveAsset(self, key, path):
+        try:
+            data = workbench.asset(self, key)
+            workbench.atomic_json(workbench.local_path(path), dict(schema=1, frame_ms=100,
+                name=data["storedName"], category=data["category"], frames=data["framesText"].splitlines()))
+            return dict(ok=True, error="")
+        except (ValueError, KeyError, OSError) as error:
+            return dict(ok=False, error=str(error))
+
+    @Property(str, notify=configChanged)
+    def channelALabel(self) -> str:
+        return self._channel_label("A")
+
+    @Property(str, notify=configChanged)
+    def channelBLabel(self) -> str:
+        return self._channel_label("B")
+
+    @Property(str, notify=sourceChanged)
+    def channelSourceStatus(self) -> str:
+        if not self.last_packet:
+            return "Waiting for game data" if self.language_name == "en" else "等待游戏数据"
+        if time.monotonic()-self.last_receive >= STALE_SECONDS:
+            return "Telemetry interrupted" if self.language_name == "en" else "游戏数据已中断"
+        if self.channel_settings.mode == "legacy_v1":
+            return "Original: A heart rate / B actions" if self.language_name == "en" else "原版模式：A 心率 / B 动作"
+        parts = []
+        for key in "AB":
+            if not getattr(self.channel_settings,key).enabled:
+                value = "Disabled" if self.language_name == "en" else "已关闭"
+            elif self.missing_sources[key]:
+                value = ("Unavailable: " if self.language_name == "en" else "不可用：") + ", ".join(self.missing_sources[key])
+            else:
+                value = "Data ready" if self.language_name == "en" else "检测数据正常"
+            parts.append(key + ": " + value)
+        return " | ".join(parts)
+
+    def _channel_label(self, key):
+        config = getattr(self.channel_settings, key)
+        labels = {"heart": ("心率", "Heart rate"), "action": ("游戏动作", "Game action"),
+            "ecstasy": ("兴奋度", "Ecstasy"), "vibrator": ("振动器", "Vibrator"),
+            "piston": ("活塞机", "Piston"), "npc_alert": ("NPC 警觉度", "NPC alert"), "device":("绑定设备档位", "Bound device level"), "action_active":("动作发生", "Action active")}
+        sources = ("heart",) if key == "A" else ("action",)
+        if self.channel_settings.mode == "independent":
+            sources = tuple(binding.source for binding in config.bindings)
+        return key + " · " + " + ".join(labels[source][self.language_name == "en"] for source in sources)
+
+    @Property(float, notify=configChanged)
+    def channelCapA(self) -> float:
+        return self.channel_settings.A.hard_cap
+
+    @Property(float, notify=configChanged)
+    def channelCapB(self) -> float:
+        return self.channel_settings.B.hard_cap
+
+    def _mapping_engine(self):
+        return self.channel_engine if self.channel_settings.mode == "independent" else self.engine
+
+    def _parse_channel_settings(self, encoded: str) -> MappingSettings:
+        raw = json.loads(encoded)
+        english = self.language_name == "en"
+        if "legacy" in raw:
+            old = raw["legacy"]
+            keys = ("trigger_bpm", "full_bpm", "min_strength", "output_max")
+            if set(old) != set(keys):
+                raise ValueError("Invalid legacy settings fields")
+            values = [old[key] for key in keys]
+            if (any(type(value) not in (int, float) or not math.isfinite(value) for value in values)
+                    or not 60 <= values[0] < values[1] <= 160
+                    or not 0 <= values[2] <= values[3] <= 200):
+                raise ValueError("Original: invalid heart-rate or strength range" if english else "最低心率须低于最高心率（60–160 BPM），日常最低强度不能高于日常最高强度（0–200）")
+        # Explain cross-field constraints at the point of editing, before any
+        # output state or saved configuration is changed.
+        for key in "AB":
+            channel = raw[key]
+            if channel["minimum"] > channel["maximum"]:
+                raise ValueError(f"{key}: " + ("Ordinary minimum must not exceed maximum." if english else "日常最低强度不能高于日常最高强度。"))
+            for index, binding in enumerate(channel["bindings"], 1):
+                prefix = f"{key} / {index}: "
+                if binding["low"] >= binding["high"] or binding["input_start"] >= binding["input_full"]:
+                    raise ValueError(prefix + ("Minimum must be below maximum." if english else "检测最低值必须小于最高值。"))
+                modes = [binding["weak"], binding["strong"]]
+                if binding["source"] in {"piston", "device"}:
+                    modes.insert(1, binding["medium"])
+                if binding["source"] in {"vibrator", "piston", "device"} and modes != sorted(modes):
+                    raise ValueError(prefix + ("Mode percentages must increase from weak to strong." if english else "档位百分比应按弱到强递增。"))
+            for event_name in ("climax", "failure"):
+                event = channel[event_name]
+                if event["cooldown_ms"] < event["duration_ms"]:
+                    label = event_name if english else ("高潮" if event_name == "climax" else "失败事件")
+                    raise ValueError(f"{key} / {label}: " + ("Cooldown must be at least the duration." if english else "冷却时间不能短于持续时间。"))
+        settings = MappingSettings.parse(raw)
+        if any(binding.wave != "auto" and not self._is_assignable_wave_key(binding.wave)
+               for key in "AB" for binding in getattr(settings, key).bindings):
+            raise ValueError("Choose an available waveform." if english else "请重新选择可用的波形。")
+        return settings
+
+    @Slot(str, result="QVariantMap")
+    def validateChannelSettings(self, encoded: str) -> dict:
+        """Validate a draft without saving or changing live output."""
+        try:
+            self._parse_channel_settings(encoded)
+            return {"valid": True, "error": ""}
+        except (ValueError, KeyError, TypeError) as error:
+            return {"valid": False, "error": str(error)}
+
+    @Slot(str, bool, result=bool)
+    def saveChannelSettings(self, encoded: str, confirmed_high_cap: bool = False, *, pause_output: bool = False) -> bool:
+        try:
+            settings = self._parse_channel_settings(encoded)
+            old = self.channel_settings
+            increases = [settings.global_cap > max(30, old.global_cap)] + [
+                getattr(settings, key).hard_cap > max(30, getattr(old, key).hard_cap) for key in "AB"]
+            if any(increases) and not confirmed_high_cap:
+                self._toast("需要确认", "提高到 30 以上前，请确认个人可承受范围")
+                return False
+        except (ValueError, KeyError, TypeError) as error:
+            self._toast("设置无效", str(error))
+            return False
+        legacy = json.loads(encoded).get("legacy", self.channelSettings["legacy"])
+        try:
+            update_config({"channel_mapping": settings.to_dict(), "wave_workbench": self.wave_policy.to_dict(), "hard_cap": 200, "wave_mode":self.wave_mode_value, "fixed_wave":self.fixed_wave_value, "wave_map":self.wave_map_value, "action_wave_map":self.action_wave_map_value, "pulse_channel_sources":dict(self.pulse_channel_sources_value), **legacy})
+        except OSError as error:
+            self._toast("保存失败", str(error))
+            return False
+        if pause_output:
+            self.auto_output_enabled = False
+            self.coyote_waiting_for_game = False
+            self.coyote_resume_after = 0.0
+        if self.bridge is not None:
+            self.bridge.emergency_stop()
+        self.channel_settings = settings
+        self.channel_engine = ChannelEngine(settings)
+        self.channel_peak_limiter.reset()
+        self.peak_limiter.reset()
+        self.hard_cap_value = int(settings.global_cap)
+        self.engine.max_strength = settings.global_cap
+        legacy = json.loads(encoded).get("legacy", self.channelSettings["legacy"])
+        self.trigger_bpm_value = legacy["trigger_bpm"]
+        self.full_bpm_value = legacy["full_bpm"]
+        self.min_strength_value = legacy["min_strength"]
+        self.output_max_value = legacy["output_max"]
+        self.engine.configure(**legacy, hard_cap=settings.global_cap)
+        self.engine.channel_caps = (settings.A.hard_cap,settings.B.hard_cap)
+        self.current_frame = self._mapping_engine().force_safe_cut("configuration-changed")
+        self.current_output_a = self.current_output_b = 0
+        if self.bridge is not None and self.auto_output_enabled:
+            self.bridge.set_auto_enabled(True)
+        self.configChanged.emit()
+        self.outputChanged.emit()
+        self._toast("设置已保存", "A/B 设置已应用；等待下一份有效游戏数据")
+        return True
+
+    @Slot(str, str, result="QVariantMap")
+    def previewChannelSettings(self, encoded: str, raw_packet: str) -> dict:
+        """Run a separate engine; never mutate the live engine or bridge."""
+        try:
+            settings = self._parse_channel_settings(encoded)
+            legacy = json.loads(encoded).get("legacy", self.channelSettings["legacy"])
+            packet = json.loads(raw_packet)
+            if not isinstance(packet, dict):
+                raise ValueError("Preview telemetry must be an object")
+            engine = ChannelEngine(settings) if settings.mode == "independent" else ManakaTriggerEngine(
+                max_strength=settings.global_cap, **legacy)
+            if settings.mode == "legacy_v1":
+                engine.channel_caps = (settings.A.hard_cap,settings.B.hard_cap)
+            for _ in range(200):
+                engine.evaluate(dict(packet, orgasm=False, climaxActive=False, gameOver=False), .5)
+            frame = engine.evaluate(packet, .5)
+            return dict(A=frame.strength_a, B=frame.strength_b, patternA=frame.pattern_a,
+                        patternB=frame.pattern_b,
+                        missingA=list(engine.unavailable["A"]) if isinstance(engine, ChannelEngine) else [],
+                        missingB=list(engine.unavailable["B"]) if isinstance(engine, ChannelEngine) else [], error="")
+        except (ValueError, TypeError, KeyError) as error:
+            return {"error": str(error)}
+
     @Property(str, notify=configChanged)
     def waveMode(self) -> str:
         return self.wave_mode_value
@@ -1509,10 +1971,13 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Property("QVariantList", notify=configChanged)
     def presets(self) -> list[dict]:
+        cache_key = (self.language_name, tuple(self.custom_points_value), self.custom_frequency_value, self.custom_name_value)
+        if getattr(self, "_preset_cache_key", None) == cache_key:
+            return self._preset_cache
         values = [
             {
                 "key": preset.key,
-                "name": self._t(preset.name),
+                "name": "Climax" if preset.key == "climax" else self._t(preset.name),
                 "description": self._t(preset.description),
                 "bestFor": self._t(preset.best_for),
                 "color": preset.color,
@@ -1538,6 +2003,7 @@ class ControlCenterBackend(V4DeviceBackend):
                 "feelScale": 100,
             }
         )
+        self._preset_cache_key, self._preset_cache = cache_key, values
         return values
 
     @Property("QVariantList", notify=configChanged)
@@ -2148,18 +2614,227 @@ class ControlCenterBackend(V4DeviceBackend):
             return
         self.runtime_started = True
         device_audit.configure(app_data_dir() / "logs" / "devices.jsonl")
+        try:
+            self.hud_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except OSError:
+            self.hud_socket = None
         self.telemetry_status_value = "正在准备监听…"
         self.device_status_value = "等待手机扫码"
-        self.worker = TelemetryWorker(self.messages)
         self.bridge = self._make_coyote_bridge()
-        self.worker.start()
+        self.processor = RealtimeProcessor(self._runtime_config(), self.bridge, self.messages)
+        self.worker = TelemetryWorker(self.messages, self.processor)
         self.bridge.start()
+        self.worker.start()
         self.statusChanged.emit()
         self.connectionChanged.emit()
 
+    def _runtime_config(self):
+        library = tuple((entry["key"], self._waveform_from_key(entry["key"])) for entry in self.custom_wave_library_value)
+        return RuntimeConfig(mapping=self.channel_settings,
+            legacy=tuple(dict(max_strength=self.hard_cap_value, min_strength=self.min_strength_value,
+                output_max=self.output_max_value, trigger_bpm=self.trigger_bpm_value, full_bpm=self.full_bpm_value).items()),
+            wave_mode=self.wave_mode_value, fixed_wave=self.fixed_wave_value,
+            wave_map=tuple(sorted(self.wave_map_value.items())), custom=self._custom_waveform(),
+            action_map=tuple(sorted(self.action_wave_map_value.items())), library=library, wave_policy=self.wave_policy,
+            pulse_sources=tuple(sorted(self.pulse_channel_sources_value.items())))
+
+    def _sync_runtime(self):
+        if self.processor is not None:
+            self.processor.configure(self._runtime_config())
+        elif self.preview_router.policy != self.wave_policy:
+            self.preview_router = WaveRouter(self.wave_policy)
+
+    @Property(bool, notify=fileJobChanged)
+    def fileJobBusy(self):
+        return self.file_job_active
+
+    def _begin_file_job(self, work, finish):
+        if self._file_closing:
+            return False
+        if self.file_job_active:
+            self._toast("正在处理文件", "请等待当前操作完成")
+            return False
+        self.file_job_active = True
+        self.fileJobChanged.emit()
+        def run():
+            try:
+                result, error = work(), None
+            except Exception as caught:
+                result, error = None, str(caught)
+            if not self._file_closing:
+                self.fileJobFinished.emit((finish, result, error))
+        self.file_job_thread = threading.Thread(target=run, name="manaka-file-job", daemon=False)
+        self.file_job_thread.start()
+        return True
+
+    @Slot(object)
+    def _finish_file_job(self, payload):
+        finish, result, error = payload
+        self.file_job_active = False
+        if error is not None:
+            self._toast("文件操作失败", error)
+            self.fileJobChanged.emit()
+            return
+        try:
+            finish(result)
+        except Exception as caught:
+            self._toast("操作结果处理失败", str(caught))
+        self.fileJobChanged.emit()
+
+    @Slot(result=bool)
+    def scanModsAsync(self):
+        return self._mod_job_async("scan")
+
+    @Slot(bool, result=bool)
+    def installPluginAsync(self, launch=False):
+        folder = Path(self.game_folder_value)
+        source, runtime = bundled_plugin_path(), bundled_bepinex_path()
+        def finish(result):
+            update_config({"game_folder": str(folder)})
+            self.game_status_value = result["build"] + " · 插件已更新"
+            self._log(f"插件安装完成：{result['action']}")
+            self._toast("安装完成", "运行环境与遥测插件已更新")
+            self.configChanged.emit()
+            if launch:
+                subprocess.Popen([str(folder/"SecretFlasherManaka.exe")], cwd=str(folder))
+        return self._begin_file_job(lambda: install_plugin_payload(folder, source, runtime), finish)
+
+    @Slot(result=bool)
+    def install9527PackAsync(self):
+        source, game = Path(self.pack9527_folder_value), Path(self.game_folder_value)
+        def finish(result):
+            self.pack9527_backup_value = str(result["backup"])
+            self.pack9527_analysis_value = dict(result)
+            self.pack9527_status_value = "导入完成：已应用精简启动预设"
+            self.mod_source_folder_value = self.game_folder_value
+            self.configChanged.emit()
+            self.scanModsAsync()
+        return self._begin_file_job(lambda: Pack9527Importer().install(source, game), finish)
+
+    @Slot(str, result=bool)
+    def inspect9527PackAsync(self, value):
+        if self.file_job_active:
+            return False
+        url = QUrl(value)
+        source = Path(url.toLocalFile() if url.isLocalFile() else value)
+        self.pack9527_folder_value = str(source)
+        self.pack9527_analysis_value = {}
+        self.pack9527_backup_value = ""
+        self.pack9527_status_value = "正在检查整合包…"
+        self.configChanged.emit()
+        def finish(analysis):
+            self.pack9527_folder_value = analysis.root
+            self.pack9527_analysis_value = analysis.as_dict()
+            self.pack9527_status_value = f"插件 {analysis.plugins} · V1 {analysis.v1_missions} · V2 {analysis.v2_packages}"
+            self.configChanged.emit()
+        return self._begin_file_job(lambda:Pack9527Importer().inspect(source),finish)
+
+    @Slot(result=bool)
+    def installNpcVoicesAsync(self):
+        folder = Path(self.game_folder_value)
+        prefs = {("General", "Enabled"): str(self.npc_voice_enabled_value).lower(),
+                 ("General", "Language"): self.npc_voice_language_value,
+                 ("General", "VoiceEnabled"): str(self.npc_voice_audio_enabled_value).lower(),
+                 ("General", "SubtitlesEnabled"): str(self.npc_voice_subtitles_enabled_value).lower()}
+        payload = bundled_npc_voice_root()
+        plugin, runtime = bundled_plugin_path(), bundled_bepinex_path()
+        def work():
+            valid, detail = validate_game_folder(folder)
+            if not valid:
+                raise ValueError(detail)
+            valid, build = validate_supported_game_build(folder)
+            if not valid:
+                raise ValueError(build)
+            if not (folder/"BepInEx/core/BepInEx.Core.dll").is_file():
+                install_plugin_payload(folder, plugin, runtime)
+            destination = folder/"BepInEx/plugins/ManakaNpcVoices"
+            core = payload/"bin/ManakaNpcVoices.dll"
+            bridge = payload/"bin/ManakaNpcVoices.CustomMissions2.dll"
+            cm2 = (folder/"BepInEx/plugins/SFM_custom_mission_v2.dll").is_file()
+            mappings = [(core, destination/"ManakaNpcVoices.dll"),
+                (payload/"VOICE_PACK_README.txt", destination/"VoicePacks/README.txt")]
+            mappings += [(source, destination/"VoicePacks"/relative)
+                         for source, relative in bundled_npc_voice_expected_files(payload)]
+            for language in sorted(NPC_VOICE_LANGUAGES):
+                mappings += [(bundled_npc_subtitle_path(language,state),destination/"VoicePacks"/language/state/"lines.txt")
+                             for state in sorted(NPC_VOICE_STATES)]
+                mappings.append((bundled_npc_profile_subtitle_path(language),destination/"VoicePacks"/language/"profiles.txt"))
+            if cm2:
+                mappings.append((bridge,destination/"ManakaNpcVoices.CustomMissions2.dll"))
+            for source, _ in mappings:
+                if not source.is_file():
+                    raise FileNotFoundError(str(source))
+            self._remove_obsolete_npc_voice_assets(destination)
+            for source, target in mappings:
+                self._copy_file_atomic(source,target)
+            stale_bridge = destination/"ManakaNpcVoices.CustomMissions2.dll"
+            if not cm2 and stale_bridge.is_file():
+                stale_bridge.unlink()
+            update_bepinex_config(folder/"BepInEx/config/local.manaka.npcvoices.cfg",prefs)
+            manifest = dict(schema=1,appVersion=APP_VERSION,gameBuild=build,pluginVersion="0.6.0",
+                runtimeNetworkAccess=False,languages=["zh","ja","en"],clipCount=90,
+                coreSha256=sha256_file(destination/"ManakaNpcVoices.dll"),cm2BridgeInstalled=cm2)
+            (destination/".manaka-npc-voices-install.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+            return cm2
+        def finish(cm2):
+            self.check_npc_voice_install()
+            self._toast("NPC 语音安装完成", "安装完成；重启游戏后生效")
+            self.configChanged.emit()
+            self.scanModsAsync()
+        return self._begin_file_job(work,finish)
+
+    @Slot(str, bool, bool, result=bool)
+    def setModEnabledAsync(self, entry_id, enabled, loaded=False):
+        return self._mod_job_async("enable", entry_id, enabled, loaded)
+
+    @Slot(str, result=bool)
+    def deleteDropInModAsync(self, entry_id):
+        return self._mod_job_async("delete", entry_id)
+
+    @Slot(result=bool)
+    def importDropInsAsync(self):
+        return self._mod_job_async("import")
+
+    def _mod_job_async(self, operation, entry_id="", enabled=False, loaded=False):
+        game, source = Path(self.game_folder_value), Path(self.mod_source_folder_value)
+        dropin_root = self.dropin_importer.root
+        retained = tuple(item["id"] for item in self.loaded_mod_inventory_value) if loaded else ()
+        def work():
+            importer = DropInModImporter(dropin_root)
+            detail = ""
+            if operation == "import":
+                counts = importer.import_all()
+                detail = f"{counts['sources']} 来源 · {counts['plugins']} 插件 · {counts['v1']} V1 · {counts['v2']} V2 · {len(counts['errors'])} 失败"
+            valid, game_detail = inspect_game_files(game)
+            if not valid:
+                raise ValueError(game_detail)
+            roots = [importer.repository] if importer.repository.is_dir() else []
+            manager = ManakaModManager(game, source, roots)
+            if operation in {"enable", "delete"}:
+                manager.scan()
+            if operation == "enable":
+                detail = manager.set_enabled(entry_id, enabled)
+            elif operation == "delete":
+                detail = manager.delete_dropin(entry_id)
+            return manager, manager.scan(), detail, game_detail
+        def finish(result):
+            manager, inventory, detail, game_detail = result
+            self.game_status_value = game_detail
+            self._annotate_v1_locations(inventory)
+            self.mod_manager = manager
+            self.mod_inventory_value = inventory
+            self.loaded_mod_inventory_value = self._loaded_mods(inventory, retained)
+            self.recommended_mod_inventory_value = self._recommended_mods(inventory)
+            self.mod_summary_value = f"{len(inventory)} 项 · {sum(bool(item.get('enabled')) for item in inventory)} 项启用"
+            self.mod_status_value = "扫描完成；修改前请完全退出游戏"
+            self.configChanged.emit()
+            if detail:
+                self._log(f"Mod：{detail}")
+        return self._begin_file_job(work, finish)
+
     @Slot(int)
     def setActivePage(self, index: int) -> None:
-        self.ui_page_index = max(0, min(10, int(index)))
+        self.ui_page_index = max(0, min(12, int(index)))
         # Values continue updating while a page is hidden. Emit one snapshot on
         # entry so the newly visible page catches up without background churn.
         self.statusChanged.emit()
@@ -2173,6 +2848,9 @@ class ControlCenterBackend(V4DeviceBackend):
             self.contextChanged.emit()
             self.waveChanged.emit()
         elif self.ui_page_index == 4:
+            self.outputChanged.emit()
+            self.waveChanged.emit()
+        elif self.ui_page_index == 11:
             self.devicesChanged.emit()
             self.ovcCatalogChanged.emit()
         elif self.ui_page_index == 5:
@@ -2186,12 +2864,47 @@ class ControlCenterBackend(V4DeviceBackend):
             self._toast("无法切换地址", "所选地址已失效，请重新连接网络后重启软件")
             return False
         update_config({"socket_lan_ip": str(address)})
+        self.saved["socket_lan_ip"] = str(address)
         if self.v4_hub:
             self.v4_hub.set_lan_ip(address)
         self.devicesChanged.emit()
         self._log(f"二维码已切换到局域网地址：{address}:{self.bridge.port}")
         self._toast("二维码已更新", "请使用 DG-LAB App 扫描新的二维码")
         return True
+
+    @Slot()
+    def refreshConnection(self) -> None:
+        if self.demo_mode:
+            return
+        addresses = list(discover_lan_ips())
+        if self.v4_hub:
+            self.v4_hub.refresh_lan_ips()
+        self.lan_addresses_value = addresses
+        if self.socket_protocol == "v4" and self.v4_hub:
+            if addresses:
+                selected = self.v4_hub.lan_ip if self.v4_hub.lan_ip in addresses else addresses[0]
+                self.v4_hub.set_lan_ip(selected)
+            self.connection_error_value = ""
+            self.startV4()
+            if self.v4_hub.server_ready:
+                self._use_coyote_qr()
+            self.connectionChanged.emit()
+            return
+        if self.bridge is not None:
+            self.bridge.available_lan_ips = tuple(addresses)
+            if not self.server_ready_value:
+                self.bridge.stop()
+                if addresses:
+                    self.bridge.lan_ip = self.bridge.lan_ip if self.bridge.lan_ip in addresses else addresses[0]
+                self.connection_error_value = ""
+                self.bridge.start()
+            elif addresses:
+                selected = self.bridge.lan_ip if self.bridge.lan_ip in addresses else addresses[0]
+                self.bridge.set_lan_ip(selected)
+            else:
+                self.qr_source_value = ""
+                self.lan_address_value = "—"
+        self.connectionChanged.emit()
 
     @Slot(result=bool)
     def repairNetworkAccess(self) -> bool:
@@ -2224,6 +2937,9 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Slot(str)
     def setGameFolder(self, value: str) -> None:
+        if self.file_job_active:
+            self._toast("正在处理文件", "请等待当前操作完成后再更换目录")
+            return
         url = QUrl(value)
         path = url.toLocalFile() if url.isLocalFile() else value
         self.game_folder_value = str(Path(path)) if path else ""
@@ -2236,10 +2952,9 @@ class ControlCenterBackend(V4DeviceBackend):
             "mod_source_folder": self.game_folder_value,
             "mod_source_mode": "game",
         })
-        self.check_game()
         self.check_npc_voice_install()
         if self.mod_source_folder_value:
-            self.scan_mods(show_error=False)
+            self.scanModsAsync()
 
     @Slot()
     def reset9527Import(self) -> None:
@@ -2648,7 +3363,7 @@ class ControlCenterBackend(V4DeviceBackend):
                 "runtimeAction": runtime_action,
                 "repairReason": runtime_issue or "",
                 "runtimeBackup": str(backup_root) if backup_root else "",
-                "telemetryVersion": "0.4.2-hud-compact",
+                "telemetryVersion": "0.5.0-channel-telemetry",
                 "runtimeInstalledByApp": runtime_owned,
                 "pluginSha256": sha256_file(plugin_target),
                 "ownedRootItems": [
@@ -2759,40 +3474,23 @@ class ControlCenterBackend(V4DeviceBackend):
         hard_cap: int,
         confirmed_high_cap: bool,
     ) -> bool:
+        if self.channel_settings.mode == "independent":
+            self._toast("使用独立通道设置", "请在 A/B 独立设置中调整通道范围")
+            return False
         if not 60 <= trigger_bpm < full_bpm <= 160:
-            self._toast("心率范围无效", "开始 BPM 必须低于满幅 BPM，最高为 160")
+            self._toast("心率范围无效", "最低心率必须低于最高心率，最高为 160 BPM")
             return False
-        if not 0 <= min_strength <= output_max <= 100 or not 1 <= hard_cap <= 100:
-            self._toast("强度范围无效", "必须满足：最低强度 ≤ 日常最高 ≤ 100，安全硬上限为 1–100")
+        if not 0 <= min_strength <= output_max <= 200 or not 1 <= hard_cap <= 200:
+            self._toast("强度范围无效", "必须满足：日常最低强度 ≤ 日常最高强度 ≤ 200，安全硬上限为 1–200")
             return False
-        if hard_cap > 30 and hard_cap > self.hard_cap_value and not confirmed_high_cap:
-            self._toast("需要确认", "提高到 30 以上前，请确认个人可承受范围")
-            return False
-        self.engine.configure(
-            min_strength=min_strength,
-            output_max=output_max,
-            hard_cap=hard_cap,
-            trigger_bpm=trigger_bpm,
-            full_bpm=full_bpm,
-        )
-        self.trigger_bpm_value = trigger_bpm
-        self.full_bpm_value = full_bpm
-        self.min_strength_value = min_strength
-        self.output_max_value = output_max
-        self.hard_cap_value = hard_cap
-        update_config(
-            {
-                "trigger_bpm": trigger_bpm,
-                "full_bpm": full_bpm,
-                "min_strength": min_strength,
-                "output_max": output_max,
-                "hard_cap": hard_cap,
-            }
-        )
-        self.configChanged.emit()
-        self._log(f"个性化范围已保存：BPM {trigger_bpm}–{full_bpm}，强度 {min_strength}–{output_max}，上限 {hard_cap}")
-        self._toast("设置已保存", "新的范围会立即用于心率输出")
-        return True
+        # Compatibility entry point from older UI: a single requested cap
+        # explicitly applies to both channels; never recreate a hidden global cap.
+        settings = self.channelSettings
+        settings["legacy"].update(trigger_bpm=trigger_bpm, full_bpm=full_bpm,
+            min_strength=min_strength, output_max=output_max)
+        for key in "AB":
+            settings[key]["hard_cap"] = hard_cap
+        return self.saveChannelSettings(json.dumps(settings), confirmed_high_cap)
 
     @Slot(str, "QVariantList", int, result=bool)
     def saveCustomWaveform(self, name: str, points: list, frequency: int) -> bool:
@@ -2950,9 +3648,10 @@ class ControlCenterBackend(V4DeviceBackend):
                 if not isinstance(source,str) or source not in {"heart","action"}:
                     return False
                 sources[channel] = source
-        allowed = set(PRESETS) | {"custom"}
+        allowed = set(PRESETS) | {"custom"} | {entry["key"] for entry in self.custom_wave_library_value}
         fixed = fixed if fixed in allowed else "official_heartbeat"
-        clean_map = sanitize_wave_map({"low":low,"mid":mid,"high":high,"action":action,"peak":peak})
+        clean_map = {key:value if value in allowed else DEFAULT_WAVE_MAP[key] for key,value in
+                     dict(low=low,mid=mid,high=high,action=action,peak=peak).items()}
         try:
             if len(custom_points) != 16 or any(not math.isfinite(float(v)) for v in custom_points):
                 raise ValueError("16 finite control points required")
@@ -3002,9 +3701,26 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Slot()
     def resetWaveSettings(self) -> None:
-        if self.saveWaveSettings("smart","official_heartbeat",DEFAULT_WAVE_MAP["low"],DEFAULT_WAVE_MAP["mid"],DEFAULT_WAVE_MAP["high"],
-                                 DEFAULT_WAVE_MAP["action"],DEFAULT_WAVE_MAP["peak"],"我的波形",list(DEFAULT_CUSTOM_POINTS),92,"heart","action"):
-            self._log("波形策略已恢复默认：A 心率、B 动作")
+        self.wave_mode_value = "smart"
+        self.fixed_wave_value = "official_heartbeat"
+        self.wave_map_value = dict(DEFAULT_WAVE_MAP)
+        self.custom_name_value = "我的波形"
+        self.custom_points_value = list(DEFAULT_CUSTOM_POINTS)
+        self.custom_frequency_value = 92
+        self.wave_selector.reset()
+        update_config(
+            {
+                "wave_mode": self.wave_mode_value,
+                "fixed_wave": self.fixed_wave_value,
+                "wave_map": self.wave_map_value,
+                "custom_wave_name": self.custom_name_value,
+                "custom_wave_points": self.custom_points_value,
+                "custom_wave_frequency": self.custom_frequency_value,
+            }
+        )
+        self.configChanged.emit()
+        self._log("波形策略已恢复默认：智能分段 + Climax")
+        self._toast("已恢复默认", "当前编辑器已重置；波形库中的已保存文件会保留")
 
     @Slot()
     def clearLogs(self) -> None:
@@ -3148,7 +3864,10 @@ class ControlCenterBackend(V4DeviceBackend):
         connection_changed = False
         progress_changed = False
         try:
-            while True:
+            budget_deadline = time.perf_counter() + .004
+            for _ in range(64):
+                if time.perf_counter() >= budget_deadline:
+                    break
                 kind, payload = self.messages.get_nowait()
                 if kind == "game_process":
                     self._apply_game_process_result(payload)
@@ -3160,7 +3879,7 @@ class ControlCenterBackend(V4DeviceBackend):
                     else:
                         self.telemetry_status_value = str(payload)
                         self._log(str(payload))
-                elif kind == "telemetry":
+                elif kind in {"telemetry", "runtime_snapshot"}:
                     previous_status = (
                         bool(self.last_receive),
                         self.telemetry_status_value,
@@ -3179,7 +3898,12 @@ class ControlCenterBackend(V4DeviceBackend):
                         self.progress_editor_status_value,
                         bool(self.last_packet.get("paused", False)),
                     )
-                    self._on_telemetry(payload)
+                    if kind == "runtime_snapshot":
+                        if self.processor is not None and payload is not self.processor.latest:
+                            continue
+                        self._on_telemetry(payload.packet, payload)
+                    else:
+                        self._on_telemetry(payload)
                     status_changed |= previous_status != (
                         bool(self.last_receive),
                         self.telemetry_status_value,
@@ -3205,6 +3929,8 @@ class ControlCenterBackend(V4DeviceBackend):
                 elif kind == "progress_result":
                     self._on_progress_result(payload)
                     progress_changed = True
+                elif kind == "runtime_event":
+                    self._log(f"事件：{payload}")
                 elif kind == "dglab":
                     self._handle_dglab_event(payload)
                     status_changed = True
@@ -3227,8 +3953,9 @@ class ControlCenterBackend(V4DeviceBackend):
             self.stale_reported = True
             self.telemetry_status_value = "等待游戏数据"
             self._enter_safety_idle("telemetry-stale")
-            self._show_frame(self.engine.force_safe_cut("telemetry-stale"))
+            self._show_frame(self._mapping_engine().force_safe_cut("telemetry-stale"))
             self._log("安全归零：遥测中断")
+            self.sourceChanged.emit()
             status_changed = True
             output_changed = True
             progress_changed = True
@@ -3250,26 +3977,38 @@ class ControlCenterBackend(V4DeviceBackend):
 
         now = time.monotonic()
         live_due = now - self.ui_last_telemetry_emit >= 0.2
+        self.ui_pending["vitals"] |= vitals_changed
+        self.ui_pending["context"] |= context_changed
+        self.ui_pending["output"] |= output_changed
         emitted_live = False
         if self.ui_page_index == 4 and context_changed:
             self.contextChanged.emit()
         if self.ui_page_index == 0 and live_due:
-            if vitals_changed:
+            if self.ui_pending["vitals"]:
                 self.vitalsChanged.emit()
+                self.ui_pending["vitals"] = False
                 emitted_live = True
-            if context_changed:
+            if self.ui_pending["context"]:
                 self.contextChanged.emit()
+                self.ui_pending["context"] = False
                 emitted_live = True
-            if output_changed:
+            if self.ui_pending["output"]:
                 self.outputChanged.emit()
+                self.ui_pending["output"] = False
                 emitted_live = True
-        elif self.ui_page_index == 3 and context_changed:
+        elif self.ui_page_index == 3 and self.ui_pending["context"] and live_due:
             self.contextChanged.emit()
-        elif self.ui_page_index == 4 and output_changed and live_due:
+            self.ui_pending["context"] = False
+            emitted_live = True
+        elif self.ui_page_index == 4 and self.ui_pending["output"] and live_due:
             self.outputChanged.emit()
+            self.ui_pending["output"] = False
             emitted_live = True
         if emitted_live:
             self.ui_last_telemetry_emit = now
+        if self._logs_dirty:
+            self.logsChanged.emit()
+            self._logs_dirty = False
 
     @staticmethod
     def _wave_pulse(wave: WaveformPreset | None, output: float, now: float) -> float:
@@ -3305,7 +4044,7 @@ class ControlCenterBackend(V4DeviceBackend):
         packet = build_hud_v2(self.hud_sequence, self.hud_settings,
             visible=self.game_hud_enabled_value and fresh and str(self.last_packet.get("stage", "None")) not in {"", "None"},
             connected=(self.device_connected_value, self.ovc_connected), active=(active, ovc_active),
-            strengths=strengths, caps=(self.hard_cap_value, self.hard_cap_value, self.ovc_profile["hard_cap"], self.ovc_profile["hard_cap"]),
+            strengths=strengths, caps=(self.channelCapA, self.channelCapB, self.ovc_profile["hard_cap"], self.ovc_profile["hard_cap"]),
             pulses=(self._wave_pulse(self.current_wave_a, strengths[0], now), self._wave_pulse(self.current_wave_b, strengths[1], now), *vibration_pulses))
         try:
             self.hud_socket.sendto(packet, (UDP_HOST, HUD_PORT))
@@ -3315,17 +4054,28 @@ class ControlCenterBackend(V4DeviceBackend):
 
     def _handle_dglab_event(self, payload: dict) -> None:
         event = str(payload.get("event", ""))
+        if event == "playback":
+            self.waveChanged.emit()
+            self.outputChanged.emit()
+            return
         if event == "ready":
             self.server_ready_value = True
+            self.connection_error_value = ""
             address = f"{payload.get('lan_ip')}:{payload.get('port')}"
             self.lan_address_value = address
             if self.bridge is not None:
                 self.lan_addresses_value = list(self.bridge.available_lan_ips)
             self.device_status_value = "Socket 已就绪 · 等待手机扫码"
             if self.bridge is not None:
-                snapshot = self.bridge.snapshot()
-                self.qr_source_value = self._qr_data_url(snapshot.qr_url)
+                try:
+                    self.qr_source_value = self._qr_data_url(self.bridge.qr_url) if self.lan_addresses_value else ""
+                except Exception as error:
+                    self.qr_source_value = ""
+                    self.connection_error_value = "QR generation failed; refresh to retry" if self.language_name == "en" else "二维码生成失败，请点击刷新重试"
+                    self._log(f"QR generation failed: {type(error).__name__}")
             self._log(f"DG-LAB Socket 已就绪：{address}")
+        elif event == "port_changed":
+            self._log(f"端口 {payload.get('requested_port')} 不可用，已改用系统分配的可用端口")
         elif event == "connected":
             self.device_connected_value = True
             self.auto_output_enabled = self.socket_protocol == "v3"
@@ -3350,12 +4100,16 @@ class ControlCenterBackend(V4DeviceBackend):
             if message.startswith("strength-"):
                 self._log(f"设备强度反馈：{message}")
         elif event == "error":
+            self.server_ready_value = False
+            self.qr_source_value = ""
+            self.connection_error_value = "Socket unavailable; refresh to retry (details in event log)" if self.language_name == "en" else "Socket 启动失败，请刷新重试；详细原因见事件日志"
             self.device_status_value = "Socket 连接不可用"
             self._log(str(payload.get("detail", "未知 Socket 错误")))
 
-    def _on_telemetry(self, packet: dict) -> None:
+    def _on_telemetry(self, packet: dict, snapshot: OutputSnapshot | None = None) -> None:
         now = time.monotonic()
-        arrival = packet.get("_received_monotonic", now)
+        source_status_changed = not self.last_packet or self.stale_reported
+        arrival = snapshot.received_at if snapshot is not None else packet.get("_received_monotonic", now)
         received_at = float(arrival) if type(arrival) in (int,float) and math.isfinite(arrival) and 0 < arrival <= now else 0.0
         if now-received_at < .5 and received_at > self.coyote_resume_after:
             self.coyote_waiting_for_game = False
@@ -3372,7 +4126,9 @@ class ControlCenterBackend(V4DeviceBackend):
         if hud_version_changed:
             self.hudSettingsChanged.emit()
         self.stale_reported = False
-        frame = self.engine.evaluate(packet, dt)
+        if source_status_changed:
+            self.sourceChanged.emit()
+        frame = snapshot.frame if snapshot is not None else self._mapping_engine().evaluate(packet, dt)
         self.telemetry_status_value = "游戏已暂停" if frame.reason == "game-paused" else "实时连接"
         self.heart_rate_value = float(packet.get("heartRate", 0) or 0)
         self.alert_level_value = max(0.0, min(100.0, float(packet.get("maxNpcAlert", 0) or 0) * 100))
@@ -3396,14 +4152,14 @@ class ControlCenterBackend(V4DeviceBackend):
             self._enter_safety_idle(frame.reason)
         else:
             self._leave_safety_idle()
-        self._show_frame(frame)
+        self._show_frame(frame, snapshot)
         if self.action_value != self.last_action:
             action_title = "Action" if self.language_name == "en" else "动作"
             previous_label = action_label(self.last_action, self.language_name)
             current_label = action_label(self.action_value, self.language_name)
             self._log(f"{action_title}：{previous_label} → {current_label}")
             self.last_action = self.action_value
-        for event in frame.events:
+        for event in (() if snapshot is not None else frame.events):
             self._log(f"事件：{event}")
 
     def _on_progress_result(self, packet: dict) -> None:
@@ -3426,33 +4182,86 @@ class ControlCenterBackend(V4DeviceBackend):
             self._log("存档修改失败：" + message)
             self._toast("修改失败", message)
 
-    def _show_frame(self, frame: TriggerFrame) -> None:
+    def _show_frame(self, frame: TriggerFrame, snapshot: OutputSnapshot | None = None) -> None:
         self.current_source_frame = frame
         if (self.socket_protocol == "v4" and not self.demo_mode
                 and (self.coyote_waiting_for_game or not self.last_receive or time.monotonic() - self.last_receive >= .5)):
-            frame = self.engine.force_safe_cut("telemetry-stale")
-        frame = route_frame(frame, self.pulse_channel_sources_value)
+            frame = self._mapping_engine().force_safe_cut("telemetry-stale")
+        if snapshot is None and self.processor is None and self.channel_settings.mode == "legacy_v1":
+            frame = route_frame(frame, self.pulse_channel_sources_value)
         self.current_frame = frame
+        if snapshot is None and self.processor is not None and not frame.safe_cut:
+            snapshot = self.processor.latest
+        if snapshot is not None:
+            missing = {"A":snapshot.missing_a,"B":snapshot.missing_b}
+            if missing != self.missing_sources:
+                self.missing_sources = missing
+                self.sourceChanged.emit()
+            reasons = {"A":snapshot.reason_a,"B":snapshot.reason_b}
+            if reasons != self.wave_rule_reasons:
+                self.wave_rule_reasons = reasons
+                self.waveChanged.emit()
+            previous = (self.current_wave_a, self.current_wave_b)
+            self.current_wave_a, self.current_wave_b = snapshot.wave_a, snapshot.wave_b
+            self.current_output_a, self.current_output_b = snapshot.output_a, snapshot.output_b
+            if time.monotonic()-snapshot.received_at >= STALE_SECONDS or frame.safe_cut:
+                self.current_output_a = self.current_output_b = 0
+            if previous != (self.current_wave_a, self.current_wave_b):
+                self.waveChanged.emit()
+            if (self.socket_protocol == "v4" and self.bridge is not None and self.auto_output_enabled
+                    and not self.coyote_waiting_for_game and not frame.safe_cut
+                    and 0 <= time.monotonic()-snapshot.received_at < .5):
+                self.bridge.set_auto_enabled(True)
+            return
+        if self.processor is not None:
+            self.current_output_a = self.current_output_b = 0
+            return
         previous_wave_a = self.current_wave_a.key if self.current_wave_a else ""
         previous_wave_b = self.current_wave_b.key if self.current_wave_b else ""
-        custom = self._custom_waveform()
-        def select_wave(channel, pattern):
-            source = self.pulse_channel_sources_value[channel]
-            if self.wave_mode_value == "smart" and source == "action" and pattern == "action-ramp":
-                wave = self._waveform_from_key(self._selected_action_wave_key(self.action_value))
-                self.wave_selector.current[channel] = wave
-                self.wave_selector.pending[channel] = None
-                return wave
-            return self.wave_selector.select(channel,pattern,self.wave_mode_value,self.fixed_wave_value,self.wave_map_value,custom,
-                                             hold_changes=source == "heart")
-        wave_a,wave_b = select_wave("A",frame.pattern_a),select_wave("B",frame.pattern_b)
+        if frame.safe_cut:
+            self.preview_router.reset()
+            wave_a = wave_b = None
+            self.wave_rule_reasons = {"A":"stopped", "B":"stopped"}
+        elif self.channel_settings.mode == "legacy_v1":
+            custom = self._custom_waveform()
+            def select_wave(channel, pattern):
+                source = self.pulse_channel_sources_value[channel]
+                if self.wave_mode_value == "smart" and source == "action" and pattern == "action-ramp":
+                    wave = self._waveform_from_key(self._selected_action_wave_key(str((self.last_packet or {}).get("action", self.action_value))))
+                    self.wave_selector.current[channel] = wave
+                    self.wave_selector.pending[channel] = None
+                    return wave
+                return self.wave_selector.select(channel,pattern,self.wave_mode_value,self.fixed_wave_value,self.wave_map_value,custom,
+                                                 hold_changes=source == "heart",
+                                                 library={entry["key"]:self._waveform_from_key(entry["key"]) for entry in self.custom_wave_library_value})
+            wave_a,wave_b = select_wave("A",frame.pattern_a),select_wave("B",frame.pattern_b)
+        else:
+            selections = self.preview_router.evaluate(self.last_packet or {}, time.monotonic(),
+                lambda key,name: len(self._waveform_from_key(name).v3_frames())*.1 if self._waveform_from_key(name) else .1)
+            wave_a = self._waveform_from_key(selections["A"].wave)
+            wave_b = self._waveform_from_key(selections["B"].wave)
+            reasons = {key:selections[key].reason for key in "AB"}
+            if reasons != self.wave_rule_reasons:
+                self.wave_rule_reasons = reasons
+                self.waveChanged.emit()
         self.current_wave_a = wave_a
         self.current_wave_b = wave_b
         if previous_wave_a != (wave_a.key if wave_a else "") or previous_wave_b != (wave_b.key if wave_b else ""):
             self.waveChanged.emit()
-        self.current_output_a = frame.strength_a * wave_a.feel_scale if wave_a else 0.0
-        self.current_output_b = frame.strength_b * wave_b.feel_scale if wave_b else 0.0
-        if frame.safe_cut:
+        independent = self.channel_settings.mode == "independent"
+        self.current_output_a = frame.strength_a * (1 if independent else wave_a.feel_scale) if wave_a else 0.0
+        self.current_output_b = frame.strength_b * (1 if independent else wave_b.feel_scale) if wave_b else 0.0
+        if independent:
+            if frame.safe_cut:
+                self.channel_peak_limiter.reset()
+            for key, value in (("A", self.current_output_a), ("B", self.current_output_b)):
+                config = getattr(self.channel_settings, key)
+                limited = self.channel_peak_limiter.apply(key, 0 if frame.safe_cut else value,
+                    peak=getattr(frame, "pattern_"+key.lower()) == "peak", now=time.monotonic(),
+                    cap=min(config.hard_cap, self.channel_settings.global_cap),
+                    record=self.auto_output_enabled and self.device_connected_value)
+                setattr(self, "current_output_"+key.lower(), limited)
+        elif frame.safe_cut:
             self.peak_limiter.reset()
             self.current_output_a = 0.0
             self.current_output_b = 0.0
@@ -3471,6 +4280,10 @@ class ControlCenterBackend(V4DeviceBackend):
             # Do not count theoretical values while the device is disconnected
             # or manual output pause is active; the limiter follows real output.
             self.peak_limiter.reset()
+        for key in "AB":
+            config = getattr(self.channel_settings,key)
+            name = "current_output_"+key.lower()
+            setattr(self,name,min(getattr(self,name),config.hard_cap) if config.enabled else 0)
         if self.auto_output_enabled and self.bridge is not None:
             self.bridge.update_auto_outputs(
                 self.current_output_a if wave_a else 0,
@@ -3480,6 +4293,8 @@ class ControlCenterBackend(V4DeviceBackend):
                 frames_b=wave_b.v3_frames() if wave_b and self.current_output_b > 0 else (),
                 wave_key_b=wave_b.key if wave_b and self.current_output_b > 0 else "idle",
                 hard_cap=self.hard_cap_value,
+                cap_a=self.channel_settings.A.hard_cap,
+                cap_b=self.channel_settings.B.hard_cap,
             )
             if self.socket_protocol == "v4" and not self.coyote_waiting_for_game:
                 self.bridge.set_auto_enabled(True)
@@ -3532,10 +4347,11 @@ class ControlCenterBackend(V4DeviceBackend):
     def _log(self, text: str) -> None:
         self.log_lines.append(f"{time.strftime('%H:%M:%S')}  {text}")
         self.log_lines = self.log_lines[-300:]
-        self.logsChanged.emit()
+        self._logs_dirty = True
 
     @Slot()
     def shutdown(self) -> None:
+        self._file_closing = True
         self.poll_timer.stop()
         self._shutdown_device_support()
         self.auto_output_enabled = False
@@ -3549,5 +4365,6 @@ class ControlCenterBackend(V4DeviceBackend):
             self.hud_socket = None
         if self.worker is not None:
             self.worker.stop()
+            self.worker.join(timeout=1)
         if self.bridge is not None:
             self.bridge.stop()

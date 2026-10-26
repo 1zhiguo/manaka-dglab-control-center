@@ -1,0 +1,4341 @@
+{
+  "commit": "cde3df69872ad0dafe4e8f37a6eeff658b188875",
+  "source_sha256": "215a5eefbb0fefaa22c5c111d789dae856aa085434f69809f716d479c7bf449f",
+  "records": [
+    {
+      "packet": {
+        "sequence": 1,
+        "monotonicMs": 0,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 0.0,
+        "strength_b": 1.2,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 2,
+        "monotonicMs": 100,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 0.0,
+        "strength_b": 2.4,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 3,
+        "monotonicMs": 200,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 0.0,
+        "strength_b": 3.6,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 4,
+        "monotonicMs": 300,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 1.2,
+        "strength_b": 4.8,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 5,
+        "monotonicMs": 400,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 2.4,
+        "strength_b": 6.0,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 6,
+        "monotonicMs": 500,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 3.6,
+        "strength_b": 7.2,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=100.0 pulse=600ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 7,
+        "monotonicMs": 600,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 4.8,
+        "strength_b": 8.4,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=104.0 pulse=577ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 8,
+        "monotonicMs": 700,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 6.0,
+        "strength_b": 9.6,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=108.0 pulse=556ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 9,
+        "monotonicMs": 800,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 7.2,
+        "strength_b": 10.8,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=112.0 pulse=536ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 10,
+        "monotonicMs": 900,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 8.4,
+        "strength_b": 11.7,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=116.0 pulse=517ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 11,
+        "monotonicMs": 1000,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.6,
+        "strength_b": 12.5,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=120.0 pulse=500ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 12,
+        "monotonicMs": 1100,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 10.8,
+        "strength_b": 10.1,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=124.0 pulse=484ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 13,
+        "monotonicMs": 1200,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 7.7,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=128.0 pulse=469ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 14,
+        "monotonicMs": 1300,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 13.2,
+        "strength_b": 7.1,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=132.0 pulse=455ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 15,
+        "monotonicMs": 1400,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 7.9,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=136.0 pulse=441ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 16,
+        "monotonicMs": 1500,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 15.6,
+        "strength_b": 8.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 17,
+        "monotonicMs": 1600,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 9.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 18,
+        "monotonicMs": 1700,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.0,
+        "strength_b": 10.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 19,
+        "monotonicMs": 1800,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 11.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 20,
+        "monotonicMs": 1900,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.4,
+        "strength_b": 11.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 21,
+        "monotonicMs": 2000,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 12.5,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 22,
+        "monotonicMs": 2100,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.8,
+        "strength_b": 13.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 23,
+        "monotonicMs": 2200,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 10.8,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 24,
+        "monotonicMs": 2300,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 8.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 25,
+        "monotonicMs": 2400,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 7.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 26,
+        "monotonicMs": 2500,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 7.1,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 27,
+        "monotonicMs": 2600,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 7.8,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 28,
+        "monotonicMs": 2700,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 8.5,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 29,
+        "monotonicMs": 2800,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 9.2,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 30,
+        "monotonicMs": 2900,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 10.0,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 31,
+        "monotonicMs": 3000,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.8,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": true,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=100.0 pulse=600ms",
+        "events": [
+          "peak-edge"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 32,
+        "monotonicMs": 3100,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.9,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=104.0 pulse=577ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 33,
+        "monotonicMs": 3200,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 1.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=108.0 pulse=556ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 34,
+        "monotonicMs": 3300,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=112.0 pulse=536ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 35,
+        "monotonicMs": 3400,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.1,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=116.0 pulse=517ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 36,
+        "monotonicMs": 3500,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.2,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=120.0 pulse=500ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 37,
+        "monotonicMs": 3600,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.3,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=124.0 pulse=484ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 38,
+        "monotonicMs": 3700,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.4,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=128.0 pulse=469ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 39,
+        "monotonicMs": 3800,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.5,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=132.0 pulse=455ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 40,
+        "monotonicMs": 3900,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.6,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=136.0 pulse=441ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 41,
+        "monotonicMs": 4000,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=0.700",
+        "events": [
+          "action-start:OnaniNormal"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 42,
+        "monotonicMs": 4100,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 43,
+        "monotonicMs": 4200,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 44,
+        "monotonicMs": 4300,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 13.1,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 45,
+        "monotonicMs": 4400,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 10.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 46,
+        "monotonicMs": 4500,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 8.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 47,
+        "monotonicMs": 4600,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 7.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 48,
+        "monotonicMs": 4700,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 8.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 49,
+        "monotonicMs": 4800,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 9.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 50,
+        "monotonicMs": 4900,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 9.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 51,
+        "monotonicMs": 5000,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 9.2,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 52,
+        "monotonicMs": 5100,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 9.9,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 53,
+        "monotonicMs": 5200,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 10.6,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 54,
+        "monotonicMs": 5300,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 11.3,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 55,
+        "monotonicMs": 5400,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 12.1,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 56,
+        "monotonicMs": 5500,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.6,
+        "strength_b": 9.7,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=100.0 pulse=600ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 57,
+        "monotonicMs": 5600,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 8.8,
+        "strength_b": 7.3,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=104.0 pulse=577ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 58,
+        "monotonicMs": 5700,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.9,
+        "strength_b": 6.7,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=108.0 pulse=556ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 59,
+        "monotonicMs": 5800,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 11.0,
+        "strength_b": 7.5,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=112.0 pulse=536ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 60,
+        "monotonicMs": 5900,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.1,
+        "strength_b": 8.2,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=116.0 pulse=517ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 61,
+        "monotonicMs": 6000,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 13.1,
+        "strength_b": 9.0,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=120.0 pulse=500ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 62,
+        "monotonicMs": 6100,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.2,
+        "strength_b": 9.8,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=124.0 pulse=484ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 63,
+        "monotonicMs": 6200,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 15.3,
+        "strength_b": 10.5,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=128.0 pulse=469ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 64,
+        "monotonicMs": 6300,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.4,
+        "strength_b": 11.3,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=132.0 pulse=455ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 65,
+        "monotonicMs": 6400,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 17.5,
+        "strength_b": 12.1,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=136.0 pulse=441ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 66,
+        "monotonicMs": 6500,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.6,
+        "strength_b": 12.8,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 67,
+        "monotonicMs": 6600,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.7,
+        "strength_b": 10.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 68,
+        "monotonicMs": 6700,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.7,
+        "strength_b": 8.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 69,
+        "monotonicMs": 6800,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 7.5,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 70,
+        "monotonicMs": 6900,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 8.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 71,
+        "monotonicMs": 7000,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.4,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 5.9,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=160.0 pulse=375ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 72,
+        "monotonicMs": 7100,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.5,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 3.5,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=164.0 pulse=366ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 73,
+        "monotonicMs": 7200,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.6,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 1.1,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=168.0 pulse=357ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 74,
+        "monotonicMs": 7300,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.7,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=172.0 pulse=349ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 75,
+        "monotonicMs": 7400,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.8,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=176.0 pulse=341ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 76,
+        "monotonicMs": 7500,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.9,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 0.0,
+        "pattern_a": "idle",
+        "pattern_b": "idle",
+        "reason": "heart-below-threshold bpm=80.0",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 77,
+        "monotonicMs": 7600,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 1.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 0.0,
+        "pattern_a": "idle",
+        "pattern_b": "idle",
+        "reason": "heart-below-threshold bpm=84.0",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 78,
+        "monotonicMs": 7700,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 0.0,
+        "pattern_a": "idle",
+        "pattern_b": "idle",
+        "reason": "heart-below-threshold bpm=88.0",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 79,
+        "monotonicMs": 7800,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.1,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "idle",
+        "reason": "bpm=92.0 pulse=652ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 80,
+        "monotonicMs": 7900,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.2,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "idle",
+        "reason": "bpm=96.0 pulse=625ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 81,
+        "monotonicMs": 8000,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.6,
+        "strength_b": 1.2,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=100.0 pulse=600ms action=OnaniNormal ecstasy=0.300",
+        "events": [
+          "action-start:OnaniNormal"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 82,
+        "monotonicMs": 8100,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 8.8,
+        "strength_b": 2.4,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=104.0 pulse=577ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 83,
+        "monotonicMs": 8200,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.9,
+        "strength_b": 3.6,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=108.0 pulse=556ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 84,
+        "monotonicMs": 8300,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 11.0,
+        "strength_b": 4.8,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=112.0 pulse=536ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 85,
+        "monotonicMs": 8400,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.1,
+        "strength_b": 6.0,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=116.0 pulse=517ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 86,
+        "monotonicMs": 8500,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 13.1,
+        "strength_b": 7.2,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=120.0 pulse=500ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 87,
+        "monotonicMs": 8600,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.2,
+        "strength_b": 8.4,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=124.0 pulse=484ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 88,
+        "monotonicMs": 8700,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 15.3,
+        "strength_b": 9.6,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=128.0 pulse=469ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 89,
+        "monotonicMs": 8800,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.4,
+        "strength_b": 7.2,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=132.0 pulse=455ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 90,
+        "monotonicMs": 8900,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 17.5,
+        "strength_b": 6.5,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=136.0 pulse=441ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 91,
+        "monotonicMs": 9000,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.6,
+        "strength_b": 7.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 92,
+        "monotonicMs": 9100,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.7,
+        "strength_b": 8.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 93,
+        "monotonicMs": 9200,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.7,
+        "strength_b": 8.8,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 94,
+        "monotonicMs": 9300,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 9.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 95,
+        "monotonicMs": 9400,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 10.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 96,
+        "monotonicMs": 9500,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": true,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=0.700",
+        "events": [
+          "peak-edge"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 97,
+        "monotonicMs": 9600,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 98,
+        "monotonicMs": 9700,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 99,
+        "monotonicMs": 9800,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 100,
+        "monotonicMs": 9900,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 101,
+        "monotonicMs": 10000,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 102,
+        "monotonicMs": 10100,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 103,
+        "monotonicMs": 10200,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 104,
+        "monotonicMs": 10300,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 105,
+        "monotonicMs": 10400,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 106,
+        "monotonicMs": 10500,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=100.0 pulse=600ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 107,
+        "monotonicMs": 10600,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=104.0 pulse=577ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 108,
+        "monotonicMs": 10700,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=108.0 pulse=556ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 109,
+        "monotonicMs": 10800,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 11.0,
+        "strength_b": 11.7,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=112.0 pulse=536ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 110,
+        "monotonicMs": 10900,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.1,
+        "strength_b": 12.4,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=116.0 pulse=517ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 111,
+        "monotonicMs": 11000,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 13.1,
+        "strength_b": 10.0,
+        "pattern_a": "heartbeat",
+        "pattern_b": "idle",
+        "reason": "bpm=120.0 pulse=500ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 112,
+        "monotonicMs": 11100,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.1,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.2,
+        "strength_b": 7.6,
+        "pattern_a": "heartbeat",
+        "pattern_b": "idle",
+        "reason": "bpm=124.0 pulse=484ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 113,
+        "monotonicMs": 11200,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.2,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 15.3,
+        "strength_b": 5.2,
+        "pattern_a": "heartbeat",
+        "pattern_b": "idle",
+        "reason": "bpm=128.0 pulse=469ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 114,
+        "monotonicMs": 11300,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.3,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.4,
+        "strength_b": 2.8,
+        "pattern_a": "heartbeat",
+        "pattern_b": "idle",
+        "reason": "bpm=132.0 pulse=455ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 115,
+        "monotonicMs": 11400,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.4,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 17.5,
+        "strength_b": 0.4,
+        "pattern_a": "heartbeat",
+        "pattern_b": "idle",
+        "reason": "bpm=136.0 pulse=441ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 116,
+        "monotonicMs": 11500,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.5,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.6,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=140.0 pulse=429ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 117,
+        "monotonicMs": 11600,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.6,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.7,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=144.0 pulse=417ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 118,
+        "monotonicMs": 11700,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.7,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.7,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=148.0 pulse=405ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 119,
+        "monotonicMs": 11800,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.8,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=152.0 pulse=395ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 120,
+        "monotonicMs": 11900,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.9,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 0.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "idle",
+        "reason": "bpm=156.0 pulse=385ms",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 121,
+        "monotonicMs": 12000,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 1.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=1.000",
+        "events": [
+          "action-start:OnaniNormal"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 122,
+        "monotonicMs": 12100,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 2.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 123,
+        "monotonicMs": 12200,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 3.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 124,
+        "monotonicMs": 12300,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 4.8,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 125,
+        "monotonicMs": 12400,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 6.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 126,
+        "monotonicMs": 12500,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 7.2,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 127,
+        "monotonicMs": 12600,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 8.4,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 128,
+        "monotonicMs": 12700,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 9.2,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 129,
+        "monotonicMs": 12800,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 9.9,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 130,
+        "monotonicMs": 12900,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 10.7,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    },
+    {
+      "packet": {
+        "sequence": 131,
+        "monotonicMs": 13000,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.6,
+        "strength_b": 11.4,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=100.0 pulse=600ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 600
+      }
+    },
+    {
+      "packet": {
+        "sequence": 132,
+        "monotonicMs": 13100,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 8.8,
+        "strength_b": 12.2,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=104.0 pulse=577ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 577
+      }
+    },
+    {
+      "packet": {
+        "sequence": 133,
+        "monotonicMs": 13200,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 9.9,
+        "strength_b": 9.8,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=108.0 pulse=556ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 556
+      }
+    },
+    {
+      "packet": {
+        "sequence": 134,
+        "monotonicMs": 13300,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 11.0,
+        "strength_b": 7.4,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=112.0 pulse=536ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 536
+      }
+    },
+    {
+      "packet": {
+        "sequence": 135,
+        "monotonicMs": 13400,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.1,
+        "strength_b": 6.9,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=116.0 pulse=517ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 517
+      }
+    },
+    {
+      "packet": {
+        "sequence": 136,
+        "monotonicMs": 13500,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 13.1,
+        "strength_b": 7.6,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=120.0 pulse=500ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 137,
+        "monotonicMs": 13600,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.2,
+        "strength_b": 8.4,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=124.0 pulse=484ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 138,
+        "monotonicMs": 13700,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 15.3,
+        "strength_b": 9.2,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=128.0 pulse=469ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 139,
+        "monotonicMs": 13800,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.4,
+        "strength_b": 9.9,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=132.0 pulse=455ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 140,
+        "monotonicMs": 13900,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 17.5,
+        "strength_b": 10.7,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=136.0 pulse=441ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 141,
+        "monotonicMs": 14000,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.6,
+        "strength_b": 11.5,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 142,
+        "monotonicMs": 14100,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.7,
+        "strength_b": 12.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 143,
+        "monotonicMs": 14200,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.7,
+        "strength_b": 13.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 144,
+        "monotonicMs": 14300,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 10.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 145,
+        "monotonicMs": 14400,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 8.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 146,
+        "monotonicMs": 14500,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 7.6,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 147,
+        "monotonicMs": 14600,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 8.3,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 148,
+        "monotonicMs": 14700,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 9.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 149,
+        "monotonicMs": 14800,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 9.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 150,
+        "monotonicMs": 14900,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 10.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 151,
+        "monotonicMs": 15000,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 0.7,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [
+          "evacuation-failed",
+          "failure-climax"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 152,
+        "monotonicMs": 15100,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.8,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 153,
+        "monotonicMs": 15200,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.9,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 154,
+        "monotonicMs": 15300,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 1.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 155,
+        "monotonicMs": 15400,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.0,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 156,
+        "monotonicMs": 15500,
+        "stage": "Residence",
+        "heartRate": 100,
+        "ecstasy": 0.1,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 157,
+        "monotonicMs": 15600,
+        "stage": "Residence",
+        "heartRate": 104,
+        "ecstasy": 0.2,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 158,
+        "monotonicMs": 15700,
+        "stage": "Residence",
+        "heartRate": 108,
+        "ecstasy": 0.3,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 159,
+        "monotonicMs": 15800,
+        "stage": "Residence",
+        "heartRate": 112,
+        "ecstasy": 0.4,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 160,
+        "monotonicMs": 15900,
+        "stage": "Residence",
+        "heartRate": 116,
+        "ecstasy": 0.5,
+        "action": "None",
+        "playingAction": false,
+        "orgasm": false,
+        "gameOver": true
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "evacuation-failed-punishment",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 161,
+        "monotonicMs": 16000,
+        "stage": "Residence",
+        "heartRate": 120,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=120.0 pulse=500ms action=OnaniNormal ecstasy=0.600",
+        "events": [
+          "action-start:OnaniNormal"
+        ],
+        "safe_cut": false,
+        "pulse_interval_ms": 500
+      }
+    },
+    {
+      "packet": {
+        "sequence": 162,
+        "monotonicMs": 16100,
+        "stage": "Residence",
+        "heartRate": 124,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=124.0 pulse=484ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 484
+      }
+    },
+    {
+      "packet": {
+        "sequence": 163,
+        "monotonicMs": 16200,
+        "stage": "Residence",
+        "heartRate": 128,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 30.0,
+        "strength_b": 30.0,
+        "pattern_a": "peak",
+        "pattern_b": "peak",
+        "reason": "bpm=128.0 pulse=469ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 469
+      }
+    },
+    {
+      "packet": {
+        "sequence": 164,
+        "monotonicMs": 16300,
+        "stage": "Residence",
+        "heartRate": 132,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.4,
+        "strength_b": 12.0,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=132.0 pulse=455ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 455
+      }
+    },
+    {
+      "packet": {
+        "sequence": 165,
+        "monotonicMs": 16400,
+        "stage": "Residence",
+        "heartRate": 136,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 17.5,
+        "strength_b": 12.8,
+        "pattern_a": "heartbeat",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=136.0 pulse=441ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 441
+      }
+    },
+    {
+      "packet": {
+        "sequence": 166,
+        "monotonicMs": 16500,
+        "stage": "Residence",
+        "heartRate": 140,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 18.6,
+        "strength_b": 10.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=140.0 pulse=429ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 429
+      }
+    },
+    {
+      "packet": {
+        "sequence": 167,
+        "monotonicMs": 16600,
+        "stage": "Residence",
+        "heartRate": 144,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.7,
+        "strength_b": 8.0,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=144.0 pulse=417ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 417
+      }
+    },
+    {
+      "packet": {
+        "sequence": 168,
+        "monotonicMs": 16700,
+        "stage": "Residence",
+        "heartRate": 148,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 20.7,
+        "strength_b": 7.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=148.0 pulse=405ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 405
+      }
+    },
+    {
+      "packet": {
+        "sequence": 169,
+        "monotonicMs": 16800,
+        "stage": "Residence",
+        "heartRate": 152,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.8,
+        "strength_b": 8.2,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=152.0 pulse=395ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 395
+      }
+    },
+    {
+      "packet": {
+        "sequence": 170,
+        "monotonicMs": 16900,
+        "stage": "Residence",
+        "heartRate": 156,
+        "ecstasy": 0.4,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 22.9,
+        "strength_b": 8.9,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=156.0 pulse=385ms action=OnaniNormal ecstasy=0.400",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 385
+      }
+    },
+    {
+      "packet": {
+        "sequence": 171,
+        "monotonicMs": 17000,
+        "stage": "Residence",
+        "heartRate": 160,
+        "ecstasy": 0.5,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 9.7,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=160.0 pulse=375ms action=OnaniNormal ecstasy=0.500",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 375
+      }
+    },
+    {
+      "packet": {
+        "sequence": 172,
+        "monotonicMs": 17100,
+        "stage": "Residence",
+        "heartRate": 164,
+        "ecstasy": 0.6,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 10.4,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=164.0 pulse=366ms action=OnaniNormal ecstasy=0.600",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 366
+      }
+    },
+    {
+      "packet": {
+        "sequence": 173,
+        "monotonicMs": 17200,
+        "stage": "Residence",
+        "heartRate": 168,
+        "ecstasy": 0.7,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 11.1,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=168.0 pulse=357ms action=OnaniNormal ecstasy=0.700",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 357
+      }
+    },
+    {
+      "packet": {
+        "sequence": 174,
+        "monotonicMs": 17300,
+        "stage": "Residence",
+        "heartRate": 172,
+        "ecstasy": 0.8,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 11.8,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=172.0 pulse=349ms action=OnaniNormal ecstasy=0.800",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 349
+      }
+    },
+    {
+      "packet": {
+        "sequence": 175,
+        "monotonicMs": 17400,
+        "stage": "Residence",
+        "heartRate": 176,
+        "ecstasy": 0.9,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 24.0,
+        "strength_b": 12.5,
+        "pattern_a": "heartbeat-fast",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=176.0 pulse=341ms action=OnaniNormal ecstasy=0.900",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 341
+      }
+    },
+    {
+      "packet": {
+        "sequence": 176,
+        "monotonicMs": 17500,
+        "stage": "Residence",
+        "heartRate": 80,
+        "ecstasy": 1.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 21.6,
+        "strength_b": 12.0,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=80.0 pulse=0ms action=OnaniNormal ecstasy=1.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 177,
+        "monotonicMs": 17600,
+        "stage": "Residence",
+        "heartRate": 84,
+        "ecstasy": 0.0,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 19.2,
+        "strength_b": 9.6,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=84.0 pulse=0ms action=OnaniNormal ecstasy=0.000",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 178,
+        "monotonicMs": 17700,
+        "stage": "Residence",
+        "heartRate": 88,
+        "ecstasy": 0.1,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 16.8,
+        "strength_b": 7.2,
+        "pattern_a": "idle",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=88.0 pulse=0ms action=OnaniNormal ecstasy=0.100",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 0
+      }
+    },
+    {
+      "packet": {
+        "sequence": 179,
+        "monotonicMs": 17800,
+        "stage": "Residence",
+        "heartRate": 92,
+        "ecstasy": 0.2,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 14.4,
+        "strength_b": 6.4,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=92.0 pulse=652ms action=OnaniNormal ecstasy=0.200",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 652
+      }
+    },
+    {
+      "packet": {
+        "sequence": 180,
+        "monotonicMs": 17900,
+        "stage": "Residence",
+        "heartRate": 96,
+        "ecstasy": 0.3,
+        "action": "OnaniNormal",
+        "playingAction": true,
+        "orgasm": false,
+        "gameOver": false
+      },
+      "dt": 0.1,
+      "frame": {
+        "strength_a": 12.0,
+        "strength_b": 7.2,
+        "pattern_a": "heartbeat-soft",
+        "pattern_b": "action-ramp",
+        "reason": "bpm=96.0 pulse=625ms action=OnaniNormal ecstasy=0.300",
+        "events": [],
+        "safe_cut": false,
+        "pulse_interval_ms": 625
+      }
+    }
+  ]
+}

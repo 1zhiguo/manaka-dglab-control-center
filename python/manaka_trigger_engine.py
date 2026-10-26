@@ -50,7 +50,7 @@ class RollingPeakLimiter:
     ) -> tuple[float, float, float | None]:
         cutoff = int(now_ms) - self.window_ms
         self.history = [sample for sample in self.history if sample[0] >= cutoff]
-        hard_cap = clamp(float(hard_cap), 0.0, 100.0)
+        hard_cap = clamp(float(hard_cap), 0.0, 200.0)
         output_a = clamp(float(output_a), 0.0, hard_cap)
         output_b = clamp(float(output_b), 0.0, hard_cap)
         if peak_active:
@@ -86,7 +86,7 @@ class ManakaTriggerEngine:
         trigger_bpm: float = 90.0,
         full_bpm: float = 160.0,
     ) -> None:
-        self.hard_cap = clamp(max_strength, 1.0, 100.0)
+        self.hard_cap = clamp(max_strength, 1.0, 200.0)
         self.min_strength = 0.0
         self.output_max = self.hard_cap
         self.trigger_bpm = 90.0
@@ -98,6 +98,7 @@ class ManakaTriggerEngine:
             trigger_bpm=trigger_bpm,
             full_bpm=full_bpm,
         )
+        self.channel_caps = None
         self.output_a = 0.0
         self.output_b = 0.0
         self.has_baseline = False
@@ -116,7 +117,7 @@ class ManakaTriggerEngine:
 
     @max_strength.setter
     def max_strength(self, value: float) -> None:
-        self.hard_cap = clamp(float(value), 1.0, 100.0)
+        self.hard_cap = clamp(float(value), 1.0, 200.0)
         self.min_strength = min(self.min_strength, self.output_max)
 
     def configure(
@@ -128,8 +129,8 @@ class ManakaTriggerEngine:
         trigger_bpm: float,
         full_bpm: float,
     ) -> None:
-        hard_cap = clamp(float(hard_cap), 1.0, 100.0)
-        output_max = clamp(float(output_max), 0.0, 100.0)
+        hard_cap = clamp(float(hard_cap), 1.0, 200.0)
+        output_max = clamp(float(output_max), 0.0, 200.0)
         min_strength = clamp(float(min_strength), 0.0, output_max)
         trigger_bpm = clamp(float(trigger_bpm), 40.0, 159.0)
         full_bpm = clamp(float(full_bpm), trigger_bpm + 1.0, 160.0)
@@ -163,6 +164,7 @@ class ManakaTriggerEngine:
         return max(target, current - step)
 
     def evaluate(self, packet: dict, dt: float = 0.1) -> TriggerFrame:
+        cap_a, cap_b = self.channel_caps or (self.hard_cap, self.hard_cap)
         action = self._action_name(packet)
         action_active = self._is_action_active(packet, action)
         stage = str(packet.get("stage", "None") or "None")
@@ -194,8 +196,8 @@ class ManakaTriggerEngine:
 
         failure_peak_active = game_over and now_ms < self.peak_active_until_ms
         if failure_peak_active and not system_menu_open:
-            self.output_a = self.hard_cap
-            self.output_b = self.hard_cap
+            self.output_a = cap_a
+            self.output_b = cap_b
             self.was_peak_active = True
             self.previous_game_over = True
             self.previous_orgasm = False
@@ -286,16 +288,16 @@ class ManakaTriggerEngine:
 
         peak_active = now_ms < self.peak_active_until_ms
         if peak_active:
-            target_a = self.hard_cap
-            target_b = self.hard_cap
+            target_a = cap_a
+            target_b = cap_b
             pattern_a = "peak"
             pattern_b = "peak"
 
-        target_a = clamp(target_a, 0.0, self.hard_cap)
-        target_b = clamp(target_b, 0.0, self.hard_cap)
+        target_a = clamp(target_a, 0.0, cap_a)
+        target_b = clamp(target_b, 0.0, cap_b)
         if peak_active:
-            self.output_a = self.hard_cap
-            self.output_b = self.hard_cap
+            self.output_a = cap_a
+            self.output_b = cap_b
             self.was_peak_active = True
         elif self.was_peak_active:
             # Do not let the hard-cap climax level bleed into the ordinary

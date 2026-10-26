@@ -1,8 +1,9 @@
 import QtQuick
+import "components" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
+UI.Dialog {
     id: dialog
     objectName: "hudSettingsDialog"
     popupType: Popup.Item
@@ -26,7 +27,7 @@ Dialog {
         Slider{from:minimum;to:maximum;stepSize:step;value:dialog.draft[optionKey]||0;Layout.fillWidth:true;onMoved:dialog.change(optionKey,Math.round(value))}
         Label{text:(dialog.draft[optionKey]||0)+"%";color:dialog.theme.muted;Layout.preferredWidth:44;horizontalAlignment:Text.AlignRight}
     }
-    component Option: CheckBox {
+    component Option: UI.CheckBox {
         required property string optionKey
         checked:dialog.draft[optionKey]||false
         onClicked:dialog.change(optionKey,checked)
@@ -34,7 +35,7 @@ Dialog {
     }
     contentItem:ColumnLayout {
         spacing:14
-        RowLayout {Layout.fillWidth:true;Label{text:dialog.tr("HUD 显示设置","HUD Display Settings");color:dialog.theme.fg;font.pixelSize:22;font.bold:true;Layout.fillWidth:true} Button{text:dialog.tr("关闭","Close");onClicked:dialog.close()}}
+        RowLayout {Layout.fillWidth:true;Label{text:dialog.tr("HUD 显示设置","HUD Display Settings");color:dialog.theme.fg;font.pixelSize:22;font.bold:true;Layout.fillWidth:true} UI.Button {text:dialog.tr("关闭","Close");onClicked:dialog.close()}}
         ScrollView {
             Layout.fillWidth:true;Layout.fillHeight:true;clip:true;contentWidth:availableWidth
             ColumnLayout {
@@ -64,10 +65,10 @@ Dialog {
             }
         }
         RowLayout{Layout.fillWidth:true
-            Button{text:dialog.tr("恢复默认","Defaults");onClicked:dialog.draft={scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true}}
+            UI.Button {text:dialog.tr("恢复默认","Defaults");onClicked:dialog.draft={scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true}}
             Item{Layout.fillWidth:true}
-            Button{text:dialog.tr("取消","Cancel");onClicked:dialog.close()}
-            Button{text:dialog.tr("应用并保存","Apply & Save");enabled:(dialog.draft.show_pulse||dialog.draft.show_ovc)&&(dialog.draft.show_a||dialog.draft.show_b);onClicked:if(backend.saveHudSettings(dialog.draft))dialog.close()}
+            UI.Button {text:dialog.tr("取消","Cancel");onClicked:dialog.close()}
+            UI.Button {text:dialog.tr("应用并保存","Apply & Save");enabled:(dialog.draft.show_pulse||dialog.draft.show_ovc)&&(dialog.draft.show_a||dialog.draft.show_b);onClicked:if(backend.saveHudSettings(dialog.draft))dialog.close()}
         }
     }
 }

@@ -47,7 +47,7 @@ class DeviceStandbyTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         for context in (patch.object(module, "app_data_dir", return_value=Path(directory.name)),
-                        patch.object(module, "load_config", return_value={"language":"en"})):
+                        patch.object(module, "load_config", return_value={"language":"en", "hard_cap":30})):
             context.start(); self.addCleanup(context.stop)
         self.b = module.ControlCenterBackend(demo=True, language="en")
         self.b.poll_timer.stop()

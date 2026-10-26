@@ -1,4 +1,5 @@
 import QtQuick
+import "components" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -120,8 +121,8 @@ Item {
                             }
                         }
                         RowLayout {visible:page.ready&&page.draft.mode==="sync";Layout.fillWidth:true
-                            CheckBox {text:page.tr("A 配件","Accessory A");checked:page.ready&&page.draft.channels.A.enabled;onClicked:{page.channel="A";page.setPolicy("enabled",checked)}}
-                            CheckBox {text:page.tr("B 配件","Accessory B");checked:page.ready&&page.draft.channels.B.enabled;onClicked:{page.channel="B";page.setPolicy("enabled",checked)}}
+                            UI.CheckBox {text:page.tr("A 配件","Accessory A");checked:page.ready&&page.draft.channels.A.enabled;onClicked:{page.channel="A";page.setPolicy("enabled",checked)}}
+                            UI.CheckBox {text:page.tr("B 配件","Accessory B");checked:page.ready&&page.draft.channels.B.enabled;onClicked:{page.channel="B";page.setPolicy("enabled",checked)}}
                             Item {Layout.fillWidth:true}
                             Label {text:page.tr("游戏关闭 = 0","Game Off = zero");color:page.theme.muted;font.pixelSize:12}
                         }
