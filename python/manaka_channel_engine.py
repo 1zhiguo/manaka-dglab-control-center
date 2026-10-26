@@ -151,7 +151,7 @@ def migrate_settings(saved):
     """Old settings retain the old engine until the user explicitly switches."""
     if "channel_mapping" in saved:
         return MappingSettings.parse(saved["channel_mapping"])
-    if not any(key in saved for key in ("hard_cap", "min_strength", "output_max", "trigger_bpm", "full_bpm")):
+    if not any(key in saved for key in ("hard_cap", "min_strength", "output_max", "trigger_bpm", "full_bpm", "pulse_channel_sources")):
         return MappingSettings(
             A=ChannelSettings(device="vibrator", bindings=(Binding(source="device"),)),
             B=ChannelSettings(device="piston", bindings=(Binding(source="device"),)))

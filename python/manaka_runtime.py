@@ -12,6 +12,7 @@ from manaka_trigger_engine import ManakaTriggerEngine, RollingPeakLimiter, Trigg
 from manaka_waveforms import PRESETS, WaveformPreset, WaveformSelector, recommended_wave_for_action
 from manaka_wave_rules import WavePolicy, WaveRouter, migrate_policy, Selection
 from manaka_telemetry_schema import detections
+from manaka_pulse_routing import route_frame
 
 
 class DisplayMailbox:
@@ -70,6 +71,7 @@ class RuntimeConfig:
     action_map: tuple = ()
     library: tuple = ()
     wave_policy: WavePolicy | None = None
+    pulse_sources: tuple = (("A", "heart"), ("B", "action"))
 
 
 @dataclass(frozen=True)
@@ -139,6 +141,15 @@ class RealtimeProcessor:
             self.latest = None
             self.bridge.zero_output()
 
+    def set_bridge(self, bridge):
+        """Retire the old transport under the same lock as packet processing."""
+        with self.lock:
+            self.bridge.zero_output()
+            self.bridge = bridge
+            self.latest = None
+            self.active_state = False
+            self._reset()
+
     def _wave(self, key):
         if key == "off":
             return None
@@ -149,16 +160,17 @@ class RealtimeProcessor:
     def _legacy_selections(self, frame, packet, now):
         config = self.config
         waves = {}
-        waves["A"] = self.legacy_selector.select("A", frame.pattern_a, config.wave_mode,
-            config.fixed_wave, dict(config.wave_map), config.custom, now=now, library=self.library)
-        if config.wave_mode == "smart" and frame.pattern_b == "action-ramp":
-            action = str(packet.get("action", "None"))
-            waves["B"] = self._wave(dict(config.action_map).get(action, recommended_wave_for_action(action)))
-            self.legacy_selector.current["B"] = waves["B"]
-            self.legacy_selector.pending["B"] = None
-        else:
-            waves["B"] = self.legacy_selector.select("B", frame.pattern_b, config.wave_mode,
-                config.fixed_wave, dict(config.wave_map), config.custom, now=now, library=self.library)
+        for key, source in config.pulse_sources:
+            pattern = getattr(frame, "pattern_"+key.lower())
+            if config.wave_mode == "smart" and source == "action" and pattern == "action-ramp":
+                action = str(packet.get("action", "None"))
+                waves[key] = self._wave(dict(config.action_map).get(action, recommended_wave_for_action(action)))
+                self.legacy_selector.current[key] = waves[key]
+                self.legacy_selector.pending[key] = None
+            else:
+                waves[key] = self.legacy_selector.select(key, pattern, config.wave_mode,
+                    config.fixed_wave, dict(config.wave_map), config.custom, now=now,
+                    library=self.library, hold_changes=source == "heart")
         result = {}
         for key, wave in waves.items():
             identity = (wave.key if wave else "off", self.engine.peak_active_until_ms if wave and wave.key == "climax" else 0)
@@ -231,7 +243,7 @@ class RealtimeProcessor:
         else:
             # Original gameplay: unchanged ordinary curves, original event
             # timing/cooldown and waveform selector, with separate final caps.
-            frame = self.engine.evaluate(packet, dt)
+            frame = route_frame(self.engine.evaluate(packet, dt), dict(self.config.pulse_sources))
             selections = self._legacy_selections(frame, packet, received_at)
         if frame.safe_cut:
             self.router.reset()

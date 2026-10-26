@@ -29,9 +29,10 @@ $npcSubtitleProfiles = Join-Path $root 'manaka_npc_voices\SubtitleProfiles'
 $npcVoiceReadme = Join-Path $root 'manaka_npc_voices\VOICE_PACK_README.txt'
 $npcVoicePayload = Join-Path $root 'build\npc_voice_payload'
 $dropInTemplate = Join-Path $root 'dropin_mods'
+$buildVersion = (Get-Content -LiteralPath $appVersionFile -Raw).Trim()
+if (-not $buildVersion) { throw 'VERSION must not be empty.' }
+$releaseNotes = Join-Path $root "docs\RELEASE_v$buildVersion.md"
 if (-not $DistPath) {
-    $buildVersion = (Get-Content -LiteralPath $appVersionFile -Raw).Trim()
-    if (-not $buildVersion) { throw 'VERSION must not be empty.' }
     $DistPath = Join-Path $root "release\build-$buildVersion-qml"
 }
 elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
@@ -39,7 +40,7 @@ elseif (-not [System.IO.Path]::IsPathRooted($DistPath)) {
 }
 $portable = Join-Path $DistPath 'ManakaQmlControlCenter'
 
-foreach ($required in @($python, $entry, $qml, $channelQml, $waveQml, $gameplayQml, $previewQml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $npcVoiceCore, $npcVoiceBridge, $npcVoicePacks, $npcSubtitleLines, $npcSubtitleProfiles, $npcVoiceReadme, $dropInTemplate)) {
+foreach ($required in @($python, $entry, $qml, $channelQml, $waveQml, $gameplayQml, $previewQml, $qmlAssets, $appVersionFile, $appIconPng, $appIconIco, $plugin, $bepinexPayload, $guideAssets, $npcVoiceCore, $npcVoiceBridge, $npcVoicePacks, $npcSubtitleLines, $npcSubtitleProfiles, $npcVoiceReadme, $dropInTemplate, $releaseNotes)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing build input: $required"
     }
@@ -111,6 +112,21 @@ try {
         --add-data "$waveQml;qml" `
         --add-data "$gameplayQml;qml" `
         --add-data "$previewQml;qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcWorkbench.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\DeviceRoutes.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\ConnectionPanel.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\VibrationPreview.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcWaveEditor.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\ManakaHudPreview.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\HudSettingsDialog.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\HudControlGroup.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\SettingsPage.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\ThemedComboBox.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcWavePicker.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\StatusGlow.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\WorkbenchButton.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\WorkbenchSpinBox.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcChannelDialog.qml');qml" `
         --add-data "$appIconPng;assets" `
         --add-data "$appVersionFile;assets" `
         --add-data "$qmlAssets;qml\assets" `
@@ -175,6 +191,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $portable 'THIRD_PARTY_NOTICES.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'USER_AGREEMENT_CN.md') -Destination (Join-Path $portable 'USER_AGREEMENT_CN.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'MOD_CONTENT_NOTICE_CN.md') -Destination (Join-Path $portable 'MOD_CONTENT_NOTICE_CN.md') -Force
+    Copy-Item -LiteralPath $releaseNotes -Destination (Join-Path $portable 'RELEASE_NOTES.md') -Force
 
     # Third-party plugins and missions are intentionally not redistributed.
     # Never copy the whole local Drop-in tree: ignored repository/archive files

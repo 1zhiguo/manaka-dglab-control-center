@@ -97,6 +97,36 @@ class Pack9527ImporterTests(unittest.TestCase):
             with self.assertRaises(Pack9527Error):
                 Pack9527Importer().inspect(folder)
 
+    def test_rejects_same_directory_before_touching_any_files(self) -> None:
+        with tempfile.TemporaryDirectory(dir=self.TEST_ROOT) as temp:
+            pack = self.make_pack(Path(temp))
+            before = {p.relative_to(pack): p.read_bytes() for p in pack.rglob("*") if p.is_file()}
+            with self.assertRaisesRegex(Pack9527Error, "不能相同或互相包含"):
+                Pack9527Importer().install(pack, pack)
+            after = {p.relative_to(pack): p.read_bytes() for p in pack.rglob("*") if p.is_file()}
+            self.assertEqual(after, before)
+            self.assertFalse((pack / "ManakaModManager").exists())
+
+    def test_rejects_target_inside_source_before_creating_backups(self) -> None:
+        with tempfile.TemporaryDirectory(dir=self.TEST_ROOT) as temp:
+            pack = self.make_pack(Path(temp))
+            game = self.make_game(pack)
+            before = {p.relative_to(pack): p.read_bytes() for p in pack.rglob("*") if p.is_file()}
+            with self.assertRaisesRegex(Pack9527Error, "不能相同或互相包含"):
+                Pack9527Importer().install(pack, game)
+            self.assertEqual(before, {p.relative_to(pack): p.read_bytes() for p in pack.rglob("*") if p.is_file()})
+            self.assertFalse((game / "ManakaModManager").exists())
+
+    def test_rejects_source_inside_target_before_creating_backups(self) -> None:
+        with tempfile.TemporaryDirectory(dir=self.TEST_ROOT) as temp:
+            game = self.make_game(Path(temp))
+            pack = self.make_pack(game)
+            before = {p.relative_to(game): p.read_bytes() for p in game.rglob("*") if p.is_file()}
+            with self.assertRaisesRegex(Pack9527Error, "不能相同或互相包含"):
+                Pack9527Importer().install(pack, game)
+            self.assertEqual(before, {p.relative_to(game): p.read_bytes() for p in game.rglob("*") if p.is_file()})
+            self.assertFalse((game / "ManakaModManager").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

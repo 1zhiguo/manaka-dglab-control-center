@@ -1,4 +1,4 @@
-Manaka NPC 语气与字幕 0.6.0 — 手动安装
+Manaka NPC 语气与字幕 0.6.1 — 手动安装
 
 必需：
 1. Secret Flasher Manaka（正式支持 v1.1.1、v1.1.2、v1.1.3）
@@ -6,13 +6,21 @@ Manaka NPC 语气与字幕 0.6.0 — 手动安装
 
 安装：
 1. 完全退出游戏。
-2. 将本 ZIP 内的 BepInEx 文件夹放进游戏根目录，也就是与游戏 EXE 同一层。
-3. Windows 询问时选择“合并文件夹 / 替换同名文件”。这只会更新本插件自己的文件。
-4. 启动游戏。设置文件会创建在 BepInEx\config\local.manaka.npcvoices.cfg。
+2. 先完整解压 ZIP。不要在压缩包预览窗口中运行或只复制可选目录。
+3. 将解压后最外层的 BepInEx 文件夹放进游戏根目录，也就是与游戏 EXE 同一层。
+4. Windows 询问时选择“合并文件夹 / 替换同名文件”。这只会更新本插件自己的文件。
+5. 启动游戏。设置文件会创建在 BepInEx\config\local.manaka.npcvoices.cfg。
+
+安装后必须能看到：
+- BepInEx\plugins\ManakaNpcVoices\ManakaNpcVoices.dll
+- BepInEx\plugins\ManakaNpcVoices\VoicePacks\ja
+- VoicePacks\ja 下共 90 个 WAV。音频是短日文语气词，不是完整台词朗读；字幕文本可切换中文、日文或英文。
+
+如果只有 ManakaNpcVoices.CustomMissions2.dll，说明误装了可选手机桥接而没有安装核心。请重新执行第 2–4 步。
 
 可选功能：
 - NPCBehaviorModifier 不是前置。没有它，警觉、发现、失败等语气与字幕仍然工作；安装它后，失败后的 NPC 互动阶段会额外显示互动台词。
-- Custom Missions 2 不是前置。只有想在 CM2 手机中调整设置时，才把 Optional-CustomMissions2 目录里的 BepInEx 文件夹也合并到游戏根目录。
+- Custom Missions 2 不是前置。只有确认核心已经安装、并且游戏已有 Custom Missions 2 时，才把 _OPTIONAL_CM2_PHONE_PAGE 里的 DLL 复制到 BepInEx\plugins\ManakaNpcVoices。
 
 自定义字幕：
 - 推荐使用 Manaka × DG-LAB Control Center 的“编辑字幕台词”。
@@ -24,3 +32,8 @@ Manaka NPC 语气与字幕 0.6.0 — 手动安装
 
 本插件运行时不联网；语气词固定读取本地日文 WAV，字幕可选中文、日文或英文。
 控制中心会为 v1.1.1、v1.1.2、v1.1.3 准备对应的 BepInEx Interop。其他游戏版本不会被阻止，但插件字段或事件可能不同，出现无数据或加载失败时请保留 BepInEx 日志。
+
+仍未加载时：
+1. 确认先运行过一次 BepInEx，并存在 BepInEx\LogOutput.log。
+2. 在日志中搜索 Manaka NPC Voices。
+3. 若提示 missing dependencies: local.manaka.npcvoices，说明仍然只有可选桥接 DLL，核心 DLL 没有复制成功。

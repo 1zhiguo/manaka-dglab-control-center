@@ -1,4 +1,4 @@
-Manaka NPC Reactions & Subtitles 0.6.0 — Manual Install
+Manaka NPC Reactions & Subtitles 0.6.1 — Manual Install
 
 Required:
 1. Secret Flasher Manaka (v1.1.1, v1.1.2, and v1.1.3 are officially supported)
@@ -6,13 +6,21 @@ Required:
 
 Install:
 1. Fully close the game.
-2. Copy the BepInEx folder from this ZIP into the game root, next to the game EXE.
-3. Allow Windows to merge folders and replace matching files. Only this plugin's own files are updated.
-4. Start the game. Settings are created at BepInEx\config\local.manaka.npcvoices.cfg.
+2. Extract the complete ZIP first. Do not run from the ZIP preview or copy only the optional folder.
+3. Copy the top-level BepInEx folder from the extracted package into the game root, next to the game EXE.
+4. Allow Windows to merge folders and replace matching files. Only this plugin's own files are updated.
+5. Start the game. Settings are created at BepInEx\config\local.manaka.npcvoices.cfg.
+
+These paths must exist after installation:
+- BepInEx\plugins\ManakaNpcVoices\ManakaNpcVoices.dll
+- BepInEx\plugins\ManakaNpcVoices\VoicePacks\ja
+- VoicePacks\ja contains 90 WAV files. They are short Japanese reaction sounds, not spoken versions of every subtitle. Subtitle text can be Chinese, Japanese, or English.
+
+If you only have ManakaNpcVoices.CustomMissions2.dll, you installed the optional phone bridge without the required core. Repeat steps 2–4 above.
 
 Optional integrations:
 - NPCBehaviorModifier is not required. Normal ambient, alert, found, and failure reactions work without it. If installed, it also enables dialogue during its post-failure NPC interaction.
-- Custom Missions 2 is not required. Only copy the BepInEx folder under Optional-CustomMissions2 when you want the settings page inside the CM2 phone.
+- Custom Missions 2 is not required. Only after the core is installed, and only when Custom Missions 2 is already present, copy the DLL from _OPTIONAL_CM2_PHONE_PAGE into BepInEx\plugins\ManakaNpcVoices.
 
 Custom subtitles:
 - The recommended editor is in Manaka x DG-LAB Control Center under Edit Subtitle Lines.
@@ -24,3 +32,8 @@ Uninstall:
 
 The runtime never accesses the network. Audio uses local Japanese reaction WAVs; subtitles can be Chinese, Japanese, or English.
 The control center prepares matching BepInEx Interop for v1.1.1, v1.1.2, and v1.1.3. Other game versions are not blocked, but plugin fields or events may differ. Keep the BepInEx log if data is missing or the plugin fails to load.
+
+If it still does not load:
+1. Make sure BepInEx has run once and BepInEx\LogOutput.log exists.
+2. Search the log for Manaka NPC Voices.
+3. If it says missing dependencies: local.manaka.npcvoices, the optional bridge is still present without the core DLL.

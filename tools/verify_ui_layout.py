@@ -86,7 +86,7 @@ def main():
         window=engine.rootObjects()[0]
         window.setWidth(args.width)
         window.setHeight(args.height)
-        sequence=list(range(11))+["channels", "channels-B", "channels-events", "workbench-A", "workbench-B", "workbench-bindings", "workbench-legacy", "network-help", "theme-switched"]
+        sequence=list(range(13))+["channels", "channels-B", "channels-events", "workbench-A", "workbench-B", "workbench-bindings", "workbench-legacy", "network-help", "theme-switched"]
         if args.live_connection:
             sequence = [1, "network-help"]
         def capture(index):
@@ -140,7 +140,7 @@ def main():
                 if item.objectName().startswith("navLabel"):
                     buttons.append(dict(text=text,x=point.x(),y=point.y()))
             reports.append(dict(page=name,overflow=overflow,nav_labels=buttons))
-            if len(buttons)!=11 or max(button["x"] for button in buttons)-min(button["x"] for button in buttons)>1:
+            if len(buttons)!=13 or max(button["x"] for button in buttons)-min(button["x"] for button in buttons)>1:
                 errors.append("Navigation labels are not aligned: "+name)
             gameplay=window.findChild(QObject,"navItem10")
             waveforms=window.findChild(QObject,"navItem3")

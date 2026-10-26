@@ -21,7 +21,7 @@ namespace ManakaNpcVoices
     {
         public const string PluginGuid = "local.manaka.npcvoices";
         public const string PluginName = "Manaka NPC Voices";
-        public const string PluginVersion = "0.6.0";
+        public const string PluginVersion = "0.6.1";
 
         private Harmony _harmony;
         internal static ManualLogSource PluginLog;

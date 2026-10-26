@@ -63,6 +63,8 @@ $response = @(
 )
 $response += $references | ForEach-Object { "/reference:`"$_`"" }
 $response += "`"$(Join-Path $scriptDir 'Plugin.cs')`""
+$response += "`"$(Join-Path $scriptDir 'HudCanvas.cs')`""
+$response += "`"$(Join-Path $scriptDir 'VibratorStateReader.cs')`""
 
 Set-Content -LiteralPath $responseFile -Value $response -Encoding UTF8
 & $compiler "/noconfig" "@$responseFile"

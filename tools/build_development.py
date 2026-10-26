@@ -29,7 +29,7 @@ for language in ("zh","ja","en"):
         shutil.copy2(text,target)
     shutil.copy2(source/"SubtitleProfiles"/(language+".txt"),payload/"VoicePacks"/language/"profiles.txt")
 qml = root/"python/qml_dashboard_prototype"
-data = [(qml/"ControlCenter.qml","qml"),(qml/"ChannelSettingsEditor.qml","qml"),(qml/"WaveWorkbench.qml","qml"),(qml/"GameplaySettings.qml","qml"),(qml/"WavePreview.qml","qml"),
+data = [(path,"qml") for path in sorted(qml.glob("*.qml"))] + [
         (qml/"components","qml/components"), (qml/"icons","qml/icons"),(qml/"assets","qml/assets"),(qml/"assets/app_icon.png","assets"),(qml/"VERSION","assets"),
         (root/"manaka_telemetry/bin/ManakaDGLabTelemetry.dll","assets"),
         (root/"python/assets/dglab_guide","assets/dglab_guide"),(payload,"assets/ManakaNpcVoices")]

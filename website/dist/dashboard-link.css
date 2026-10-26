@@ -1,0 +1,5 @@
+.header-start{display:grid;gap:5px;align-content:center;flex:0 0 auto;padding-block:9px}
+.header .dashboard-back{display:inline-flex;align-items:center;gap:6px;justify-self:start;color:var(--muted,#9aa9bb);font-size:11px;line-height:1.4;text-decoration:none;border:0;padding:2px 0;transition:color .18s}
+.header .dashboard-back:hover{color:var(--cyan,#56d6e1)}
+.header .dashboard-back:focus-visible{outline:2px solid var(--cyan,#56d6e1);outline-offset:4px;border-radius:3px}
+@media(max-width:720px){.header-start{gap:4px}.header .dashboard-back{font-size:10px}}

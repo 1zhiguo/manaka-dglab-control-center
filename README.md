@@ -13,7 +13,7 @@ A/B 各有硬上限，可选择独立、A→B 或 B→A 强度同步。每通道
 [![Latest release](https://img.shields.io/github/v/release/1zhiguo/manaka-dglab-control-center?display_name=tag)](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest)
 [![Non-commercial](https://img.shields.io/badge/license-non--commercial-ff65ac)](LICENSE.md)
 
-一个面向 **Secret Flasher Manaka × DG-LAB 3.0** 的 Windows 控制中心：连接 Manaka 与郊狼设备，并把心跳、游戏动作和 Climax 事件同步到不同通道。软件同时提供波形预览、经验/RP 修改和第三方 Mod 一站式加载。
+一个面向 **Secret Flasher Manaka × DG-LAB V3/V4** 的 Windows 控制中心：连接 Manaka 与郊狼、负鼠设备；郊狼 A/B 可自由选择心率或动作，负鼠支持游戏振动器同步与独立波形。软件同时提供波形预览、经验/RP 修改和第三方 Mod 一站式加载。
 
 > 本项目是社区制作的第三方工具，与 DG-LAB、游戏作者或第三方 Mod 作者不存在官方隶属关系。
 
@@ -28,13 +28,15 @@ A/B 各有硬上限，可选择独立、A→B 或 B→A 强度同步。每通道
 
 ## 核心功能
 
-- **心跳通道**：根据游戏内心率平滑调整 A 通道强度。
-- **动作同步通道**：把游戏动作事件同步到 B 通道。
+- **A/B 自由分配**：每个郊狼通道独立选择心率或动作，支持双心率、双动作与互换。
+- **负鼠工作台**：V4 振动器档位同步、A/B 动作映射、随机/固定波形与自定义曲线。
 - **Climax 同步**：峰值事件同时驱动 A/B 通道，并受安全上限保护。
 - **波形预览**：查看内置波形效果，并管理自定义波形。
-- **Manaka 连接郊狼**：通过 DG-LAB 3.0 Socket 扫码完成连接。
+- **Manaka 连接郊狼**：通过 V3/V4 扫码连接；V4 双设备分别启停。
 - **经验 / RP 修改**：在控制中心内调整游戏经验值和 RP。
 - **Mod 一站式加载**：导入、识别、启用、停用并检查第三方 Mod 依赖。
+
+最新更新说明：[v1.1.0](docs/RELEASE_v1.1.0.md)。升级后请关闭游戏，执行“安装 / 修复运行环境”，再重启游戏以加载新版 HUD 和遥测。
 
 ## 快速开始
 
@@ -48,9 +50,9 @@ A/B 各有硬上限，可选择独立、A→B 或 B→A 强度同步。每通道
 ## English Quick Start
 
 1. Download the latest portable Windows archive from the [English website](https://manaka-dglab.web.app/?lang=en) or [GitHub Releases](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest), then extract the complete ZIP.
-2. Run `ManakaQmlControlCenter.exe` and switch to **English** from the top bar or the first-run agreement window.
+2. Run `ManakaQmlControlCenter.exe` and switch to **English** in **Settings** or the first-run agreement window.
 3. Select the folder that directly contains `SecretFlasherManaka.exe`, then choose **Install and Launch Game**. A clean game copy does not need BepInEx preinstalled.
-4. In the DG-LAB 3.0 app, connect the device, open **SOCKET Control**, choose **Connect server**, and scan the QR code shown by the control center.
+4. Choose V3 or V4 above the QR code in **Setup**. V3 uses the DG-LAB 3 App Socket page; V4 uses the DG-LAB 4 App for Coyote and/or Opossum. Scan, check hardware readiness and manually enable each device.
 5. Begin with **Low · 5–30**, keep the initial hard cap at 30, and use **Pause output** whenever you need to set A/B output to zero without disconnecting the device.
 
 The public build does **not** include the game. Read the full [English setup guide](QUICKSTART_EN.md) and [English FAQ](FAQ_EN.md) before first use.
@@ -81,7 +83,7 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 构建 Windows 便携版还需要 `PyInstaller`，以及由官方来源取得的 BepInEx 6 IL2CPP x64 文件放在 `installer_payload/bepinex_v113`。
 
-维护者发布新版本时无需手工上传多个平台：先在 Windows 本机生成便携包并上传 GitHub Release，再手动运行 `Publish prebuilt release`，即可同步腾讯 COS、SHA-256 下载清单和 Firebase 网站。详见 [RELEASING_CN.md](RELEASING_CN.md)。
+本次 v1.1.0 由维护者手动上传 COS 和百度网盘；普通代码推送仅部署网站，不触发 COS 上传。`Publish prebuilt release` 保留为显式手动发布流程。详见 [RELEASING_CN.md](RELEASING_CN.md)。
 
 ## 安全与责任
 
@@ -89,7 +91,7 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 ## 第三方内容
 
-- 本仓库不发布游戏文件或游戏生成的 IL2CPP interop assemblies。Release 中的第三方 Mod 以独立资源或便携包内仓库形式提供，权利与许可仍由各自作者保留。
+- 本仓库不发布游戏文件或游戏生成的 IL2CPP interop assemblies。公开包不携带第三方 Mod/任务；用户自行从原作者处取得，权利与许可仍由各自作者保留。
 - BepInEx 在构建阶段从其官方发布地址下载，并保留原许可证。
 - DG-LAB 协议与相关资料受其原始条款约束，未经授权请勿用于商业用途。
 

@@ -114,6 +114,9 @@ def save_workbench(owner, encoded):
     previous = owner.wave_policy
     old_legacy = owner.legacyWaveSettings
     legacy = raw["legacy_wave"]
+    sources = legacy.get("sources", old_legacy["sources"])
+    if not isinstance(sources, dict) or set(sources) != {"A", "B"} or any(v not in ("heart", "action") for v in sources.values()):
+        raise ValueError("Invalid legacy channel sources")
     if legacy["mode"] not in {"smart","fixed"} or set(legacy["zones"]) != set(old_legacy["zones"]):
         raise ValueError("原版波形策略无效 / Invalid original waveform settings")
     if any(key == "off" or not owner._is_assignable_wave_key(key) for key in [legacy["fixed"]]+list(legacy["zones"].values())):
@@ -123,10 +126,11 @@ def save_workbench(owner, encoded):
     def apply_legacy(value):
         owner.wave_mode_value,owner.fixed_wave_value = value["mode"],value["fixed"]
         owner.wave_map_value,owner.action_wave_map_value = dict(value["zones"]),dict(value["actions"])
+        owner.pulse_channel_sources_value = dict(value.get("sources", old_legacy["sources"]))
     owner.wave_policy = policy
     apply_legacy(legacy)
     try:
-        if not owner.saveChannelSettings(json.dumps(mapping), False):
+        if not owner.saveChannelSettings(json.dumps(mapping), False, pause_output=sources != old_legacy["sources"]):
             owner.wave_policy = previous
             apply_legacy(old_legacy)
             return dict(ok=False, error="保存失败 / Save failed")

@@ -527,9 +527,10 @@ def resolve_waveform(
 class WaveformSelector:
     """Stateful anti-jitter selector for future device queue switching.
 
-    Heart-rate zone changes on channel A must remain stable briefly before the
-    selected waveform changes. Idle cuts and channel-B event changes are
-    immediate.
+    Heart-rate sources hold zone changes briefly; action sources switch
+    immediately. Callers can set hold_changes independently of the physical
+    channel. Omitting it preserves the legacy A-heart/B-action behavior.
+    Idle cuts always take effect immediately.
     """
 
     def __init__(self, hold_seconds: float = 0.8) -> None:
@@ -553,6 +554,7 @@ class WaveformSelector:
         custom_preset: WaveformPreset | None = None,
         now: float | None = None,
         library: dict | None = None,
+        hold_changes: bool | None = None,
     ) -> WaveformPreset | None:
         channel = "B" if channel == "B" else "A"
         candidate = resolve_waveform(pattern, mode, fixed_preset, wave_map, custom_preset, library)
@@ -563,7 +565,8 @@ class WaveformSelector:
             return None
 
         current = self.current[channel]
-        if current is None or channel == "B" or self.hold_seconds == 0:
+        use_hold = channel == "A" if hold_changes is None else hold_changes
+        if current is None or not use_hold or self.hold_seconds == 0:
             self.current[channel] = candidate
             self.pending[channel] = None
             return candidate

@@ -9,7 +9,7 @@
   const tabs = [...document.querySelectorAll(".doc-tab")];
   const i18n = window.ManakaI18n;
   const fileFor = (kind) => {
-    const suffix = i18n?.language === "en" ? "EN" : "CN";
+    const suffix = {zh:"CN", en:"EN", ja:"JA"}[i18n?.language] || "CN";
     return kind === "faq" ? `FAQ_${suffix}.md` : `QUICKSTART_${suffix}.md`;
   };
 
@@ -78,7 +78,7 @@
   }
   function runSearch() {
     content.querySelectorAll(".search-hit").forEach((node) => node.classList.remove("search-hit"));
-    const locale = i18n?.language === "en" ? "en" : "zh-CN";
+    const locale = {zh:"zh-CN", en:"en", ja:"ja"}[i18n?.language] || "zh-CN";
     const query = search.value.trim().toLocaleLowerCase(locale);
     if (!query) { searchStatus.textContent = ""; return; }
     const matches = [...content.querySelectorAll("h1,h2,h3,p,li,pre")].filter((node) => node.textContent.toLocaleLowerCase(locale).includes(query));
@@ -86,15 +86,20 @@
     searchStatus.textContent = matches.length ? i18n.t("guide.search.found", { count: String(matches.length) }) : i18n.t("guide.search.none");
     matches[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+  let loadGeneration = 0;
   async function loadDocument(fileName) {
+    const generation = ++loadGeneration;
     content.innerHTML = `<p class="doc-loading">${i18n.t("guide.loading")}</p>`;
     errorBox.hidden = true; search.value = ""; searchStatus.textContent = "";
     sourceLabel.textContent = i18n.t("guide.source", { file: fileName }); rawLink.href = fileName;
     try {
       const response = await fetch(fileName, { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      content.innerHTML = renderMarkdown(await response.text()); buildToc();
+      const markdown = await response.text();
+      if (generation !== loadGeneration) return;
+      content.innerHTML = renderMarkdown(markdown); buildToc();
     } catch (error) {
+      if (generation !== loadGeneration) return;
       content.replaceChildren(); toc.replaceChildren(); errorBox.hidden = false; console.error(error);
     }
   }

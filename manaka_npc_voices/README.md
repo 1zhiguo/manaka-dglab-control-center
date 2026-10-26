@@ -1,5 +1,9 @@
 # Manaka NPC Voices
 
+Current plugin version: 0.6.1. The 0.6.1 manual package clarifies the core
+installation path and prevents the optional CM2 phone bridge from being
+mistaken for the main plugin.
+
 Native BepInEx/IL2CPP NPC voice plugin for Secret Flasher Manaka. Version 1.1.3
 is verified; other game revisions are allowed for experimental compatibility
 testing and are not blocked by the control center.

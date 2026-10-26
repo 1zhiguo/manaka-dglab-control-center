@@ -38,6 +38,7 @@
 
     const channel = link.dataset.download;
     if (channel === "baidu" || channel === "cos" || channel === "github") {
+      if (link.getAttribute("aria-disabled") === "true") return;
       const release = window.MANAKA_DOWNLOADS || {};
       const eventNames = {
         baidu: "download_baidu",
