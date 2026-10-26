@@ -135,6 +135,21 @@ class Pack9527Importer:
 
     def install(self, selected: Path, game_root: Path) -> dict:
         analysis = self.inspect(selected)
+        source_root = Path(analysis.root).resolve()
+        game_root = game_root.expanduser().resolve()
+        # The cleanup plan can remove active missions before the copy phase.
+        # Reject overlapping trees before any backup/removal, rather than merely
+        # skipping copy2's SameFileError after sources may already be touched.
+        if (
+            source_root == game_root
+            or source_root in game_root.parents
+            or game_root in source_root.parents
+        ):
+            raise Pack9527Error(
+                "整合包目录与游戏目录不能相同或互相包含。"
+                "请将 9527 整合包解压到游戏目录之外，再选择该解压目录。"
+                "如果已手动安装，请到 Mod 管理器扫描本地游戏。"
+            )
         if not analysis.ready:
             missing: list[str] = []
             if not analysis.loader_v1:
@@ -147,7 +162,6 @@ class Pack9527Importer:
                 missing.append("V2 任务目录")
             raise Pack9527Error("整合包校验未通过，缺少：" + "、".join(missing))
 
-        game_root = game_root.expanduser().resolve()
         if not (game_root / "SecretFlasherManaka.exe").is_file():
             raise Pack9527Error("请先选择能直接看到 SecretFlasherManaka.exe 的游戏目录")
         if not (game_root / "BepInEx" / "core" / "BepInEx.Core.dll").is_file():
@@ -155,7 +169,6 @@ class Pack9527Importer:
         if game_is_running():
             raise Pack9527Error("请完全退出游戏后再导入 9527 整合包")
 
-        source_root = Path(analysis.root)
         manager_root = game_root / "ManakaModManager"
         manifest_path = manager_root / MANIFEST_NAME
         stamp = time.strftime("%Y%m%d-%H%M%S")

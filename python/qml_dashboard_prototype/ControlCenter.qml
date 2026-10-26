@@ -56,19 +56,21 @@ ApplicationWindow {
         const languageDependency = backend.language
         return backend.translate(source)
     }
-    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("A/B 波形监视"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("NPC 语音"), t("事件记录"), t("玩法设置")]
+    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("A/B 波形监视"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("NPC 语音"), t("事件记录"), t("玩法设置"), t("负鼠工作台"), t("设置")]
     property var pageSubtitles: [
         t("游戏状态、心率与设备输出总览"),
-        t("安装游戏插件并使用 DG-LAB 3.0 扫码"),
+        t("安装游戏插件，选择 V3 或 V4 连接"),
         t("设置 A/B 强度与原版范围"),
         t("选择官方预设或创建自定义波形"),
-        t("查看两个通道当前选择的波形和实际强度"),
+        t("跟随游戏振动器档位，独立控制负鼠"),
         t("安全修改当前存档的经验值与游戏货币"),
         t("管理你已有的插件、V1 任务与 V2 功能包"),
         t("从原作者页面发现任务、插件与工具"),
         "",
         t("检查连接、安全归零和游戏事件"),
-        t("选择玩法并配置通道规则与检测绑定")
+        t("选择玩法并配置通道规则与检测绑定"),
+        t("跟随游戏振动器档位，独立控制负鼠"),
+        t("外观、语言与通用偏好")
     ]
 
     // DG-LAB inspired palette: ink-black surfaces, warm logo gold and ivory text.
@@ -101,6 +103,7 @@ ApplicationWindow {
     palette.button: panel2
     palette.buttonText: fg
     palette.highlight: accent
+    palette.placeholderText: muted
     palette.highlightedText:UI.Theme.onPrimary
     Behavior on color { ColorAnimation { duration: UI.Theme.motionDuration } }
 
@@ -168,7 +171,7 @@ ApplicationWindow {
         property real value: 0
         property real maximum: 100
         property color barColor: accent
-        implicitHeight: 60
+        implicitHeight: root.height < 780 ? 42 : 60
         Text { anchors.left: parent.left; anchors.right: metricValue.left; anchors.rightMargin: 10; anchors.top: parent.top; text: metric.label; color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; elide: Text.ElideRight; ToolTip.visible: metricHover.hovered && truncated; ToolTip.text: text; HoverHandler { id: metricHover } }
         Text { id: metricValue; anchors.right: parent.right; anchors.top: parent.top; text: metric.valueText; color: root.fg; font.family: UI.Theme.fontFamily; font.pixelSize: 12; font.weight: Font.DemiBold }
         Rectangle {
@@ -308,18 +311,29 @@ ApplicationWindow {
                     }
                 }
                 Text { Layout.leftMargin: 7; Layout.bottomMargin: 4; text: root.t("控制中心"); color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; font.letterSpacing: 1.3 }
+                ScrollView {
+                    id: navigationScroll
+                    Layout.fillWidth:true; Layout.fillHeight:true
+                    contentWidth:availableWidth; clip:true
+                    ScrollBar.horizontal.policy:ScrollBar.AlwaysOff
+                    ScrollBar.vertical:UI.ScrollBar {}
+                    ColumnLayout {
+                        width:navigationScroll.availableWidth; spacing:4
                 NavItem { targetPage: 0; iconName: "dashboard"; label: root.t("实时仪表盘") }
                 NavItem { targetPage: 1; iconName: "connection"; label: root.t("设备与游戏") }
                 NavItem { targetPage: 2; iconName: "strength"; label: root.t("个性化范围") }
                 NavItem { targetPage: 10; iconName: "gameplay"; label: root.t("玩法设置") }
                 NavItem { targetPage: 3; iconName: "waveform"; label: root.t("波形工作台") }
+                NavItem { targetPage: 11; iconName: "waveform"; label: root.t("负鼠工作台") }
                 NavItem { targetPage: 4; iconName: "monitor"; label: root.t("A/B 波形监视") }
                 NavItem { targetPage: 5; iconName: "save"; label: root.t("存档工具") }
                 NavItem { targetPage: 6; iconName: "mods"; label: root.t("Mod 管理器") }
                 NavItem { targetPage: 7; iconName: "workshop"; label: root.t("创意工坊") }
                 NavItem { targetPage: 8; iconName: "voice"; label: root.t("NPC 语音") }
                 NavItem { targetPage: 9; iconName: "events"; label: root.t("事件记录") }
-                Item { Layout.fillHeight: true }
+                NavItem { targetPage: 12; iconName: "strength"; label: root.t("设置") }
+                    }
+                }
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredHeight: 98; radius: root.cardRadius
                     color: Qt.rgba((backend.telemetryOnline ? green : amber).r, (backend.telemetryOnline ? green : amber).g, (backend.telemetryOnline ? green : amber).b, darkMode ? 0.08 : 0.09)
@@ -338,21 +352,19 @@ ApplicationWindow {
             Layout.fillWidth: true; Layout.fillHeight: true
             ColumnLayout {
                 anchors.fill: parent; anchors.leftMargin: 24; anchors.rightMargin: 24; anchors.topMargin: 20; anchors.bottomMargin: 22; spacing: 15
-                RowLayout {
-                    Layout.fillWidth: true; Layout.preferredHeight: 58
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing:10
                     ColumnLayout {
                         Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 3
                         Text { Layout.fillWidth: true; text: pageTitles[pageIndex]; color: root.fg; font.family: UI.Theme.fontFamily; font.pixelSize: UI.Theme.titleSize; font.weight: Font.DemiBold; elide: Text.ElideRight }
                         Text { Layout.fillWidth: true; text: pageSubtitles[pageIndex]; color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
                     }
-                    UI.Switch {
-                        objectName:"hudToggle"; text:"HUD"; Layout.preferredWidth:94
-                        checked:backend.gameHudEnabled
-                        onClicked:backend.setGameHudEnabled(checked)
-                    }
+                    RowLayout {
+                    Layout.fillWidth:true; spacing:8
+                    HudControlGroup { Layout.preferredWidth: 146; Layout.preferredHeight: 40; theme: root; onSettingsRequested: hudSettingsDialog.openSettings() }
                     AppButton {
                         Layout.leftMargin: 5
-                        Layout.preferredWidth: 106
+                        Layout.preferredWidth: 112
                         label: root.t("新手教程")
                         onClicked: onboardingDialog.openFromStart()
                     }
@@ -364,6 +376,9 @@ ApplicationWindow {
                     }
                     AppButton { Layout.leftMargin: 8; Layout.preferredWidth: 76; label: backend.language === "zh" ? "EN" : "中文"; onClicked: backend.setLanguage(backend.language === "zh" ? "en" : "zh") }
                     AppButton { objectName:"themeToggle"; Layout.preferredWidth:108; label:root.darkMode ? UI.Theme.t("日间模式","Light mode") : UI.Theme.t("夜间模式","Dark mode"); onClicked:backend.setTheme(root.darkMode ? "light" : "dark") }
+                    AppButton { Layout.preferredWidth: 100; label: root.t("全部停止"); fillColor: Qt.rgba(red.r,red.g,red.b,0.16); labelColor: red; onClicked: backend.emergencyStopAll() }
+                    Item { Layout.fillWidth:true }
+                    }
                 }
 
                 StackLayout {
@@ -456,12 +471,20 @@ ApplicationWindow {
                         ColumnLayout {
                             width: parent.width; spacing: 15
                             RowLayout {
-                                Layout.fillWidth: true; Layout.preferredHeight: 360; spacing: 15
+                                Layout.fillWidth: true; Layout.preferredHeight: 400; spacing: 15
                                 AppCard {
                                     Layout.fillWidth: true; Layout.fillHeight: true
+                                    StatusGlow { active: !backend.demoMode && (backend.gameRunning || backend.telemetryOnline); tint: backend.telemetryOnline ? root.green : root.accent }
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 22; spacing: 12
-                                        SectionTitle { title: root.t("游戏插件"); detail: root.t("自动部署") }
+                                        SectionTitle { title: root.t("游戏插件"); detail: backend.telemetryOnline && !backend.demoMode ? (backend.language === "en" ? "Game Connected" : "游戏遥测已连接") : root.t("自动部署") }
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Rectangle { width: 8; height: 8; radius: 4; color: backend.gameRunning ? green : muted }
+                                            Text { text: backend.demoMode ? (backend.language === "en" ? "Demo · no process scan" : "演示模式 · 不检测进程") : backend.gameRunning ? (backend.language === "en" ? "Game running" : "游戏已启动") : (backend.language === "en" ? "Game not detected" : "未检测到游戏进程"); color: backend.gameRunning ? green : muted; font.pixelSize: 12 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { visible: !backend.demoMode && backend.gameRunning; text: backend.telemetryOnline ? (backend.language === "en" ? "Telemetry ready" : "遥测已连接") : (backend.language === "en" ? "Waiting for telemetry" : "等待遥测连接"); color: backend.telemetryOnline ? green : amber; font.pixelSize: 11 }
+                                        }
                                         Text { text: root.t("请选择能直接看到 SecretFlasherManaka.exe 的文件夹。\n不要选择 BepInEx、plugins 或游戏 Data 文件夹。"); color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                                         AppTextField { Layout.fillWidth: true; text: backend.gameFolder; color: root.fg; font.family: UI.Theme.fontFamily; selectByMouse: true; placeholderText: root.t("游戏根目录");  onEditingFinished: backend.setGameFolder(text) }
                                         Text { text: backend.gameStatus; color: backend.gameStatus.indexOf("就绪") >= 0 ? green : amber; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
@@ -471,16 +494,11 @@ ApplicationWindow {
                                         Text { text: root.t("正式支持游戏 v1.1.1 / v1.1.2 / v1.1.3；纯原版无需预装 BepInEx，控制中心会自动配置对应运行库。"); color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                                     }
                                 }
-                                AppCard {
-                                    Layout.preferredWidth: 400; Layout.fillHeight: true
-                                    RowLayout {
-                                        anchors.fill: parent; anchors.margins: 22; spacing: 18
-                                        ColumnLayout { Layout.fillWidth: true; Text { text: "DG-LAB Socket"; color: root.fg; font.family: UI.Theme.fontFamily; font.pixelSize: 16; font.weight: Font.DemiBold } Text { text: backend.deviceStatus; color: backend.deviceConnected ? green : amber; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true } Item { Layout.fillHeight: true } Text { text: backend.lanAddress; color: muted; font.pixelSize: 12 } AppButton { visible: !backend.deviceConnected; Layout.preferredWidth: 136; label: root.t("连接不上？"); fillColor: Qt.rgba(amber.r,amber.g,amber.b,darkMode?0.18:0.12); labelColor: amber; onClicked: networkHelpDialog.open() } }
-                                        Rectangle { Layout.preferredWidth: 210; Layout.preferredHeight: 210; radius: root.controlRadius; color: "white"; Image { objectName: "connectionQr"; anchors.fill: parent; anchors.margins: 8; source: backend.qrSource; fillMode: Image.PreserveAspectFit; visible: source !== "" } Text { anchors.centerIn: parent; visible: backend.qrSource === ""; width: parent.width - 20; wrapMode: Text.Wrap; text: backend.connectionHint; horizontalAlignment: Text.AlignHCenter; color: "#4B5565"; font.family: UI.Theme.fontFamily; font.pixelSize: 12 } }
-                                    }
-                                }
+                                ConnectionPanel { Layout.preferredWidth: 435; Layout.fillHeight: true; theme: root; onHelpRequested: networkHelpDialog.open() }
                             }
+                            DeviceRoutes { visible: backend.socketProtocol === "v4"; Layout.fillWidth: true; theme: root; onWorkbenchRequested: page => root.pageIndex = page === 4 ? 11 : page }
                             AppCard {
+                                visible: backend.socketProtocol === "v3"
                                 Layout.fillWidth: true; Layout.preferredHeight: 300
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 20; spacing: 12
@@ -1320,11 +1338,14 @@ ApplicationWindow {
                         }
                     }
 
+                    OvcWorkbench { theme: root; onConnectionSettingsRequested: root.pageIndex = 1 }
+                    SettingsPage { theme: root; onHudSettingsRequested: hudSettingsDialog.openSettings(); onTutorialRequested: onboardingDialog.openFromStart() }
                 }
             }
         }
     }
 
+    HudSettingsDialog { id: hudSettingsDialog; theme: root }
     FolderDialog { id: folderDialog; title: root.t("选择游戏根目录"); onAccepted: backend.setGameFolder(selectedFolder.toString()) }
     FolderDialog {
         id: pack9527FolderDialog
@@ -1766,7 +1787,7 @@ ApplicationWindow {
                         TutorialLine { numberText: "⌁"; title: root.t("设备与游戏"); detail: root.t("选择游戏、安装插件、启动游戏并扫描设备二维码") }
                         TutorialLine { numberText: "◫"; title: root.t("个性化范围"); detail: root.t("设置心率触发区间、日常强度范围和安全硬上限") }
                         TutorialLine { numberText: "〰"; title: root.t("波形工作台"); detail: root.t("选择官方波形、编辑自定义波形，并给不同动作分配反馈") }
-                        TutorialLine { numberText: "◉"; title: root.t("A/B 波形监视"); detail: root.t("单独观察心率通道与动作通道当前正在播放的波形") }
+                        TutorialLine { numberText: "≈"; title: root.t("负鼠工作台"); detail: root.t("跟随游戏振动器档位，独立控制负鼠") }
                         Item { Layout.fillHeight: true }
                     }
                 }
@@ -1880,11 +1901,11 @@ ApplicationWindow {
     }
 
     Popup {
-        id: toast; x: root.width-width-24; y: root.height-height-24; width: 360; height: 104; modal: false; closePolicy: Popup.NoAutoClose
+        id: toast; x: root.width-width-24; y: root.height-height-24; width: 380; height: Math.max(104, toastContent.implicitHeight + 36); modal: false; closePolicy: Popup.NoAutoClose
         property string toastTitle: ""; property string toastMessage: ""
         background: Rectangle { color: panel; border.color: root.border; radius: root.cardRadius }
-        contentItem: Column { spacing: 6; Text { text: toast.toastTitle; color: root.fg; font.family: UI.Theme.fontFamily; font.pixelSize: UI.Theme.bodySize; font.weight: Font.DemiBold } Text { width: 320; text: toast.toastMessage; color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap } }
-        Timer { id: toastTimer; interval: 3200; onTriggered: toast.close() }
+        contentItem: Column { id: toastContent; spacing: 6; Text { text: toast.toastTitle; color: root.fg; font.family: UI.Theme.fontFamily; font.pixelSize: UI.Theme.bodySize; font.weight: Font.DemiBold } Text { width: 320; text: toast.toastMessage; color: muted; font.family: UI.Theme.fontFamily; font.pixelSize: 12; wrapMode: Text.Wrap } }
+        Timer { id: toastTimer; interval: 5000; onTriggered: toast.close() }
     }
     Connections { target: backend; function onToastRequested(title,message){toast.toastTitle=title;toast.toastMessage=message;toast.open();toastTimer.restart()} }
 

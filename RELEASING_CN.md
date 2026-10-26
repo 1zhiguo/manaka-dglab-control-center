@@ -2,6 +2,18 @@
 
 这套流程只会在维护者手动触发时运行。普通的代码提交不会创建新版本，也不会覆盖下载文件。
 
+## v1.1.0 当前发布方式
+
+本次由维护者手动上传 COS 和百度网盘，不运行 `Publish prebuilt release`。普通推送 `main` 只触发 Firebase 网站部署。
+
+1. 本地运行 `build_qml_windows_app.ps1`，生成 `release/build-1.1.0-qml/ManakaQmlControlCenter`。
+2. 完整 ZIP 为 `release/ManakaQmlControlCenter-v1.1.0-win64.zip`，同时提供 `.sha256` 校验文件；不要仅上传 EXE。
+3. 更新说明在 `docs/RELEASE_v1.1.0.md`，含哈希的 GitHub 文案副本在 `release/GITHUB_v1.1.0_NOTES.md`。
+4. 网站先展示 v1.1.0 功能、截图和升级提示，下载清单保留原可用版本，并明确标注新镜像准备中。
+5. 维护者确认新 COS 对象可公开下载、提供百度链接/提取码及 GitHub Release 状态后，再更新下载清单与 SHA-256。准备中提示会在下载清单切至 v1.1.0 时自动隐藏。
+
+以下自动镜像流程保留为以后显式手动选择的方式，不属于本次上传步骤。
+
 ## 发布内容规则
 
 - 公共 Git 仓库、GitHub Release 与腾讯 COS 均不包含第三方 Mod 或任务文件。

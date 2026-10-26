@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import sys
+import os
 import subprocess
 import ctypes
 from pathlib import Path
 
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
 from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl
-from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtGui import QGuiApplication, QIcon, QFont
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
+from PySide6.QtQuick import QQuickItem  # noqa: F401 - registers QQuickItem converters
 
 PYTHON_ROOT = Path(__file__).resolve().parent.parent
 if str(PYTHON_ROOT) not in sys.path:
@@ -31,6 +35,8 @@ PAGE_SCREENSHOT_NAMES = (
     "voice-studio",
     "event-log",
     "gameplay",
+    "opossum",
+    "settings",
 )
 
 
@@ -73,6 +79,7 @@ def main() -> int:
     app = QGuiApplication(sys.argv)
     app.setApplicationDisplayName("Manaka × DG-LAB Control Center")
     app.setOrganizationName("ManakaDGLab")
+    app.setFont(QFont("Microsoft YaHei UI", 10))
 
     lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation)) / "manaka-dglab-control-center.lock"
     instance_lock = QLockFile(str(lock_path))
@@ -121,11 +128,30 @@ def main() -> int:
     if capture_file is not None:
         capture_file.parent.mkdir(parents=True, exist_ok=True)
 
-        def save_screenshot() -> None:
-            window.screen().grabWindow(int(window.winId())).save(str(capture_file))
-            app.quit()
+        def grab_screenshot() -> None:
+            # Capture the QML content item directly. A desktop-level grab can
+            # include another window when the app is occluded.
+            content_item = window.property("contentItem")
+            grab_result = content_item.grabToImage()
 
-        QTimer.singleShot(900, save_screenshot)
+            def save_screenshot() -> None:
+                grab_result.saveToFile(str(capture_file))
+                app.quit()
+
+            grab_result.ready.connect(save_screenshot)
+
+        def prepare_screenshot() -> None:
+            # Bring the QML window to the foreground before using the Windows
+            # screen grabber; otherwise another app can be captured over it.
+            window.show()
+            window.raise_()
+            window.requestActivate()
+            QTimer.singleShot(250, grab_screenshot)
+
+        # The dashboard and connection pages need a little longer to finish
+        # their first render on Windows. Capturing too early can occasionally
+        # return the window that was previously in the same screen region.
+        QTimer.singleShot(1800, prepare_screenshot)
     if "--smoke-test" in sys.argv:
         def finish_smoke():
             destination = option_value("--smoke-report=")
@@ -166,8 +192,17 @@ def check_connection(destination: Path) -> int:
         backend.poll_timer.stop()
         backend.demo_mode = False
         backend.auto_output_enabled = False
-        bridge = DGLabBridge(backend.messages)
+        protocol = option_value("--protocol=") or "v3"
+        backend.socket_protocol = protocol
+        if protocol == "v4":
+            from manaka_devices.dglab_v4_hub import DGLabV4Hub
+            backend.v4_hub = DGLabV4Hub(backend.v4_messages)
+            bridge = backend.v4_hub.channel("coyote")
+        else:
+            bridge = DGLabBridge(backend.messages)
         backend.bridge = bridge
+        from manaka_runtime import RealtimeProcessor
+        backend.processor = RealtimeProcessor(backend._runtime_config(), bridge, backend.messages)
         # Only our internal controller connects. Output remains disabled.
         bridge.start()
         deadline = time.monotonic() + 8
@@ -179,7 +214,7 @@ def check_connection(destination: Path) -> int:
                 app.processEvents()
                 time.sleep(.02)
             png = base64.b64decode(backend.qrSource.split(",", 1)[1]) if backend.qrSource else b""
-            report = dict(server_ready=backend.serverReady, address_count=len(backend.lanAddresses),
+            report = dict(protocol=protocol, server_ready=backend.serverReady, address_count=len(backend.lanAddresses),
                 qr_png_valid=not QImage.fromData(png).isNull(),
                 fallback_used=bridge.port != bridge.requested_port,
                 output_enabled=bridge.auto_enabled,

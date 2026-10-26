@@ -263,6 +263,18 @@ ColumnLayout {
         ScrollBar.horizontal.policy:ScrollBar.AlwaysOff; ScrollBar.vertical:ThinScroll {}
         ColumnLayout {
             width:legacyScroll.availableWidth-12; spacing:14
+            RowLayout {
+                Layout.fillWidth:true
+                Repeater {
+                    model:["A","B"]
+                    delegate:ColumnLayout {
+                        required property string modelData
+                        Layout.fillWidth:true
+                        Caption { text:modelData+studio.t(" 通道来源"," channel source") }
+                        Choice { objectName:"legacySource"+modelData; model:[studio.t("心率","Heart rate"),studio.t("动作","Action")]; currentIndex:studio.draft.legacy_wave.sources[modelData] === "action" ? 1 : 0; onActivated:studio.edit(studio.draft.legacy_wave.sources,modelData,currentIndex ? "action" : "heart") }
+                    }
+                }
+            }
             Caption { text:studio.t("按心率、动作及高潮／失败事件切换波形。这里的设置仅用于原版；A/B 通道规则仅用于 A/B 独立。强度范围和通道上限在「个性化范围」设置。", "Switch waveforms by heart rate, actions and climax/failure events. These settings apply to Original; A/B channel rules apply to Independent A/B. Set intensity ranges and channel caps in Intensity Range.") }
             RowLayout {
                 Layout.fillWidth:true
@@ -282,7 +294,7 @@ ColumnLayout {
                     }
                 }
             }
-            Caption { text:studio.t("B 通道动作波形（未单独指定的动作使用默认推荐波形）", "B action waveform (unspecified actions use default recommended waveforms)") }
+            Caption { text:studio.t("动作来源波形（未单独指定的动作使用默认推荐波形）", "Action-source waveforms (unspecified actions use default recommended waveforms)") }
             ActionButton { objectName:"legacyActionPicker"; text:studio.legacyAction ? studio.controller.actionSummary(studio.legacyAction) : studio.t("搜索并选择动作", "Search and select an action"); onClicked:studio.openActions("legacy") }
             Choice { visible:studio.legacyAction !== ""; property var options:[{key:"recommended",name:studio.t("使用默认推荐波形", "Default recommended waveform")}].concat(studio.waveOptions); model:options; textRole:"name"; currentIndex: { studio.revision; return options.findIndex(x => x.key === (studio.draft.legacy_wave.actions[studio.legacyAction] || "recommended")) }
  onActivated: { if(options[currentIndex].key === "recommended") { delete studio.draft.legacy_wave.actions[studio.legacyAction]; studio.revision++ } else studio.edit(studio.draft.legacy_wave.actions,studio.legacyAction,options[currentIndex].key) } }

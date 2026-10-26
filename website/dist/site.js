@@ -1,5 +1,19 @@
 (() => {
   const config = window.MANAKA_DOWNLOADS || {};
+  const versionParts = value => String(value || "").replace(/^v/, "").split(".").map(part => Number.parseInt(part, 10) || 0);
+  const versionAtLeast = (actual, required) => {
+    const a = versionParts(actual), b = versionParts(required);
+    for (let i = 0; i < 3; i++) {
+      if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+    }
+    return true;
+  };
+  document.querySelectorAll("[data-release-pending]").forEach(node => {
+    node.hidden = versionAtLeast(config.version, node.dataset.releasePending);
+  });
+  document.querySelectorAll("[data-channel-pending]").forEach(node => {
+    node.hidden = Boolean(config[node.dataset.channelPending + "Url"]);
+  });
   const links = document.querySelectorAll("[data-download]");
   for (const link of links) {
     const channel = link.dataset.download;

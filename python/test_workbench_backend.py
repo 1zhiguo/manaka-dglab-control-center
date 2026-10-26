@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from PySide6.QtCore import QCoreApplication
 from qml_dashboard_prototype import backend as module
@@ -26,6 +26,50 @@ class WorkbenchBackendTests(unittest.TestCase):
         self.patcher.stop()
         self.temp.cleanup()
 
+    def test_v4_refresh_retries_existing_hub_and_updates_shared_lan_address(self):
+        backend = self.backend
+        backend.demo_mode = False
+        backend.agreement_accepted_value = True
+        backend.socket_protocol = "v4"
+        hub = backend.v4_hub = Mock(server_ready=False, lan_ip="192.0.2.1")
+        backend.bridge = hub.channel.return_value
+        backend.v4_error = "old bind error"
+        backend.v4_qr_source = "old QR"
+        backend.connection_error_value = "old bind error"
+        with patch.object(module, "discover_lan_ips", return_value=("192.0.2.2",)):
+            backend.refreshConnection()
+        hub.set_lan_ip.assert_called_once_with("192.0.2.2")
+        hub.start.assert_called_once_with()
+        backend.bridge.stop.assert_not_called()
+        self.assertEqual(backend.v4_error, "")
+        self.assertEqual(backend.v4_qr_source, "")
+        self.assertEqual(backend.connection_error_value, "")
+        backend.v4_hub = backend.bridge = None
+        backend.demo_mode = True
+
+    def test_v4_server_failure_clears_display_and_ready_event_recovers(self):
+        backend = self.backend
+        backend.socket_protocol = "v4"
+        hub = backend.v4_hub = Mock(server_ready=False, requested_port=9998, port=54321)
+        route = backend.bridge = hub.channel.return_value
+        route.server_ready, route.port = True, 54321
+        route.lan_ip, route.available_lan_ips, route.qr_url = "192.0.2.2", ("192.0.2.2",), "new-qr"
+        backend.server_ready_value = True
+        backend.qr_source_value = backend.v4_qr_source = "old-qr"
+        backend.v4_messages.put(("dglab", {"role":"hub", "event":"server_error", "detail":"bind failed"}))
+        backend._poll_device_support()
+        self.assertFalse(backend.server_ready_value)
+        self.assertEqual(backend.qr_source_value, "")
+        self.assertEqual(backend.v4_qr_source, "")
+        backend.v4_messages.put(("dglab", {"role":"hub", "event":"ready", "qr_url":"new-qr"}))
+        with patch.object(backend, "_qr_data_url", side_effect=lambda x: x):
+            backend._poll_device_support()
+        self.assertTrue(backend.server_ready_value)
+        self.assertEqual(backend.lan_address_value, "192.0.2.2:54321")
+        self.assertEqual(backend.connection_error_value, "")
+        self.assertFalse(backend.auto_output_enabled)
+        backend.v4_hub = backend.bridge = None
+
     def test_strength_save_cannot_change_sources_waves_or_event_timing(self):
         old = self.backend.channelSettings
         raw = self.backend.channelSettings
@@ -37,6 +81,32 @@ class WorkbenchBackendTests(unittest.TestCase):
         self.assertEqual(saved["A"]["maximum"], 24)
         self.assertEqual(saved["A"]["bindings"], old["A"]["bindings"])
         self.assertEqual(saved["A"]["climax"], old["A"]["climax"])
+
+    def test_upstream_sources_save_with_gameplay_and_preserve_other_device_settings(self):
+        module.update_config({"socket_protocol":"v4", "ovc_profile":{"hard_cap":80}, "hud_settings":{"scale":120}})
+        raw = self.backend.waveWorkbench
+        raw["mapping"]["mode"] = "legacy_v1"
+        raw["legacy_wave"]["sources"] = {"A":"action", "B":"heart"}
+        self.assertTrue(self.backend.saveWaveWorkbench(json.dumps(raw))["ok"])
+        saved = module.load_config()
+        self.assertEqual(saved["pulse_channel_sources"],raw["legacy_wave"]["sources"])
+        self.assertEqual(saved["socket_protocol"],"v4")
+        self.assertEqual(saved["ovc_profile"],{"hard_cap":80})
+        self.assertEqual(saved["hud_settings"],{"scale":120})
+        with patch.object(module,"load_config",return_value=saved):
+            reloaded = module.ControlCenterBackend(demo=True)
+        try:
+            self.assertEqual(reloaded._runtime_config().pulse_sources,(("A","action"),("B","heart")))
+        finally:
+            reloaded.shutdown()
+
+    def test_failed_gameplay_save_restores_sources_and_original_wave_settings(self):
+        before = self.backend.legacyWaveSettings
+        raw = self.backend.waveWorkbench
+        raw["legacy_wave"]["sources"] = {"A":"action", "B":"heart"}
+        with patch.object(module,"update_config",side_effect=OSError("disk full")):
+            self.assertFalse(self.backend.saveWaveWorkbench(json.dumps(raw))["ok"])
+        self.assertEqual(self.backend.legacyWaveSettings,before)
 
     def test_routing_save_preserves_calibration_and_synchronizes_event_timers(self):
         raw = self.backend.waveWorkbench

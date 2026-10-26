@@ -1,12 +1,12 @@
 # Manaka × DG-LAB Control Center — English Quick Start
 
-This community-made Windows tool connects **Secret Flasher Manaka** to a **DG-LAB 3.0** device. It can synchronize in-game heart rate, actions, and Climax events to channels A/B. The public build does **not** include the game.
+This community-made Windows tool connects **Secret Flasher Manaka** to **DG-LAB Pulse and/or Opossum** devices via V3/V4. It can synchronize in-game heart rate, actions, and Climax events to channels A/B. The public build does **not** include the game.
 
 ## 1. Before you start
 
 - Windows 10 or 11, 64-bit
 - A legally obtained copy of Secret Flasher Manaka v1.1.1, v1.1.2, or v1.1.3
-- A DG-LAB 3.0 device and the current DG-LAB mobile app
+- A supported DG-LAB device and matching mobile app; Opossum requires the DG-LAB 4 App
 - The PC and phone connected to the same local network
 
 Electrical stimulation can cause pain, skin irritation, involuntary muscle contraction, or other injury. Start at low strength, keep the physical controller within reach, and stop immediately if you feel unwell. Read the in-app agreement before use.
@@ -16,7 +16,7 @@ Electrical stimulation can cause pain, skin irritation, involuntary muscle contr
 1. Download the latest portable Windows archive from the [project website](https://manaka-dglab.web.app/?lang=en) or [GitHub Releases](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest).
 2. Extract the entire ZIP file to a normal writable folder. Do not run the EXE from inside the ZIP.
 3. Launch `ManakaQmlControlCenter.exe`.
-4. Choose **English** in the top bar or in the first-run agreement window.
+4. Choose **English** in **Settings**, or in the first-run agreement window.
 5. Read and accept the user agreement. No game listener or DG-LAB Socket service starts before acceptance.
 
 The app is unsigned, so Windows SmartScreen may show an “Unknown publisher” warning. Verify that the file came from an official project download and compare the published SHA-256 before choosing **More info → Run anyway**.
@@ -34,29 +34,32 @@ Do not select `BepInEx`, `plugins`, or `SecretFlasherManaka_Data` itself.
 
 For a clean game copy, choose **Install and Launch Game**. The control center supports v1.1.1, v1.1.2, and v1.1.3; it installs or repairs BepInEx 6 IL2CPP, prepares Interop for the selected game build, deploys the standalone Manaka telemetry plugin, and then starts the game.
 
-## 4. Connect DG-LAB 3.0
+## 4. Connect DG-LAB using V3 or V4
 
-1. Keep the control center running.
-2. Connect the DG-LAB device in the mobile app.
-3. Open **SOCKET Control** in the DG-LAB app.
-4. Initialize Socket control if the app asks you to do so.
-5. Choose **Connect server**, then scan the QR code shown in the control center with the camera option.
-6. Wait until the desktop app shows **DG-LAB connected**.
+1. In **Setup**, select V3 or V4 above the QR code. Keep the PC and phone on the same LAN.
+2. For **V3**, connect Coyote in the DG-LAB 3 App, open **SOCKET Control**, initialize it and scan the QR code under **Connect server**. The default port is TCP `9999`.
+3. For **V4**, connect supported Coyote Pulse (COYOTE_030) and/or Opossum (OVC_1) hardware and accessories in the DG-LAB 4 App, then scan once. Both devices share the V4 QR code on TCP `9998`.
+4. V4 discovers and selects supported devices automatically, but output requires separate manual enabling. A device added in the phone app is not necessarily connected over Bluetooth. Click an unavailable enable button to see its reason.
+5. Devices may be enabled before starting the game; they wait at zero output until fresh game data arrives. A brief telemetry/producer interruption zeros output and waits for newly received valid data. Bluetooth disconnects and output errors require manual re-enabling.
 
-If the QR code does not connect, confirm that the phone and PC are on the same LAN and that Windows Firewall allows the control center on private networks.
-On the **Device & Game** page, choose **Can't connect?** to switch the LAN IP used by the QR code or run the administrator network repair on a trusted home network.
+Use **Can't connect?** to change the QR code's LAN address or diagnose private-network firewall access. After upgrading, close the game, use **Install / Repair Runtime**, and restart it to load the new telemetry/HUD plugin.
 
 ## 5. Safe first test
 
 1. Start with the **Low · 5–30** preset.
 2. Keep the safety hard cap at 30 for the first test.
 3. Enter a playable scene and confirm that live heart rate is updating.
-4. Confirm that channel A follows heart rate and channel B reacts to supported actions.
-5. Use the large **Pause output** button at any time. It sets A/B output to zero while keeping the device connection alive; press again to resume.
+4. By default A follows heart rate and B follows actions. In **Waveforms**, either channel can use either source; both may share one source. Save changes and manually re-enable Pulse.
+5. Use the V3 pause/resume control or V4 device enable controls for individual devices. **Stop All** stops both devices and requires manual re-enabling.
 
 Pausing the game with Esc should also place output in safety idle. If the telemetry stream is interrupted, the control center automatically returns output to zero.
 
 ## 6. Waveforms
+
+- Pulse A/B sources are independent. Channels using the same source share its waveform assignments. Heart-rate settings show actual low/mid/high BPM boundaries at 30% and 70% of the configured trigger-to-full interval.
+- The **Opossum** workbench requires V4. Choose direct game-vibrator sync or independent A/B action, random, fixed and off policies. Game Random follows the game's actual selected level.
+- Use built-in vibration envelopes or your own curves. Previews never send output. Saving Opossum settings stops that device until manually re-enabled.
+- The HUD group in the top bar controls visibility and opens content, size, opacity and position settings. **Settings** also contains language and day/night preferences. Hiding the HUD does not stop devices.
 
 - Built-in DG-LAB waveforms are read-only previews.
 - The smart strategy maps different heart-rate and action zones to different waveforms.
