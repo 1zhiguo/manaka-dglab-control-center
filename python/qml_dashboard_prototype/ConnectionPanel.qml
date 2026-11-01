@@ -29,8 +29,8 @@ Rectangle {
             }
             Rectangle {
                 Layout.preferredWidth: 170; Layout.preferredHeight: 170; color: "white"; radius: 14
-                Image { anchors.fill: parent; anchors.margins: 7; source: backend.qrSource; fillMode: Image.PreserveAspectFit; visible: source !== "" }
-                Text { anchors.centerIn: parent; visible: backend.qrSource === ""; text: backend.demoMode ? panel.tr("演示模式\n二维码不可用", "Demo mode\nQR unavailable") : panel.tr("等待连接服务…", "Waiting for server…"); color: "#51435C"; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 12 }
+                Image { objectName:"connectionQr"; anchors.fill: parent; anchors.margins: 7; source: backend.qrSource; fillMode: Image.PreserveAspectFit; visible: source !== "" }
+                Text { anchors.centerIn: parent; visible: backend.qrSource === ""; text: backend.demoMode ? panel.tr("演示模式\n二维码不可用", "Demo mode\nQR unavailable") : backend.connectionHint; color: "#51435C"; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 12 }
             }
         }
         RowLayout {

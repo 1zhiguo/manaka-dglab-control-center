@@ -43,8 +43,8 @@ def build_packet(sequence, options, *, visible, connected, active, strengths, ca
     values = ["MANAKA_HUD_V2", str(max(0, int(sequence))), str(int(bool(visible))), str(flags),
               str(options["scale"]), str(options["opacity"]), str(ANCHORS.index(options["anchor"])),
               str(options["x"]), str(options["y"]), str(connection), str(activity)]
-    values.extend(f"{finite(value, 0, 100 if index < 2 else 200):.2f}" for index, value in enumerate(strengths))
-    values.extend(f"{finite(value, 0, 100 if index < 2 else 200):.2f}" for index, value in enumerate(caps))
+    values.extend(f"{finite(value, 0, 200):.2f}" for value in strengths)
+    values.extend(f"{finite(value, 0, 200):.2f}" for value in caps)
     values.extend(f"{finite(value, 0, 1):.3f}" for value in pulses)
     values.append("END")
     if len(values) != 24:

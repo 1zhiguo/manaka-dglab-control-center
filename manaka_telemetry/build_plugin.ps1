@@ -1,12 +1,12 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$GameDir,
-    [switch]$Deploy
+    [switch]$Deploy,
+    [string]$Compiler = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe"
 )
 
 $ErrorActionPreference = "Stop"
 
-$compiler = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe"
 if (-not (Test-Path -LiteralPath $compiler)) {
     throw "C# compiler not found: $compiler"
 }

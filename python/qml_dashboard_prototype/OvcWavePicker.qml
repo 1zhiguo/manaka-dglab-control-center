@@ -1,4 +1,5 @@
 import QtQuick
+import "components" as UI
 import QtQuick.Controls
 import QtQuick.Layouts
 

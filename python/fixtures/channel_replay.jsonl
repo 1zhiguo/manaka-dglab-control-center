@@ -1,0 +1,8 @@
+{"sequence":1,"monotonicMs":10000,"heartRate":80,"stage":"Residence","action":"None","ecstasy":0,"orgasm":false}
+{"sequence":2,"monotonicMs":10100,"heartRate":120,"stage":"Residence","action":"Test","playingAction":true,"ecstasy":0.5,"orgasm":false}
+{"sequence":3,"monotonicMs":10200,"heartRate":160,"stage":"Residence","action":"Test","playingAction":true,"ecstasy":1,"orgasm":false}
+{"sequence":4,"monotonicMs":10300,"heartRate":140,"stage":"Residence","action":"Test","playingAction":true,"ecstasy":1,"orgasm":true}
+{"sequence":5,"monotonicMs":10400,"heartRate":140,"stage":"Residence","action":"Test","playingAction":true,"ecstasy":1,"orgasm":false,"paused":true}
+{"sequence":6,"monotonicMs":10500,"heartRate":100,"stage":"Residence","action":"None","ecstasy":0,"orgasm":false}
+{"sequence":7,"monotonicMs":10600,"heartRate":100,"stage":"Residence","action":"None","ecstasy":0,"orgasm":false,"gameOver":true}
+{"sequence":8,"monotonicMs":12000,"heartRate":100,"stage":"Residence","action":"None","ecstasy":0,"orgasm":false,"gameOver":true}

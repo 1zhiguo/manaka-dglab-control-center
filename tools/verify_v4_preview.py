@@ -22,7 +22,7 @@ from qml_dashboard_prototype import backend as module
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--page", type=int, default=4)
+    parser.add_argument("--page", type=int, default=11)
     parser.add_argument("--language", default="zh")
     parser.add_argument("--theme", default="dark")
     parser.add_argument("--protocol", default="v3")

@@ -336,8 +336,10 @@ class V4DeviceBackend(QObject):
             return
         if self.v4_hub is None:
             self.v4_hub = DGLabV4Hub(self.v4_messages, port=9998, lan_ip=str(self.saved.get("socket_lan_ip", "")))
-            self.v4_hub.start()
+        if not self.v4_hub.server_ready:
             self.v4_error = ""
+            self.v4_qr_source = ""
+            self.v4_hub.start()
             self._log("V4 Hub 启动；不会自动启用任何设备输出")
             self.devicesChanged.emit()
 
@@ -373,6 +375,8 @@ class V4DeviceBackend(QObject):
         self.device_status_value = "等待手动连接和启用"
         if self.runtime_started and not self.demo_mode:
             self.bridge = self._make_coyote_bridge()
+            if getattr(self, "processor", None) is not None:
+                self.processor.set_bridge(self.bridge)
             self.bridge.start()
             if protocol == "v4" and self.v4_hub.server_ready:
                 self._use_coyote_qr()
@@ -568,11 +572,21 @@ class V4DeviceBackend(QObject):
                     self.v4_error = ""
                     self.v4_qr_source = self._qr_data_url(payload.get("qr_url", ""))
                     if self.socket_protocol == "v4":
+                        self.connection_error_value = ""
                         self._use_coyote_qr()
+                    if self.v4_hub.port != self.v4_hub.requested_port:
+                        self._log(f"V4 使用可用端口 {self.v4_hub.port}；二维码已同步更新")
                 elif event == "devices":
                     self._auto_select_new_v4_devices(payload.get("devices", []))
                 elif event in {"error", "server_error"}:
                     self.v4_error = str(payload.get("detail", "V4 error"))
+                    if event == "server_error":
+                        self.v4_qr_source = ""
+                        if self.socket_protocol == "v4":
+                            self.server_ready_value = False
+                            self.qr_source_value = ""
+                            self.lan_address_value = "—"
+                            self.connection_error_value = self.v4_error
                     self._stop_ovc("not-authorized")
                     self.ovc_connected = False
                     if self.socket_protocol == "v4":

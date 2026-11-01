@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using BepInEx;
@@ -10,6 +11,7 @@ using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using ExposureUnnoticed2.Object3D.NPC.Script;
 using ExposureUnnoticed2.Object3D.Player.Scripts;
+using ExposureUnnoticed2.Object3D.AdultGoods;
 using ExposureUnnoticed2.ObjectUI.SystemMenu;
 using ExposureUnnoticed2.Scripts.Base;
 using ExposureUnnoticed2.Scripts.InGame;
@@ -23,7 +25,7 @@ namespace ManakaDGLab.Telemetry
     {
         public const string PluginGuid = "local.manaka.dglab.telemetry";
         public const string PluginName = "Manaka DG-LAB Telemetry";
-        public const string PluginVersion = "0.5.0";
+        public const string PluginVersion = "0.5.1-channel-hud-v2";
 
         private Harmony _harmony;
         internal static ManualLogSource PluginLog;
@@ -215,8 +217,8 @@ namespace ManakaDGLab.Telemetry
                 Active = parts[4] == "1",
                 // This parser runs on the UDP receiver thread. Calling Unity APIs from
                 // that thread can crash IL2CPP, so keep clamping entirely in managed code.
-                StrengthA = Clamp(strengthA, 0f, 100f),
-                StrengthB = Clamp(strengthB, 0f, 100f),
+                StrengthA = Clamp(strengthA, 0f, 200f),
+                StrengthB = Clamp(strengthB, 0f, 200f),
                 PulseA = Clamp(pulseA, 0f, 1f),
                 PulseB = Clamp(pulseB, 0f, 1f),
                 Connections = parts[3] == "1" ? 1 : 0,
@@ -245,8 +247,8 @@ namespace ManakaDGLab.Telemetry
                 ReceivedAt = Environment.TickCount64
             };
             for (int i = 0; i < 4; i++) {
-                status.Strengths[i] = Clamp(values[10 + i], 0, i < 2 ? 100 : 200);
-                status.Caps[i] = Clamp(values[14 + i], 0, i < 2 ? 100 : 200);
+                status.Strengths[i] = Clamp(values[10 + i], 0, 200);
+                status.Caps[i] = Clamp(values[14 + i], 0, 200);
                 status.Pulses[i] = Clamp(values[18 + i], 0, 1);
             }
             return true;
@@ -522,6 +524,7 @@ namespace ManakaDGLab.Telemetry
         private static long _lastSendAt;
         private static long _sequence;
         private static long _lastErrorAt;
+        private static string _sessionId;
 
         internal static void Start()
         {
@@ -529,6 +532,7 @@ namespace ManakaDGLab.Telemetry
             _udp = new UdpClient();
             _lastSendAt = 0;
             _sequence = 0;
+            _sessionId = Guid.NewGuid().ToString("N");
         }
 
         internal static void Stop()
@@ -735,7 +739,9 @@ namespace ManakaDGLab.Telemetry
             int risingNpcCount)
         {
             return "{"
-                + "\"version\":1,"
+                + "\"version\":2,"
+                + "\"sessionId\":\"" + _sessionId + "\","
+                + ReadDeviceModesJson()
                 + "\"sequence\":" + sequence.ToString(CultureInfo.InvariantCulture) + ","
                 + "\"monotonicMs\":" + monotonicMilliseconds.ToString(CultureInfo.InvariantCulture) + ","
                 + "\"hudProtocol\":2,"
@@ -771,6 +777,63 @@ namespace ManakaDGLab.Telemetry
                 + "\"watchingNpcCount\":" + watchingNpcCount.ToString(CultureInfo.InvariantCulture) + ","
                 + "\"risingNpcCount\":" + risingNpcCount.ToString(CultureInfo.InvariantCulture)
                 + "}";
+        }
+
+        // Actual-mode sampling adapted from kusadact/SecretFlasherManaka2_X_DGLAB
+        // (MIT, Copyright (c) 2026 kusadact). See THIRD_PARTY_NOTICES.md.
+        // Missing/changed optional APIs affect only the corresponding source.
+        private static string ReadDeviceModesJson()
+        {
+            bool hasVibrator = false;
+            string configured = "Unknown";
+            string effective = "Unknown";
+            bool hasPiston = false;
+            int pistonEffective = 0;
+            bool pistonRandom = false;
+            try
+            {
+                hasVibrator = ReadActualVibrator(out configured, out effective);
+            }
+            catch { }
+            try
+            {
+                hasPiston = ReadActualPiston(out pistonEffective, out pistonRandom);
+            }
+            catch { }
+            return "\"hasVibratorData\":" + JsonBool(hasVibrator) + ","
+                + "\"vibratorConfiguredMode\":\"" + Escape(configured) + "\","
+                + "\"vibratorEffectiveMode\":\"" + Escape(effective) + "\","
+                + "\"hasPistonData\":" + JsonBool(hasPiston) + ","
+                + "\"pistonEffectiveMode\":" + pistonEffective.ToString(CultureInfo.InvariantCulture) + ","
+                + "\"pistonRandom\":" + JsonBool(pistonRandom) + ",";
+        }
+
+        // Isolate optional member references in separately JIT-compiled methods.
+        // A missing member in an older game is caught by the caller above,
+        // without preventing the remaining telemetry packet from being sent.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadActualVibrator(out string configured, out string effective)
+        {
+            configured = "Unknown";
+            effective = "Unknown";
+            CommonVibratorController source = CommonVibratorController.Leader;
+            if (source == null) return false;
+            configured = CommonVibratorController.VibrationStrength.ToString();
+            effective = source.currentMode.ToString();
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadActualPiston(out int effective, out bool random)
+        {
+            effective = 0;
+            random = false;
+            PlayerController player = PlayerController.Instance;
+            var piston = player == null || player.Pca == null ? null : player.Pca.PistonMachineController;
+            if (piston == null) return false;
+            effective = piston.CurrentSpeedType;
+            random = piston.isRandomMode;
+            return true;
         }
 
         private static float GetManagedTimeScale(float fallback)

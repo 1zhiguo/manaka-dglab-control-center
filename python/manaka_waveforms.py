@@ -7,6 +7,7 @@ preview and future DG-LAB V3 encoding, but never opens a socket or sends data.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import re
 import time
 
@@ -41,10 +42,14 @@ class WaveformPreset:
         for frame in self.raw_frames:
             if len(frame) != 16 or any(char not in "0123456789ABCDEF" for char in frame.upper()):
                 raise ValueError("raw V3 frames must contain 16 hexadecimal characters")
+            values = bytes.fromhex(frame)
+            if any(not 10 <= value <= 240 for value in values[:4]) or any(value > 100 for value in values[4:]):
+                raise ValueError("Invalid V3 frequency code or amplitude")
 
     def frequency_at(self, index: int) -> int:
         return self.frequency_codes[0] if len(self.frequency_codes) == 1 else self.frequency_codes[index % len(self.frequency_codes)]
 
+    @lru_cache(maxsize=128)
     def v3_frames(self) -> tuple[str, ...]:
         """Return preview-ready V3 100ms frames (8-byte uppercase HEX)."""
         if self.raw_frames:
@@ -344,6 +349,26 @@ _ACTION_TOKEN_EN: dict[str, str] = {
 }
 
 
+# Exact reference-project default frames; MIT attribution in THIRD_PARTY_NOTICES.
+DONOR_WAVEFORMS = [
+    ('donor_vibrator', '官方示例 - 呼吸', (
+        '0A0A0A0A00000000', '0A0A0A0A14141414', '0A0A0A0A28282828', '0A0A0A0A3C3C3C3C',
+        '0A0A0A0A50505050', '0A0A0A0A64646464', '0A0A0A0A64646464', '0A0A0A0A64646464',
+        '0A0A0A0A00000000', '0A0A0A0A00000000', '0A0A0A0A00000000', '0A0A0A0A00000000',
+    )),
+    ('donor_piston', '默认 - 活塞机', (
+        '2A2A2A2A64461450', '3030303014506428', '37373737001E5A64', '303030304614003C',
+    )),
+    ('donor_climax', '默认 - 高潮', (
+        'B4B4B4B4001E5064', 'C8C8C8C814466428', 'DCDCDCDC46641E00', 'C8C8C8C8643C0A28',
+    )),
+]
+for _key, _name, _frames in DONOR_WAVEFORMS:
+    PRESETS[_key] = WaveformPreset(_key, _name, "参考项目完整默认波形", "振动器 / 活塞机 / 高潮", "#59DCE7",
+        tuple(round(sum(bytes.fromhex(frame)[4:])/4) for frame in _frames), (int(_frames[0][:2],16),),
+        raw_frames=_frames, source="SecretFlasherManaka2_X_DGLAB")
+
+
 def _humanize_action_name(action: str) -> str:
     value = str(action or "None").strip() or "None"
     words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
@@ -480,11 +505,13 @@ def resolve_waveform(
     fixed_preset: str,
     wave_map: dict[str, str],
     custom_preset: WaveformPreset | None = None,
+    library: dict | None = None,
 ) -> WaveformPreset | None:
     zone = pattern_zone(pattern)
     if zone is None:
         return None
     available = dict(PRESETS)
+    available.update(library or {})
     if custom_preset is not None:
         available["custom"] = custom_preset
     # Peak edges always use their dedicated synchronized A/B mapping. A fixed
@@ -492,6 +519,8 @@ def resolve_waveform(
     if mode == "fixed" and zone != "peak" and fixed_preset in available:
         return available[fixed_preset]
     mapping = sanitize_wave_map(wave_map)
+    if library:
+        mapping.update({zone:key for zone,key in wave_map.items() if zone in WAVE_ZONES and key in library})
     return available.get(mapping[zone], PRESETS[DEFAULT_WAVE_MAP[zone]])
 
 
@@ -524,10 +553,11 @@ class WaveformSelector:
         wave_map: dict[str, str],
         custom_preset: WaveformPreset | None = None,
         now: float | None = None,
+        library: dict | None = None,
         hold_changes: bool | None = None,
     ) -> WaveformPreset | None:
         channel = "B" if channel == "B" else "A"
-        candidate = resolve_waveform(pattern, mode, fixed_preset, wave_map, custom_preset)
+        candidate = resolve_waveform(pattern, mode, fixed_preset, wave_map, custom_preset, library)
         timestamp = time.monotonic() if now is None else float(now)
         if candidate is None:
             self.current[channel] = None

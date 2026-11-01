@@ -13,7 +13,10 @@ class ProtocolEncodingTests(unittest.TestCase):
     def test_strength_is_clamped_to_user_hard_cap(self):
         self.assertEqual(strength_message("A", 90, 30), "strength-1+2+30")
         self.assertEqual(strength_message("B", -2, 30), "strength-2+2+0")
-        self.assertEqual(clamp_strength(250, 200), 100)
+        self.assertEqual(clamp_strength(250, 200), 200)
+        self.assertEqual(strength_message("B", 180, 200), "strength-2+2+180")
+        with self.assertRaises(ValueError):
+            pulse_message("A", ["0A0A0A0AC8C8C8C8"])
 
     def test_wave_frames_are_validated(self):
         self.assertEqual(
@@ -92,6 +95,19 @@ class LocalSocketIntegrationTests(unittest.TestCase):
                 self.assertIn("strength-2+2+9", received)
                 self.assertTrue(any(str(value).startswith("pulse-A:") for value in received))
                 self.assertTrue(any(str(value).startswith("pulse-B:") for value in received))
+
+                await websocket.send(json.dumps(dict(type="msg",clientId=ready["controller_id"],
+                    targetId=phone_id,message="strength-18+9+200+160")))
+                await asyncio.sleep(.1)
+                bridge.update_auto_outputs(200,("4E4E4E4E64646464",),wave_key_a="high-a",
+                    strength_b=190,frames_b=("4646464650505050",),wave_key_b="high-b",hard_cap=200)
+                high=[]
+                for _ in range(20):
+                    message=json.loads(await asyncio.wait_for(websocket.recv(),timeout=2)).get("message")
+                    high.append(message)
+                    if "strength-1+2+200" in high and "strength-2+2+160" in high: break
+                self.assertIn("strength-1+2+200",high)
+                self.assertIn("strength-2+2+160",high)
 
                 bridge.emergency_stop()
                 emergency = []

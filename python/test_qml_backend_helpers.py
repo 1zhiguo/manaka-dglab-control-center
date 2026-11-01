@@ -281,7 +281,7 @@ class V1LocationGuideTests(unittest.TestCase):
 
         self.assertEqual(
             packet.decode("ascii"),
-            "MANAKA_HUD_V1|12|1|1|1|100.00|0.00|1.000|0.000|END",
+            "MANAKA_HUD_V1|12|1|1|1|123.00|0.00|1.000|0.000|END",
         )
 
     def test_repair_script_targets_selected_adapter_and_private_firewall_port(self) -> None:

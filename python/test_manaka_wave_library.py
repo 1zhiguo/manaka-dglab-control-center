@@ -95,29 +95,27 @@ class WaveformLibraryTests(unittest.TestCase):
                 finally:
                     backend.poll_timer.stop()
 
-    def test_smart_b_channel_switches_from_action_type_only(self):
+    def test_legacy_preview_preserves_original_action_overrides(self):
+        from manaka_wave_rules import WaveRouter
+        from dataclasses import replace
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temporary:
-            library = Path(temporary) / "waveforms"
-            with (
-                patch.object(backend_module, "waveform_library_dir", return_value=library),
-                patch.object(backend_module, "load_config", return_value={}),
-                patch.object(backend_module, "update_config"),
-            ):
+            with (patch.object(backend_module, "waveform_library_dir", return_value=Path(temporary)/"waveforms"),
+                  patch.object(backend_module, "load_config", return_value={"output_max":24}),
+                  patch.object(backend_module, "update_config")):
                 backend = ControlCenterBackend(demo=True, language="zh")
                 frame = TriggerFrame(0, 24, "idle", "action-ramp", "test", ())
                 try:
-                    backend.action_value = "PickUpItem"
-                    backend._show_frame(frame)
-                    self.assertIsNone(backend.current_wave_b)
-                    self.assertEqual(backend.current_output_b, 0)
-
-                    backend.action_value = "Dogeza"
-                    backend._show_frame(frame)
-                    self.assertEqual(backend.current_wave_b.key, "official_breath")
-
+                    # Reset between examples to test migration independent of debounce.
+                    for action, expected in (("PickUpItem", None), ("Dogeza", "official_breath")):
+                        backend.last_packet = dict(action=action, ecstasy=1, playingAction=True)
+                        backend.preview_router = WaveRouter(backend.wave_policy)
+                        backend._show_frame(frame)
+                        self.assertEqual(backend.current_wave_b.key if backend.current_wave_b else None, expected)
                     backend.setActionWaveform("Dogeza", "official_tide")
+                    backend.preview_router = WaveRouter(backend.wave_policy)
                     backend._show_frame(frame)
-                    self.assertEqual(backend.current_wave_b.key, "official_tide")
+                    self.assertEqual(backend.current_wave_b.key, "official_tide",
+                        "Legacy gameplay must keep its original action overrides")
                 finally:
                     backend.poll_timer.stop()
 

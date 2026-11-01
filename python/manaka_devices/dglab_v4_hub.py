@@ -11,8 +11,6 @@ import queue
 import time
 import uuid
 
-import websockets
-
 from . import audit
 from .dglab_v4 import DGLabV4Bridge, V4_PORT
 
@@ -188,18 +186,14 @@ class DGLabV4Hub(DGLabV4Bridge):
         self._devices.clear()
         self._pending.clear()
         self.app_connected = False
+        self.server_ready = False
+        self.qr_url = ""
         self.controller_id = str(uuid.uuid4())
         for channel in self._channels.values():
             channel._reset_session()
             channel._attach(self)
-        try:
-            self._server = await websockets.serve(self._server_handler, "0.0.0.0", self.requested_port,
-                ping_interval=20, ping_timeout=20, close_timeout=.5, max_size=1024 * 1024)
-        except OSError as error:
-            self._emit("server_error", detail=f"无法监听 V4 端口 {self.requested_port}：{error}")
+        if not await self._listen():
             return
-        if self._server.sockets:
-            self.port = int(self._server.sockets[0].getsockname()[1])
         self.server_ready = True
         self.qr_url = self._build_qr_url()
         for channel in self._channels.values():
@@ -229,6 +223,7 @@ class DGLabV4Hub(DGLabV4Bridge):
                      for task in [*channel._zero_transactions.values(), *channel._channel_zero_transactions.values()]]
             await asyncio.gather(*zeros, return_exceptions=True)
             self.server_ready = self.app_connected = False
+            self.qr_url = ""
             self._publish_devices()
             for channel in self._channels.values():
                 channel._mark_disconnected()
