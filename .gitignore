@@ -24,3 +24,7 @@ dropin_mods/archive/*
 Thumbs.db
 website/dist/QUICKSTART_CN.md
 website/dist/FAQ_CN.md
+
+# Private working material
+/local-only/
+/docs/local-only/
