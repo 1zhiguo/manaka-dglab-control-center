@@ -1,11 +1,12 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
-    [string]$DistPath = ''
+    [string]$DistPath = '',
+    [string]$PythonPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$python = Join-Path $root 'python\.venv\Scripts\python.exe'
+$python = if ($PythonPath) { [System.IO.Path]::GetFullPath($PythonPath) } else { Join-Path $root 'python\.venv\Scripts\python.exe' }
 $entry = Join-Path $root 'python\qml_dashboard_prototype\main.py'
 $qml = Join-Path $root 'python\qml_dashboard_prototype\ControlCenter.qml'
 $qmlAssets = Join-Path $root 'python\qml_dashboard_prototype\assets'

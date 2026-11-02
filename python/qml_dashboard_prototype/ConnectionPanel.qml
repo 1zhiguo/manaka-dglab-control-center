@@ -15,7 +15,7 @@ Rectangle {
             theme:panel.theme
             objectName: "connectionProtocolChoice"
             Layout.fillWidth: true; implicitHeight: 40
-            model: ["V3 · DG-LAB 3", "V4 · DG-LAB 4"]
+            model: ["V3 · DG-LAB 3 App", "V4 · DG-LAB 4 App"]
             currentIndex: backend.socketProtocol === "v4" ? 1 : 0
             onActivated: backend.selectSocketProtocol(currentIndex === 1 ? "v4" : "v3")
         }
@@ -24,7 +24,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 10
                 Label { Layout.fillWidth: true; text: backend.socketProtocol === "v4" ? backend.v4Status : backend.deviceStatus; wrapMode: Text.Wrap; color: panel.theme.muted; font.pixelSize: 12 }
-                Label { Layout.fillWidth: true; text: backend.socketProtocol === "v3" ? panel.tr("手机与电脑连接同一局域网，使用 DG-LAB App 扫描二维码。", "Use the same LAN and scan the QR code with DG-LAB App.") : panel.tr("手机与电脑连接同一局域网。V4 自动选择已发现设备，硬件就绪后仍需手动启用输出。", "Use the same LAN. V4 auto-selects discovered devices; enable output manually after hardware is ready."); wrapMode: Text.Wrap; color: panel.theme.muted; font.pixelSize: 11 }
+                Label { Layout.fillWidth: true; text: backend.socketProtocol === "v3" ? panel.tr("手机与电脑连接同一局域网，使用 DG-LAB App 扫描二维码。", "Use the same LAN and scan the QR code with DG-LAB App.") : panel.tr("郊狼 2.0 / 3.0 与负鼠均可通过 DG-LAB 4 App 的 V4 连接。扫码后还需在手机连接设备蓝牙，确认归零后手动启用。", "Coyote 2.0 / 3.0 and Opossum use V4 through DG-LAB 4 App. After scanning, connect hardware Bluetooth in the App, then enable output after confirmed zero."); wrapMode: Text.Wrap; color: panel.theme.muted; font.pixelSize: 11 }
                 Label { Layout.fillWidth: true; text: backend.lanAddress; color: panel.theme.cyan; font.pixelSize: 11; wrapMode: Text.WrapAnywhere }
             }
             Rectangle {

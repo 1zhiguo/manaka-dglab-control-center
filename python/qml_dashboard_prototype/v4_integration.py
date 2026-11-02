@@ -5,6 +5,7 @@ The existing V3 implementation remains the default electrical transport.
 """
 from __future__ import annotations
 
+import math
 import queue
 import time
 from copy import deepcopy
@@ -13,6 +14,8 @@ from PySide6.QtCore import QObject, Property, Signal, Slot
 
 from manaka_dglab_bridge import DEFAULT_PORT, DGLabBridge
 from manaka_devices.dglab_v4_hub import DGLabV4Hub
+from manaka_devices.device_types import COYOTE_TYPES, OVC_TYPES, DEVICE_NAMES
+from manaka_devices.dglab_v4 import channel_intensity_limit
 from manaka_devices.ovc import OvcPlanner, sanitize_profile, waveform_catalog, clean_points, step_strength
 from manaka_waveforms import action_label, action_style
 from manaka_devices.hud_settings import sanitize_settings
@@ -34,8 +37,12 @@ REASONS = {
     "accessory-not-inserted": ("未插入负鼠配件", "Opossum accessory not inserted"),
     "channel-muted": ("通道已静音", "Channel muted"),
     "channel-fault-or-blocked": ("通道故障或被阻止", "Channel fault or blocked"),
+    "channel-fault": ("App 报告通道故障，请检查连接", "App reports a channel fault; check connections"),
+    "channel-blocked": ("通道已屏蔽，请在 App 中解除", "Channel blocked; unblock it in the App"),
+    "missing-app-limit": ("等待 App 当前通道强度上限，未同步时不输出", "Waiting for the current App channel limit; output blocked until synchronized"),
+    "app-limit-zero": ("App 当前通道强度上限为 0", "Current App channel intensity limit is zero"),
     "unsupported-device": ("暂不支持此设备", "Unsupported device"),
-    "unsupported-waveformat": ("此型号的 V4 波形尚未验证", "V4 waveform not verified for this model"),
+    "unsupported-waveformat": ("App 不支持此输入波形格式，请检查 App 版本", "App does not support this input waveform format; check its version"),
     "missing-device-state": ("等待设备状态", "Waiting for device state"),
     "selected-device-disconnected": ("所选设备已断开", "Selected device disconnected"),
     "all-channels-blocked": ("全部通道不可用，请检查配件与静音", "All channels blocked; check accessories and mute"),
@@ -164,7 +171,7 @@ class V4DeviceBackend(QObject):
         self._v4_seen_links = linked
         if not self.v4_hub:
             return
-        for role, kind in (("coyote", "COYOTE_030"), ("ovc", "OVC_1")):
+        for role, kinds in (("coyote", COYOTE_TYPES), ("ovc", OVC_TYPES)):
             if role == "coyote" and self.socket_protocol != "v4":
                 continue
             route = self.v4_hub.channel(role)
@@ -175,7 +182,7 @@ class V4DeviceBackend(QObject):
             # APP can initially report hasDevice=false alongside connected.
             # Select the announced slot once; the transport still blocks all
             # output until the full readiness and zero barriers succeed.
-            candidate = next((d for d in reversed(devices) if (d.get("clientId"), d.get("slotId"), d.get("type")) in candidates and d.get("type") == kind), None)
+            candidate = next((d for d in reversed(devices) if (d.get("clientId"), d.get("slotId"), d.get("type")) in candidates and d.get("type") in kinds), None)
             if candidate and self.selectV4Device(role, candidate["clientId"], candidate["slotId"]):
                 audit.record("socket.v4_auto_selection", role=role, app_client_id=candidate["clientId"], slot_id=candidate["slotId"], link_present=self._link_present(candidate), authorized=False)
 
@@ -214,12 +221,13 @@ class V4DeviceBackend(QObject):
             failures = []
             for ch in channels:
                 reason = selected.get("channel" + ch + "Reason", "missing-device-state")
-                state = selected.get("slotState") or {}
-                channel_state = state.get("channel" + ch) if isinstance(state, dict) else None
-                maximum = channel_state.get("intensityMax") if isinstance(channel_state, dict) else None
+                maximum = channel_intensity_limit(selected, ch)
+                known_limit = type(maximum) in (int, float) and math.isfinite(maximum) and maximum >= 0
                 if reason:
                     failures.append(ch + "：" + self._reason_text(reason))
-                elif type(maximum) in (int, float) and maximum <= 0:
+                elif not known_limit:
+                    failures.append(ch + "：" + self._reason_text("missing-app-limit"))
+                elif maximum == 0:
                     failures.append(ch + "：" + self._device_text("App 强度上限为 0", "App intensity limit is zero"))
                 else:
                     failures = []
@@ -245,9 +253,13 @@ class V4DeviceBackend(QObject):
         if not self.v4_hub:
             return result
         for item in self.v4_hub.devices_snapshot():
-            if item.get("type") not in ({"OVC_1"} if kind == "ovc" else {"COYOTE_030", "COYOTE_020"}):
+            if item.get("type") not in (OVC_TYPES if kind == "ovc" else COYOTE_TYPES):
                 continue
-            result.append({**item, "label": f"{item.get('name') or item['type']} · {item['slotId']}",
+            display_name = self._device_text(DEVICE_NAMES.get(item["type"], item["type"]),
+                                             {"COYOTE_020": "Coyote 2.0", "COYOTE_030": "Coyote 3.0", "OVC_1": "Opossum"}.get(item["type"], item["type"]))
+            name = str(item.get("name") or "").strip()
+            label = display_name + (" · " + name if name and name != display_name and name != item["type"] else "")
+            result.append({**item, "label": f"{label} · {item['slotId']}",
                            "selected": (item["clientId"], item["slotId"]) == (selected.selected_client_id, selected.selected_slot_id)})
         return result
 
@@ -308,9 +320,16 @@ class V4DeviceBackend(QObject):
         parts = [self._device_text("已发现设备，请先在手机 App 中连接设备蓝牙", "Device discovered; connect its Bluetooth in the phone App")] if self._needs_phone_bluetooth_connection(selected) else []
         for ch in ("A", "B"):
             reason = selected.get("channel" + ch + "Reason", "")
-            maximum = selected.get("slotState", {}).get("channel" + ch, {}).get("intensityMax", "—")
-            reported = selected.get("props", {}).get("intensity" + ch, "—")
-            parts.append(f"{ch}: {self._reason_text(reason) if reason else self._device_text('就绪', 'Ready')} · max {maximum} · App {reported}")
+            maximum = channel_intensity_limit(selected, ch)
+            known_limit = type(maximum) in (int, float) and math.isfinite(maximum) and maximum >= 0
+            if not reason and not known_limit:
+                reason = "missing-app-limit"
+            elif not reason and maximum == 0:
+                reason = "app-limit-zero"
+            props = selected.get("props") if isinstance(selected.get("props"), dict) else {}
+            reported = props.get("intensity" + ch, "—")
+            display_limit = maximum if known_limit else "—"
+            parts.append(f"{ch}: {self._reason_text(reason) if reason else self._device_text('就绪', 'Ready')} · max {display_limit} · App {reported}")
         return "\n".join(parts)
 
     @Property(str, notify=devicesChanged)
@@ -376,8 +395,8 @@ class V4DeviceBackend(QObject):
             self.bridge.start()
             if protocol == "v4" and self.v4_hub.server_ready:
                 self._use_coyote_qr()
-                self._v4_seen_links = {identity for identity in self._v4_seen_links if identity[2] != "COYOTE_030"}
-                self._v4_seen_devices = {identity for identity in self._v4_seen_devices if identity[2] != "COYOTE_030"}
+                self._v4_seen_links = {identity for identity in self._v4_seen_links if identity[2] not in COYOTE_TYPES}
+                self._v4_seen_devices = {identity for identity in self._v4_seen_devices if identity[2] not in COYOTE_TYPES}
                 self._auto_select_new_v4_devices(self.v4_hub.devices_snapshot())
         self._show_frame(self.current_source_frame)
         self.devicesChanged.emit()

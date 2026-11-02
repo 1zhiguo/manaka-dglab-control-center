@@ -18,7 +18,7 @@ from test_v4_bridge import device
 class V4HubTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces", return_value=[{"address": "127.0.0.1"}]):
-            self.hub = DGLabV4Hub(queue.Queue(), port=0)
+            self.hub = DGLabV4Hub(queue.Queue(), port=0, host="127.0.0.1")
         self.coyote, self.ovc = self.hub.channel("coyote"), self.hub.channel("ovc")
         self.server = asyncio.create_task(self.hub._run())
         await self.until(lambda: self.hub.server_ready)

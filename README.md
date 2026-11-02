@@ -17,6 +17,8 @@
 
 公开版**不包含游戏本体或第三方 Mod**。Release 仅携带已验证的 BepInEx 运行环境和本项目的 DG-LAB 遥测插件；用户可从原作者页面取得 Mod 后，通过控制中心管理插件、CustomMission 1 和 CustomMission 2。解压便携包后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
 
+v1.1.1 新增郊狼 2.0 / DG-LAB 4 App / V4 支持，保留原有 A/B 游戏联动。需完成确认归零后手动启用；实体 2.0 输出未实测。详见 [更新说明](docs/RELEASE_v1.1.1.md) 和 [适配验证](docs/COYOTE2_V4.md)。
+
 ## 核心功能
 
 - **A/B 自由分配**：每个郊狼通道独立选择心率或动作，支持双心率、双动作与互换。

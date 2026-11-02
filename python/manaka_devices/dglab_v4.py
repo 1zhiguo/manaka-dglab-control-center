@@ -25,10 +25,11 @@ import websockets
 
 from . import audit
 from .dglab_bridge import DGLabBridge, clamp_strength
+from .device_types import COYOTE_TYPES, OVC_TYPES, SUPPORTED_V4_TYPES
 
 
 V4_PORT = 9998
-SUPPORTED_TYPES = frozenset({"COYOTE_030", "OVC_1"})
+SUPPORTED_TYPES = SUPPORTED_V4_TYPES
 LEASE_MS = 300
 FRAME_MS = 100
 RPC_TIMEOUT = 2.0
@@ -70,8 +71,6 @@ def _merge(target: dict, delta: dict) -> None:
 
 
 def channel_block_reason(device: dict, channel: str) -> str:
-    if device.get("type") == "COYOTE_020":
-        return "unsupported-waveformat"
     if device.get("type") not in SUPPORTED_TYPES:
         return "unsupported-device"
     props, state = device.get("props", {}), device.get("slotState", {})
@@ -93,13 +92,32 @@ def channel_block_reason(device: dict, channel: str) -> str:
     return ""
 
 
+def channel_intensity_limit(device: dict, channel: str):
+    """Return the APP's current cap, never its available growth ceiling.
+
+    Coyote caps are mandatory before non-zero output. OVC retains its fixed
+    protocol range when the APP schema omits a Coyote-only intensityMax field.
+    """
+    state = device.get("slotState")
+    state = state if isinstance(state, dict) else {}
+    channel_state = state.get("channel" + channel)
+    channel_state = channel_state if isinstance(channel_state, dict) else {}
+    if device.get("type") in OVC_TYPES and "intensityMax" not in channel_state:
+        return 200
+    return channel_state.get("intensityMax")
+
+
 class DGLabV4Bridge(DGLabBridge):
     """Bridge API compatible with V3; explicit V4 device selection is required."""
 
     protocol = "v4"
 
-    def __init__(self, events: queue.Queue, *, port: int = V4_PORT, lan_ip: str = ""):
+    def __init__(self, events: queue.Queue, *, port: int = V4_PORT, lan_ip: str = "",
+                 host: str = "0.0.0.0"):
+        if host not in {"0.0.0.0", "127.0.0.1"}:
+            raise ValueError("V4 listener must use a local bind address")
         super().__init__(events, port=port, lan_ip=lan_ip)
+        self.listen_host = host
         self.app_connected = False
         self.selected_client_id = ""
         self.selected_slot_id = ""
@@ -121,6 +139,7 @@ class DGLabV4Bridge(DGLabBridge):
         self._public_devices: list[dict] = []
         self._last_device_state_signature = None
         self._last_discovery_signature = None
+        self._previous_channel_reasons: dict[str, str] = {}
 
     def _build_qr_url(self) -> str:
         address = f"ws://{self.lan_ip}:{self.port}/?tid={self.controller_id}"
@@ -189,6 +208,23 @@ class DGLabV4Bridge(DGLabBridge):
         route = (client_id or self.selected_client_id, slot_id or self.selected_slot_id)
         task = self._zero_transactions.get(route)
         return task is not None and not task.done()
+
+    def _producer_token(self) -> tuple[int, int, int, str, str]:
+        return (self._selection_epoch, self._generation, self._pause_epoch,
+                self.selected_client_id, self.selected_slot_id)
+
+    def set_auto_enabled(self, enabled: bool) -> None:
+        if self._loop is None or not self._loop.is_running():
+            self._auto_enabled = False
+            return
+        token = self._producer_token()
+        produced_at = time.monotonic()
+        def apply():
+            if enabled and (token != self._producer_token()
+                            or not 0 <= time.monotonic() - produced_at <= .5):
+                return
+            self._set_auto_enabled_in_loop(bool(enabled))
+        self._loop.call_soon_threadsafe(apply)
 
     def _set_auto_enabled_in_loop(self, enabled: bool) -> None:
         if enabled and self._route_zero_pending():
@@ -332,10 +368,21 @@ class DGLabV4Bridge(DGLabBridge):
             self._last_device_state_signature = signature
             self._audit_readiness("device-state-update")
         reasons = {channel: channel_block_reason(device, channel) for channel in ("A", "B")}
+        if self.device_type in COYOTE_TYPES and self.connected and not all(reasons.values()):
+            for channel in ("A", "B"):
+                if reasons[channel] and not self._previous_channel_reasons.get(channel):
+                    # Latch a blocked edge immediately; a mute/unmute pair can
+                    # otherwise pass between output ticks and retain APP work.
+                    self._desired_strength[channel] = 0
+                    self._desired_frames[channel] = ()
+                    self._desired_wave_key[channel] = ""
+                    self._start_channel_zero(self.selected_client_id, self.selected_slot_id,
+                                             1 if channel == "B" else 0)
+        self._previous_channel_reasons = reasons
         if (not device or device.get("type") != self.device_type
-                or (self.device_type == "COYOTE_030" and self.selected_client_id not in self._clients)):
+                or (self.device_type in COYOTE_TYPES and self.selected_client_id not in self._clients)):
             self._lose_selection("selected-device-disconnected")
-        elif self.device_type == "COYOTE_030" and all(reasons.values()):
+        elif self.device_type in COYOTE_TYPES and all(reasons.values()):
             if not self._readiness_failure_latched:
                 reason = (reasons["A"] if reasons["A"] == reasons["B"]
                           else "all-channels-blocked")
@@ -396,7 +443,7 @@ class DGLabV4Bridge(DGLabBridge):
         self.connected = self.app_connected = self._baseline_ready = False
         self.controller_id = str(uuid.uuid4())
         try:
-            self._server = await websockets.serve(self._server_handler, "0.0.0.0", self.requested_port,
+            self._server = await websockets.serve(self._server_handler, self.listen_host, self.requested_port,
                                                   ping_interval=20, ping_timeout=20, close_timeout=.5,
                                                   max_size=1024 * 1024)
         except OSError as error:
@@ -501,7 +548,7 @@ class DGLabV4Bridge(DGLabBridge):
                         or result.get("channel", pending.get("channel")) != pending.get("channel")):
                     self._finish_pending(req_id, error=ValueError("Output task cancelled or invalid completion"))
                     stale_coyote_cancel = (
-                        self.device_type == "COYOTE_030" and isinstance(result, dict)
+                        self.device_type in COYOTE_TYPES and isinstance(result, dict)
                         and result.get("reason") == "cancelled"
                         and result.get("type") == pending.get("action_type")
                         and result.get("slotId", pending.get("slot_id")) == pending.get("slot_id")
@@ -634,6 +681,23 @@ class DGLabV4Bridge(DGLabBridge):
                               or client_id != self.selected_client_id
                               or data.get("s") != self.selected_slot_id):
                 return False
+            if is_output:
+                channel = "B" if data.get("c") == 1 else "A"
+                device = self._selected_device()
+                if (channel_block_reason(device, channel)
+                        or self._route_zero_pending(client_id, data.get("s", ""))
+                        or self._channel_zero_pending(client_id, data.get("s", ""), data.get("c", 0))):
+                    return False
+                if device.get("type") in COYOTE_TYPES:
+                    maximum = channel_intensity_limit(device, channel)
+                    if (type(maximum) not in {int, float} or not math.isfinite(maximum)
+                            or maximum <= 0):
+                        return False
+                    if data.get("t") == 4:
+                        # A state patch can arrive after planning and before
+                        # send; use the latest current APP ceiling here too.
+                        packet["data"] = {**data, "v": protocol_strength(
+                            data.get("v", 0), min(self._hard_cap, int(maximum)), self.device_type)}
             await websocket.send(json.dumps({"type": "message", "data": packet}, separators=(",", ":")))
             return True
 
@@ -776,9 +840,21 @@ class DGLabV4Bridge(DGLabBridge):
                             wave_key_a: str, strength_b: float, frames_b: Iterable[str],
                             wave_key_b: str, hard_cap: int) -> None:
         a, b = validate_v4_frames(frames_a), validate_v4_frames(frames_b)
+        if self.device_type in COYOTE_TYPES and any(len(frame) != 16 for frame in (*a, *b)):
+            raise ValueError("Coyote input requires four-sample V3 frames (8 bytes)")
         if self._loop is not None and self._loop.is_running():
             cap = max(0, min(200 if self.device_type == "OVC_1" else 100, int(hard_cap)))
-            self._loop.call_soon_threadsafe(self._set_desired_outputs_in_loop,
+            token = self._producer_token()
+            produced_at = time.monotonic()
+            def apply(*values):
+                if (token != self._producer_token()
+                        or not 0 <= time.monotonic() - produced_at <= .5):
+                    return
+                self._set_desired_outputs_in_loop(*values)
+                # Queueing time is part of freshness, not a new lease.
+                if not self._paused and not self._global_emergency_stop.is_set():
+                    self._desired_updated_at = produced_at
+            self._loop.call_soon_threadsafe(apply,
                 protocol_strength(strength_a, cap, self.device_type), a, str(wave_key_a),
                 protocol_strength(strength_b, cap, self.device_type), b, str(wave_key_b), cap)
 
@@ -792,9 +868,11 @@ class DGLabV4Bridge(DGLabBridge):
         if channel_block_reason(device, channel):
             return 0
         cap = self._hard_cap
-        maximum = device.get("slotState", {}).get("channel" + channel, {}).get("intensityMax")
-        if type(maximum) in {int, float} and math.isfinite(maximum):
-            cap = min(cap, max(0, int(maximum)))
+        maximum = channel_intensity_limit(device, channel)
+        if (type(maximum) not in {int, float} or not math.isfinite(maximum)
+                or maximum < 0):
+            return 0
+        cap = min(cap, int(maximum))
         return protocol_strength(self._desired_strength[channel], cap, self.device_type)
 
     async def _output_loop(self) -> None:
@@ -853,8 +931,13 @@ class DGLabV4Bridge(DGLabBridge):
                                                    "d": LEASE_MS, "v": strength, "im": True})
                     if generation != self._generation or not self._auto_enabled:
                         break
-                    await self._rpc("device.op", {"s": self.selected_slot_id, "t": 0, "c": c, "p": 1,
-                                                   "d": FRAME_MS, "v": [frames[cursor[channel] % len(frames)]], "im": True})
+                    waveform = {"s": self.selected_slot_id, "t": 0, "c": c, "p": 1,
+                                "d": FRAME_MS, "v": [frames[cursor[channel] % len(frames)]], "im": True}
+                    if self.device_type in COYOTE_TYPES:
+                        # ver describes the four-sample input encoding, not
+                        # hardware 2.0/3.0. The APP translates device output.
+                        waveform["ver"] = 3
+                    await self._rpc("device.op", waveform)
                     cursor[channel] = (cursor[channel] + 1) % len(frames)
                     last_send[channel], active[channel] = now, True
                 except (websockets.ConnectionClosed, ConnectionError, ValueError, TimeoutError):

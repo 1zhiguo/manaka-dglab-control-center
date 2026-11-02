@@ -48,6 +48,14 @@ def option_value(prefix: str) -> str:
 
 
 def main() -> int:
+    # Isolated, explicit loopback validation. Dispatch before the normal single-
+    # instance lock/backend so this mode cannot start physical device services,
+    # load personal settings, or interfere with an existing controller window.
+    validation_report = option_value("--validate-coyote2=")
+    if validation_report:
+        from manaka_devices.coyote2_validation import run_validation
+        return run_validation(Path(validation_report).expanduser().resolve())
+
     capture_dir = screenshot_output_dir()
     capture_page_value = option_value("--capture-page=")
     capture_file_value = option_value("--capture-file=")

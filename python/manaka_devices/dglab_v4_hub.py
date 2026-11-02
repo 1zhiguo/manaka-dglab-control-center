@@ -15,14 +15,15 @@ import websockets
 
 from . import audit
 from .dglab_v4 import DGLabV4Bridge, V4_PORT
+from .device_types import COYOTE_TYPES, OVC_TYPES
 
 
-ROLE_TYPES = {"coyote": frozenset({"COYOTE_030"}), "ovc": frozenset({"OVC_1"})}
+ROLE_TYPES = {"coyote": COYOTE_TYPES, "ovc": OVC_TYPES}
 
 
 class _RoleBridge(DGLabV4Bridge):
     def __init__(self, hub: "DGLabV4Hub", role: str):
-        super().__init__(hub.events, port=hub.requested_port, lan_ip=hub.lan_ip)
+        super().__init__(hub.events, port=hub.requested_port, lan_ip=hub.lan_ip, host=hub.listen_host)
         self._hub = hub
         self.role = role
         self._request_id_prefix = role + ":"
@@ -106,8 +107,9 @@ class _RoleBridge(DGLabV4Bridge):
 class DGLabV4Hub(DGLabV4Bridge):
     """Own one local V4 server and two explicit, independent output senders."""
 
-    def __init__(self, events: queue.Queue, *, port: int = V4_PORT, lan_ip: str = ""):
-        super().__init__(events, port=port, lan_ip=lan_ip)
+    def __init__(self, events: queue.Queue, *, port: int = V4_PORT, lan_ip: str = "",
+                 host: str = "0.0.0.0"):
+        super().__init__(events, port=port, lan_ip=lan_ip, host=host)
         self.role = "hub"
         self._request_id_prefix = "hub:"
         self._channels = {role: _RoleBridge(self, role) for role in ROLE_TYPES}
@@ -193,7 +195,7 @@ class DGLabV4Hub(DGLabV4Bridge):
             channel._reset_session()
             channel._attach(self)
         try:
-            self._server = await websockets.serve(self._server_handler, "0.0.0.0", self.requested_port,
+            self._server = await websockets.serve(self._server_handler, self.listen_host, self.requested_port,
                 ping_interval=20, ping_timeout=20, close_timeout=.5, max_size=1024 * 1024)
         except OSError as error:
             self._emit("server_error", detail=f"无法监听 V4 端口 {self.requested_port}：{error}")

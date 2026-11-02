@@ -13,8 +13,8 @@ def device(kind="OVC_1"):
     return {"slotId": "s1", "name": "review fake", "type": kind,
             "props": {"connectState": "connected", "channelAStatus": True,
                       "channelBStatus": False},
-            "slotState": {"hasDevice": True, "channelA": {"isMuted": False},
-                          "channelB": {"isMuted": False}}}
+            "slotState": {"hasDevice": True, "channelA": {"isMuted": False, **({"intensityMax": 100} if kind in {"COYOTE_020", "COYOTE_030"} else {})},
+                          "channelB": {"isMuted": False, **({"intensityMax": 100} if kind in {"COYOTE_020", "COYOTE_030"} else {})}}}
 
 
 class V4ReadinessReviewTests(unittest.TestCase):
@@ -95,7 +95,7 @@ class V4StateReviewTests(unittest.TestCase):
 class V4WriteTimeoutReviewTests(unittest.IsolatedAsyncioTestCase):
     async def test_generation_is_rechecked_in_scheduled_write(self):
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces", return_value=[{"address": "127.0.0.1"}]):
-            bridge = DGLabV4Bridge(queue.Queue(), port=0)
+            bridge = DGLabV4Bridge(queue.Queue(), port=0, host="127.0.0.1")
         bridge._devices = {"app": {"s1": device()}}
         bridge.selected_client_id, bridge.selected_slot_id = "app", "s1"
         bridge.connected = bridge._baseline_ready = bridge._auto_enabled = True

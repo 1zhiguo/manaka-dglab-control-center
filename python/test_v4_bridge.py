@@ -20,14 +20,14 @@ def device(kind="OVC_1", slot="ovc", **props):
     return {"slotId": slot, "name": "Fake device", "type": kind,
             "props": {"connectState": "connected", "channelAStatus": True,
                       "channelBStatus": False, **props},
-            "slotState": {"hasDevice": True, "channelA": {"isMuted": False},
-                          "channelB": {"isMuted": False}}}
+            "slotState": {"hasDevice": True, "channelA": {"isMuted": False, **({"intensityMax": 100} if kind in {"COYOTE_020", "COYOTE_030"} else {})},
+                          "channelB": {"isMuted": False, **({"intensityMax": 100} if kind in {"COYOTE_020", "COYOTE_030"} else {})}}}
 
 
 class V4UnitTests(unittest.TestCase):
     def test_discovery_log_explains_unselected_conflict_without_payload_dump(self):
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces", return_value=[{"address":"127.0.0.1"}]):
-            bridge = DGLabV4Bridge(queue.Queue(), port=0)
+            bridge = DGLabV4Bridge(queue.Queue(), port=0, host="127.0.0.1")
         raw = device("COYOTE_030")
         raw["slotState"]["hasDevice"] = False
         raw["name"] = "Private device name"
@@ -70,7 +70,7 @@ class V4UnitTests(unittest.TestCase):
 
     def test_latest_device_limit_is_applied_before_ovc_step_conversion(self):
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces",return_value=[{"address":"127.0.0.1"}]):
-            bridge=DGLabV4Bridge(queue.Queue(),port=0)
+            bridge=DGLabV4Bridge(queue.Queue(),port=0,host="127.0.0.1")
         raw=device()
         bridge.selected_client_id,bridge.selected_slot_id,bridge.device_type="app","ovc","OVC_1"
         bridge._devices={"app":{"ovc":raw}}
@@ -85,7 +85,7 @@ class V4UnitTests(unittest.TestCase):
     def test_ovc_200_output_request_keeps_device_limit(self):
         from unittest.mock import MagicMock
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces",return_value=[{"address":"127.0.0.1"}]):
-            bridge = DGLabV4Bridge(queue.Queue(), port=0)
+            bridge = DGLabV4Bridge(queue.Queue(), port=0, host="127.0.0.1")
         bridge._loop = MagicMock()
         bridge.device_type = "OVC_1"
         bridge.update_auto_outputs(200, ["0A0A0A0A64646464"], wave_key_a="ovc_beat",
@@ -108,7 +108,7 @@ class V4UnitTests(unittest.TestCase):
         self.assertEqual(channel_block_reason(raw, "A"), "channel-fault-or-blocked")
 
     def test_optional_state_fields_and_disconnected_override(self):
-        raw = {"type": "COYOTE_030", "props": {}, "slotState": {"hasDevice": True}}
+        raw = {"type": "COYOTE_030", "props": {}, "slotState": {"hasDevice": True, "channelA": {"intensityMax": 100}}}
         self.assertEqual(channel_block_reason(raw, "A"), "")
         raw["props"]["connectState"] = "disconnected"
         self.assertEqual(channel_block_reason(raw, "A"), "bluetooth-not-connected")
@@ -116,8 +116,13 @@ class V4UnitTests(unittest.TestCase):
         raw["slotState"]["hasDevice"] = False
         self.assertEqual(channel_block_reason(raw, "A"), "bluetooth-not-connected")
 
-    def test_unverified_v2_waveform_route_is_disabled(self):
-        self.assertEqual(channel_block_reason(device("COYOTE_020"), "A"), "unsupported-waveformat")
+    def test_coyote2_has_no_coyote3_circuit_status_requirement(self):
+        raw = device("COYOTE_020")
+        raw["props"].pop("channelAStatus")
+        raw["props"].pop("channelBStatus")
+        self.assertEqual(channel_block_reason(raw, "A"), "")
+        self.assertEqual(channel_block_reason(raw, "B"), "")
+        self.assertEqual(channel_block_reason(device("UNSUPPORTED"), "A"), "unsupported-device")
 
     def test_frames_require_complete_hex_byte_pairs(self):
         self.assertEqual(validate_v4_frames(["0a0b", "00000000"]), ("0A0B", "00000000"))
@@ -129,7 +134,7 @@ class V4UnitTests(unittest.TestCase):
 class V4WireTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         with patch("manaka_devices.dglab_bridge.ipv4_interfaces", return_value=[{"address": "127.0.0.1"}]):
-            self.bridge = DGLabV4Bridge(queue.Queue(), port=0)
+            self.bridge = DGLabV4Bridge(queue.Queue(), port=0, host="127.0.0.1")
         self.server = asyncio.create_task(self.bridge._run())
         await self.until(lambda: self.bridge.server_ready)
         self.phone = await websockets.connect(f"ws://127.0.0.1:{self.bridge.port}/?tid={self.bridge.controller_id}")
