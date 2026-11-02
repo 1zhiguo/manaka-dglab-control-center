@@ -1,6 +1,10 @@
 (() => {
   const translations = {
     zh: {
+      "release111.title": "v1.1.1 · 郊狼 2.0 / V4 支持",
+      "release111.desc": "通过 DG-LAB 4 App 连接郊狼 2.0，保留原有 A/B 心率与动作策略。补齐当前上限检查、确认归零与重连保护；实体 2.0 输出尚未实测。",
+      "release111.mirrors": "新版先提供 GitHub 下载；百度网盘与 COS 正在等待上传。",
+
       "nav.dashboard": "返回 Dashboard",
       "meta.home.description": "Manaka × DG-LAB 控制中心：V3/V4、郊狼与负鼠、A/B 心率或动作分配、自定义波形、游戏 HUD 与 NPC 反应。",
       "meta.home.title": "Manaka × DG-LAB 控制中心",
@@ -62,6 +66,10 @@
       "download.github.pending": "GitHub 版待发布，请先使用百度网盘或 COS。",
     },
     en: {
+      "release111.title": "v1.1.1 · Coyote 2.0 via V4",
+      "release111.desc": "Connect Coyote 2.0 through DG-LAB 4 App. Existing A/B heart/action policies remain, with current-App limits and confirmed zero/reconnection barriers. Physical Coyote 2.0 output has not been tested.",
+      "release111.mirrors": "The new version is available on GitHub first. Baidu and COS uploads are pending.",
+
       "nav.dashboard": "Back to Dashboard",
       "meta.home.description": "Manaka × DG-LAB Control Center: V3/V4, Pulse and Opossum, independent A/B heart-rate or action sources, waveforms, in-game HUD and NPC reactions.",
       "meta.home.title": "Manaka × DG-LAB Control Center",
@@ -123,6 +131,10 @@
       "download.github.pending": "The GitHub release is pending. Please use Baidu or COS for v1.1.0.",
     },
     ja: {
+      "release111.title": "v1.1.1 · Coyote 2.0 / V4 対応",
+      "release111.desc": "DG-LAB 4 App 経由で Coyote 2.0 に接続。既存の A/B 心拍・動作設定を維持し、現在の上限確認とゼロ出力・再接続保護を追加。2.0 実機出力は未検証です。",
+      "release111.mirrors": "最新版は GitHub で先行公開。Baidu と COS はアップロード待ちです。",
+
       "nav.dashboard": "Dashboard に戻る",
       "meta.home.description": "Manaka × DG-LAB：V3/V4、Pulse と Opossum、A/B の心拍数・アクション割り当て、カスタム波形、ゲーム内 HUD と NPC リアクション。",
       "meta.home.title": "Manaka × DG-LAB コントロールセンター",
