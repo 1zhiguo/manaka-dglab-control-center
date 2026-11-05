@@ -23,7 +23,7 @@ namespace ManakaDGLab.Telemetry
     {
         public const string PluginGuid = "local.manaka.dglab.telemetry";
         public const string PluginName = "Manaka DG-LAB Telemetry";
-        public const string PluginVersion = "0.5.0";
+        public const string PluginVersion = "0.5.2";
 
         private Harmony _harmony;
         internal static ManualLogSource PluginLog;
@@ -76,9 +76,9 @@ namespace ManakaDGLab.Telemetry
         internal float Y = 96;
         internal int Connections;
         internal int Activities;
-        internal float[] Strengths = new float[4];
-        internal float[] Caps = new float[] { 30, 30, 30, 30 };
-        internal float[] Pulses = new float[4];
+        internal float[] Strengths = new float[6];
+        internal float[] Caps = new float[] { 30, 30, 30, 30, 9, 9 };
+        internal float[] Pulses = new float[6];
         internal long ReceivedAt;
 
         internal HudStatus Copy()
@@ -185,9 +185,13 @@ namespace ManakaDGLab.Telemetry
         {
             status = null;
             string[] parts = (value ?? string.Empty).Split('|');
+            if (parts.Length == 30 && parts[0] == "MANAKA_HUD_V3" && parts[29] == "END")
+            {
+                return TryParseChannels(parts, 3, out status);
+            }
             if (parts.Length == 24 && parts[0] == "MANAKA_HUD_V2" && parts[23] == "END")
             {
-                return TryParseV2(parts, out status);
+                return TryParseChannels(parts, 2, out status);
             }
             if (parts.Length != 10 || parts[0] != "MANAKA_HUD_V1" || parts[9] != "END")
             {
@@ -221,33 +225,41 @@ namespace ManakaDGLab.Telemetry
                 PulseB = Clamp(pulseB, 0f, 1f),
                 Connections = parts[3] == "1" ? 1 : 0,
                 Activities = parts[4] == "1" ? 1 : 0,
-                Strengths = new float[] { Clamp(strengthA, 0, 100), Clamp(strengthB, 0, 100), 0, 0 },
-                Pulses = new float[] { Clamp(pulseA, 0, 1), Clamp(pulseB, 0, 1), 0, 0 },
+                Strengths = new float[] { Clamp(strengthA, 0, 100), Clamp(strengthB, 0, 100), 0, 0, 0, 0 },
+                Pulses = new float[] { Clamp(pulseA, 0, 1), Clamp(pulseB, 0, 1), 0, 0, 0, 0 },
                 ReceivedAt = Environment.TickCount64
             };
             return true;
         }
 
-        private static bool TryParseV2(string[] parts, out HudStatus status)
+        private static bool TryParseChannels(string[] parts, int version, out HudStatus status)
         {
             status = null;
-            float[] values = new float[22];
-            for (int i = 1; i <= 22; i++)
+            int fields = version == 3 ? 28 : 22;
+            float[] values = new float[fields];
+            for (int i = 1; i <= fields; i++)
             {
                 if (!float.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i - 1])
                     || float.IsNaN(values[i - 1]) || float.IsInfinity(values[i - 1])) return false;
             }
             status = new HudStatus {
-                Visible = parts[2] == "1", Flags = (int)Clamp(values[2], 0, 127),
+                Visible = parts[2] == "1", Flags = (int)Clamp(values[2], 0, version == 3 ? 255 : 127),
                 Scale = Clamp(values[3], 60, 180), Opacity = Clamp(values[4], 0, 100),
                 Anchor = (int)Clamp(values[5], 0, 7), X = Clamp(values[6], 0, 100), Y = Clamp(values[7], 0, 100),
-                Connections = (int)Clamp(values[8], 0, 3), Activities = (int)Clamp(values[9], 0, 3),
+                Connections = (int)Clamp(values[8], 0, version == 3 ? 7 : 3), Activities = (int)Clamp(values[9], 0, version == 3 ? 7 : 3),
                 ReceivedAt = Environment.TickCount64
             };
             for (int i = 0; i < 4; i++) {
                 status.Strengths[i] = Clamp(values[10 + i], 0, i < 2 ? 100 : 200);
                 status.Caps[i] = Clamp(values[14 + i], 0, i < 2 ? 100 : 200);
                 status.Pulses[i] = Clamp(values[18 + i], 0, 1);
+            }
+            if (version == 3) {
+                for (int i = 0; i < 2; i++) {
+                    status.Caps[4 + i] = Clamp(values[24 + i], 0, 9);
+                    status.Strengths[4 + i] = Clamp(values[22 + i], 0, status.Caps[4 + i]);
+                    status.Pulses[4 + i] = Clamp(values[26 + i], 0, 1);
+                }
             }
             return true;
         }
@@ -507,7 +519,7 @@ namespace ManakaDGLab.Telemetry
                 return;
             }
 
-            TelemetryPublisher.Sample(__instance.Pca.PlayerHeartBeat);
+            TelemetryPublisher.Sample(__instance.Pca.PlayerHeartBeat, __instance.Pca);
             CustomHudCanvas.Tick();
         }
     }
@@ -540,7 +552,7 @@ namespace ManakaDGLab.Telemetry
             }
         }
 
-        internal static void Sample(PlayerHeartBeat heartBeat)
+        internal static void Sample(PlayerHeartBeat heartBeat, PlayerClassAccessor player)
         {
             long now = Environment.TickCount64;
             if (_udp == null || now - _lastSendAt < SendIntervalMilliseconds)
@@ -575,6 +587,8 @@ namespace ManakaDGLab.Telemetry
                 bool showingOff = state != null && state.IsLookedFlashing;
                 string vibration = VibratorStateReader.Read(gameState);
                 int piston = gameState != null ? gameState.PistonMachineModeType : 0;
+                bool pistonRandom;
+                int pistonEffective = PistonStateReader.ReadEffective(piston, player, out pistonRandom);
                 double currentRp = gameState != null ? gameState.CurrentRp : 0d;
                 int exposeExp = gameState != null ? gameState.ExposeExp : 0;
                 int currentSaveSlot = SaveManager.CurrentSaveSlot;
@@ -669,6 +683,8 @@ namespace ManakaDGLab.Telemetry
                     orgasm,
                     vibration,
                     piston,
+                    pistonEffective,
+                    pistonRandom,
                     currentRp,
                     exposeExp,
                     currentSaveSlot,
@@ -724,6 +740,8 @@ namespace ManakaDGLab.Telemetry
             bool orgasm,
             string vibration,
             int piston,
+            int pistonEffective,
+            bool pistonRandom,
             double currentRp,
             int exposeExp,
             int currentSaveSlot,
@@ -738,7 +756,7 @@ namespace ManakaDGLab.Telemetry
                 + "\"version\":1,"
                 + "\"sequence\":" + sequence.ToString(CultureInfo.InvariantCulture) + ","
                 + "\"monotonicMs\":" + monotonicMilliseconds.ToString(CultureInfo.InvariantCulture) + ","
-                + "\"hudProtocol\":2,"
+                + "\"hudProtocol\":3,"
                 + "\"timeScale\":" + timeScale.ToString("0.000", CultureInfo.InvariantCulture) + ","
                 + "\"managedTimeScale\":" + managedTimeScale.ToString("0.000", CultureInfo.InvariantCulture) + ","
                 + "\"systemMenuOpen\":" + JsonBool(systemMenuOpen) + ","
@@ -761,6 +779,8 @@ namespace ManakaDGLab.Telemetry
                 + "\"orgasm\":" + JsonBool(orgasm) + ","
                 + "\"vibration\":\"" + Escape(vibration) + "\","
                 + "\"piston\":" + piston.ToString(CultureInfo.InvariantCulture) + ","
+                + "\"pistonEffective\":" + pistonEffective.ToString(CultureInfo.InvariantCulture) + ","
+                + "\"pistonRandom\":" + JsonBool(pistonRandom) + ","
                 + "\"currentRp\":" + currentRp.ToString("0.##", CultureInfo.InvariantCulture) + ","
                 + "\"exposeExp\":" + exposeExp.ToString(CultureInfo.InvariantCulture) + ","
                 + "\"currentSaveSlot\":" + currentSaveSlot.ToString(CultureInfo.InvariantCulture) + ","

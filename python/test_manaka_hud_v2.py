@@ -25,7 +25,7 @@ class HudV2Tests(unittest.TestCase):
         self.assertFalse(int(parts[3]) & 4)
 
     def test_invalid_inputs_fall_back_to_bounded_settings(self):
-        settings = sanitize_settings({"scale": 999, "opacity": -10, "anchor": "bad", "x": float("inf"), "show_pulse": False, "show_ovc": False})
+        settings = sanitize_settings({"scale": 999, "opacity": -10, "anchor": "bad", "x": float("inf"), "show_pulse": False, "show_ovc": False, "show_booboop":False})
         self.assertEqual((settings["scale"], settings["opacity"], settings["anchor"]), (180, 0, "game_safe"))
         self.assertTrue(settings["show_pulse"])
 
@@ -41,7 +41,7 @@ class HudV2Tests(unittest.TestCase):
 
     def test_failed_save_and_empty_content_are_rejected(self):
         b = Harness()
-        self.assertFalse(b.saveHudSettings({**DEFAULTS, "show_a": False, "show_b": False}))
+        self.assertFalse(b.saveHudSettings({**DEFAULTS, "show_a": False, "show_b": False, "show_booboop":False}))
         b.persist.side_effect = OSError("full")
         self.assertFalse(b.saveHudSettings({**DEFAULTS, "scale": 80}))
         self.assertEqual(b.hud_settings, DEFAULTS)

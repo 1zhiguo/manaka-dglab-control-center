@@ -31,7 +31,10 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hud", action="store_true")
     parser.add_argument("--independent", action="store_true")
+    parser.add_argument("--ble-phase",choices=("scan","connect"),help="Mock BLE progress only; no radio access")
     parser.add_argument("--exercise", action="store_true")
+    parser.add_argument("--batch-actions",choices=("pulse","ovc","boo"),help="Exercise batch selection with isolated QML only")
+    parser.add_argument("--ports", action="store_true")
     parser.add_argument("--hud-custom", action="store_true")
     parser.add_argument("--wave-editor", action="store_true")
     parser.add_argument("--wave-picker", action="store_true")
@@ -99,6 +102,17 @@ def main():
                 route = backend.v4_hub.channel.return_value
                 route.selected_slot_id = "ovc"
                 route.devices_snapshot.return_value = [{"selected": True, "slotState": {}, "channelAReason": "accessory-not-inserted", "channelBReason": "accessory-not-inserted"}]
+        if args.ble_phase:
+            backend.poll_timer.stop()
+            backend.socket_protocol="ble"
+            backend.auto_output_enabled=backend.device_connected_value=backend.ovc_connected=False
+            task=MagicMock()
+            task.done.return_value=False
+            backend.bridge=MagicMock(connected=False,devices=[],selected_address="",reported=(0,0),battery=None,
+                scan_seconds=5.,scan_started_at=time.monotonic()-2.5,scan_request_id=1,
+                scan_state="scanning" if args.ble_phase=="scan" else "complete",
+                _scan_task=task if args.ble_phase=="scan" else None,
+                _connection_task=task if args.ble_phase=="connect" else None)
         if args.independent:
             backend.ovc_profile["mode"] = "independent"
             backend.ovc_profile["channels"]["A"]["mode"] = "action"
@@ -138,6 +152,60 @@ def main():
             if args.pulse_dialog:
                 channel = "A" if args.pulse_sources.split(",")[0]==args.pulse_dialog else "B"
                 QTimer.singleShot(300, lambda: QMetaObject.invokeMethod(page,"openSourceMapping",Q_ARG("QVariant",channel)))
+        if args.batch_actions:
+            name={"pulse":"pulseWorkbenchPage","ovc":"ovcWorkbenchPage","boo":"booWorkbenchPage"}[args.batch_actions]
+            page=window.findChild(QObject,name)
+            assert page is not None
+            def call(method,*values):
+                assert QMetaObject.invokeMethod(page,method,*(Q_ARG("QVariant",v) for v in values)),method
+            def value(key):
+                item=page.property(key)
+                return item.toVariant() if hasattr(item,"toVariant") else item
+            query="actionSearch" if args.batch_actions=="pulse" else "query"
+            items="filteredActions" if args.batch_actions=="pulse" else "actions"
+            selection="selectedActionKeys" if args.batch_actions!="boo" else "selectedActions"
+            first=backend.ovcActions[0]["key"]
+            page.setProperty(query,first)
+            call("selectAllActions" if args.batch_actions!="boo" else "selectAll")
+            keys=value(selection)
+            assert keys and len(keys)==len(value(items))
+            call("invertActionSelection" if args.batch_actions!="boo" else "invert")
+            assert value(selection)==[]
+            call("selectAllActions" if args.batch_actions!="boo" else "selectAll")
+            if args.batch_actions=="pulse":
+                call("applyActionBatch","off")
+                assert all(backend.action_wave_map_value.get(k,"off")=="off" for k in keys)
+            elif args.batch_actions=="ovc":
+                before=value("draft")["channels"]["B"]
+                call("applyActionBatch",{"mode":"wave","wave":backend.ovcWaveforms[0]["key"]},10,True)
+                after=value("draft")
+                assert after["channels"]["B"]==before
+                assert all(after["channels"]["A"]["actions"][k]["mode"]=="wave" and after["channels"]["A"]["actions"][k]["strength"]==10 for k in keys)
+                assert QMetaObject.invokeMethod(page,"openChannel",Q_ARG("QVariant","A"))
+            else:
+                call("batch","level",2)
+                assert all(value("draft")["actions"][k]=={"mode":"level","level":2} for k in keys)
+            assert value(selection)==[]
+            call("selectAllActions" if args.batch_actions!="boo" else "selectAll")
+            page.setProperty(query,"not-a-real-action")
+            assert value(selection)==[]
+            page.setProperty(query,"")
+            print("QML filtered selection, inversion and batch assignment verified:",args.batch_actions)
+        if args.ports:
+            dialog=window.findChild(QObject,"socketPortsDialog")
+            assert dialog is not None
+            window.findChild(QObject,"socketPortV3Input").setProperty("value",backend.socketPortV3)
+            window.findChild(QObject,"socketPortV4Input").setProperty("value",backend.socketPortV4)
+            QMetaObject.invokeMethod(dialog,"open")
+            port=window.findChild(QObject,"socketPortV4Input")
+            assert port is not None
+            field=port.property("contentItem")
+            assert not field.property("readOnly")
+            field.setProperty("text","10008")
+            QMetaObject.invokeMethod(field,"editingFinished")
+            assert port.property("value")==10008
+            assert backend.saveSocketPorts(10009,10008)
+            assert (backend.socketPortV3,backend.socketPortV4)==(10009,10008)
         if args.hud or args.hud_custom:
             dialog = window.findChild(QObject, "hudSettingsDialog")
             if dialog is None:
@@ -157,6 +225,15 @@ def main():
             QMetaObject.invokeMethod(page, "setRule", Q_ARG("QVariant", first_action), Q_ARG("QVariant", "mode"), Q_ARG("QVariant", "wave"))
             draft = page.property("draft").toVariant()
             assert draft["channels"]["A"]["actions"][first_action]["mode"] == "wave"
+            QMetaObject.invokeMethod(page, "editActionWave", Q_ARG("QVariant", first_action), Q_ARG("QVariant", ""))
+            new_key=backend.saveOvcWaveform("Action authored in QML", [0,100]*8, "")
+            assert new_key
+            editor=window.findChild(QObject, "ovcWaveEditor")
+            assert QMetaObject.invokeMethod(editor, "saved", Q_ARG(str, new_key))
+            QMetaObject.invokeMethod(editor, "close")
+            authored=page.property("draft").toVariant()
+            assert authored["channels"]["A"]["actions"][first_action]["wave"]==new_key
+            assert authored["channels"]["A"]["actions"][first_action]["mode"]=="wave"
             for category in ("sync", "custom"):
                 QMetaObject.invokeMethod(page, "selectCategory", Q_ARG("QVariant", category))
             draft = page.property("draft").toVariant()
@@ -225,6 +302,34 @@ def main():
         if args.blocked:
             QTimer.singleShot(500, lambda: backend.explainDeviceBlock("ovc"))
         captures = []
+        if args.ble_phase:
+            samples=[]
+            def sample_ble():
+                try:
+                    def find(item,name):
+                        if item.objectName()==name:return item
+                        for child in item.childItems():
+                            result=find(child,name)
+                            if result is not None:return result
+                        return None
+                    icon=find(QQuickWindow.contentItem(window),"bleHourglass")
+                    bar=find(QQuickWindow.contentItem(window),"bleScanProgress")
+                    fill=find(QQuickWindow.contentItem(window),"bleProgressFill")
+                    assert icon is not None and bar is not None and fill is not None
+                    samples.append(float(icon.property("rotation")))
+                    if args.ble_phase=="scan":
+                        assert .4<float(bar.property("value"))<1
+                        assert abs(float(fill.property("x")))<.01
+                        assert float(fill.property("width"))>100
+                    else:
+                        assert bar.property("indeterminate")
+                    if len(samples)==2:
+                        assert abs(samples[1]-samples[0])>5, samples
+                        print("SVG hourglass rotation verified; BLE progress geometry verified.")
+                except Exception as error:
+                    callback_errors.append(str(error))
+            QTimer.singleShot(250,sample_ble)
+            QTimer.singleShot(650,sample_ble)
 
         def capture():
             result = QQuickWindow.contentItem(window).grabToImage()

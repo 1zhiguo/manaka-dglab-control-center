@@ -6,7 +6,7 @@ Item {
     id: page
     objectName: "ovcWorkbenchPage"
     required property var theme
-    readonly property bool available: backend.socketProtocol === "v4"
+    readonly property bool available: backend.socketProtocol === "v4" || backend.socketProtocol === "ble"
     signal connectionSettingsRequested()
     property var draft: ({})
     property string savedSnapshot: ""
@@ -16,6 +16,27 @@ Item {
     property string query: ""
     property bool showStrength: false
     property string actionFilter: "all"
+    property var selectedActionKeys: []
+    onActionFilterChanged:selectedActionKeys=[]
+    onQueryChanged:selectedActionKeys=[]
+    onChannelChanged:selectedActionKeys=[]
+    function selectAllActions(){selectedActionKeys=actions.map(a=>a.key)}
+    function invertActionSelection(){selectedActionKeys=actions.map(a=>a.key).filter(k=>selectedActionKeys.indexOf(k)<0)}
+    function toggleActionSelection(key){let keys=selectedActionKeys.slice(),i=keys.indexOf(key);if(i<0)keys.push(key);else keys.splice(i,1);selectedActionKeys=keys}
+    function applyActionBatch(option,strength,useStrength) {
+        if(!ready||!selectedActionKeys.length)return
+        let p=JSON.parse(JSON.stringify(draft))
+        for(let key of selectedActionKeys){
+            let r=Object.assign({},rule(key));r.mode=option.mode
+            if(option.mode==="wave")r.wave=option.wave
+            if(useStrength)r.strength=Math.min(p.hard_cap,Math.max(0,strength))
+            p.channels[channel].actions[key]=r
+        }
+        draft=p;selectedActionKeys=[]
+    }
+    property string editingAction: ""
+    property string editingChannel: "A"
+    property bool editingAssignment: false
     property string catalogFilter: "all"
     property var customModes: ({A:"action",B:"action"})
     readonly property var filteredCatalog: catalog.filter(w=>catalogFilter==="all"||w.group===catalogFilter)
@@ -28,7 +49,7 @@ Item {
         {mode:"random",wave:"",name:tr("随机波形池","Random Pool"),points:[0,70,20,100,0,50,0],color:theme.violet},
         {mode:"off",wave:"",name:tr("关闭本动作输出","Off"),points:[0,0,0,0],color:theme.muted}].concat(catalog.map(w=>Object.assign({},w,{mode:"wave",wave:w.key})))
     function tr(zh,en) { return backend.language === "en" ? en : zh }
-    function reload() { draft=JSON.parse(JSON.stringify(backend.ovcProfile));savedSnapshot=JSON.stringify(draft) }
+    function reload() { selectedActionKeys=[];draft=JSON.parse(JSON.stringify(backend.ovcProfile));savedSnapshot=JSON.stringify(draft) }
     function change(key,value) {
         let p=JSON.parse(JSON.stringify(draft));p[key]=value
         if(key==="hard_cap") {
@@ -69,7 +90,23 @@ Item {
         } else if(policy.mode==="sync"||policy.mode==="off") setPolicy("mode",customModes[channel]||"action")
     }
     function openChannel(ch) { if(available){channel=ch;channelDialog.open()} }
-    function editWave(key) { if(available)waveEditor.openEditor(key) }
+    function editWave(key) { if(available){editingAssignment=false;waveEditor.openEditor(key)} }
+    function editActionWave(action,key) {
+        if(!available)return
+        editingAction=action;editingChannel=channel;editingAssignment=true
+        waveEditor.openEditor(key||"")
+    }
+    function acceptWave(key) {
+        let p=JSON.parse(JSON.stringify(draft))
+        p.custom_waves=JSON.parse(JSON.stringify(backend.ovcProfile.custom_waves))
+        if(editingAssignment) {
+            let policy=p.channels[editingChannel]
+            let rule=Object.assign({strength:Math.min(20,p.hard_cap)},policy.actions[editingAction]||{})
+            rule.mode="wave";rule.wave=key;policy.actions[editingAction]=rule
+            policy.mode="action";p.mode="independent"
+        } else if(p.channels[channel].mode==="fixed")p.channels[channel].wave=key
+        draft=p;editingAssignment=false
+    }
     onAvailableChanged: {if(!available){channelDialog.close();waveEditor.close()}}
     function chooseWave(key) {
         if(policy.mode==="random") {
@@ -215,11 +252,11 @@ Item {
         radius:22;color:page.theme.panel;border.color:page.theme.border
         ColumnLayout {
             anchors.centerIn:parent;width:Math.min(640,parent.width-64);spacing:20
-            Label {Layout.fillWidth:true;text:page.tr("当前使用 V3，负鼠工作台不可用","Opossum Is Unavailable in V3");wrapMode:Text.Wrap;color:page.theme.fg;font.pixelSize:24;font.bold:true}
-            Label {Layout.fillWidth:true;text:page.tr("V3 用于郊狼单设备连接。要使用负鼠，请前往「设备与游戏」，将扫码连接协议切换为 V4，并使用 DG-LAB 4 App 重新扫码。","V3 is for a single Coyote device. To use Opossum, open Setup, select V4 and scan again with DG-LAB 4 App.");wrapMode:Text.Wrap;color:page.theme.muted;font.pixelSize:15;lineHeight:1.3}
-            WorkbenchButton {objectName:"ovcGoToConnectionSettings";theme:page.theme;text:page.tr("前往切换 V4","Open V4 Setup");highlighted:true;onClicked:page.connectionSettingsRequested()}
+            Label {Layout.fillWidth:true;text:page.tr("当前连接模式下负鼠工作台不可用","Opossum Requires V4 or BLE");wrapMode:Text.Wrap;color:page.theme.fg;font.pixelSize:24;font.bold:true}
+            Label {Layout.fillWidth:true;text:page.tr("V3 用于郊狼单设备连接。要使用负鼠，请前往「设备与游戏」，切换为 V4 扫码连接，或选择蓝牙直连。","V3 is for a single Coyote device. To use Opossum, open Setup, select V4 with DG-LAB 4 App, or choose direct BLE.");wrapMode:Text.Wrap;color:page.theme.muted;font.pixelSize:15;lineHeight:1.3}
+            WorkbenchButton {objectName:"ovcGoToConnectionSettings";theme:page.theme;text:page.tr("前往连接设置","Open Connection Setup");highlighted:true;onClicked:page.connectionSettingsRequested()}
         }
     }
     OvcChannelDialog {id:channelDialog;theme:page.theme;workbench:page}
-    OvcWaveEditor {id:waveEditor;theme:page.theme;onSaved:key=>{let p=JSON.parse(JSON.stringify(page.draft));p.custom_waves=backend.ovcProfile.custom_waves;page.draft=p;page.setPolicy("wave",key)}}
+    OvcWaveEditor {id:waveEditor;theme:page.theme;onSaved:key=>page.acceptWave(key)}
 }

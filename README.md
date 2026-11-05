@@ -17,7 +17,7 @@
 
 公开版**不包含游戏本体或第三方 Mod**。Release 仅携带已验证的 BepInEx 运行环境和本项目的 DG-LAB 遥测插件；用户可从原作者页面取得 Mod 后，通过控制中心管理插件、CustomMission 1 和 CustomMission 2。解压便携包后运行 `ManakaQmlControlCenter.exe`，不需要安装 Python 或 Node.js。
 
-v1.1.1 新增郊狼 2.0 / DG-LAB 4 App / V4 支持，保留原有 A/B 游戏联动。需完成确认归零后手动启用；实体 2.0 输出未实测。详见 [更新说明](docs/RELEASE_v1.1.1.md) 和 [适配验证](docs/COYOTE2_V4.md)。
+v1.2.0 新增电脑蓝牙直连、腰带骑士 FN010-RX 工作台与 HUD 显示，支持动作波形全选、反选和批量设置，以及可修改的 Socket 端口。升级需更新游戏遥测插件。详见 [更新说明](docs/RELEASE_v1.2.0.md)、[蓝牙使用说明](docs/COYOTE_BLE_LOCAL.md) 和 [腰带骑士适配说明](docs/FN010_RX_BLE_RESEARCH.md)。
 
 ## 核心功能
 
@@ -25,11 +25,11 @@ v1.1.1 新增郊狼 2.0 / DG-LAB 4 App / V4 支持，保留原有 A/B 游戏联�
 - **负鼠工作台**：V4 振动器档位同步、A/B 动作映射、随机/固定波形与自定义曲线。
 - **Climax 同步**：峰值事件同时驱动 A/B 通道，并受安全上限保护。
 - **波形预览**：查看内置波形效果，并管理自定义波形。
-- **Manaka 连接郊狼**：通过 V3/V4 扫码连接；V4 双设备分别启停。
+- **Manaka 连接郊狼**：通过 V3/V4 扫码或电脑蓝牙直连；各设备分别启停。
 - **经验 / RP 修改**：在控制中心内调整游戏经验值和 RP。
 - **Mod 一站式加载**：导入、识别、启用、停用并检查第三方 Mod 依赖。
 
-最新更新说明：[v1.1.0](docs/RELEASE_v1.1.0.md)。升级后请关闭游戏，执行“安装 / 修复运行环境”，再重启游戏以加载新版 HUD 和遥测。
+最新更新说明：[v1.2.0](docs/RELEASE_v1.2.0.md)。升级后请关闭游戏，执行“安装 / 修复运行环境”，再重启游戏以加载新版 HUD 和遥测。
 
 ## 快速开始
 
@@ -45,7 +45,7 @@ v1.1.1 新增郊狼 2.0 / DG-LAB 4 App / V4 支持，保留原有 A/B 游戏联�
 1. Download the latest portable Windows archive from the [English website](https://manaka-dglab.web.app/?lang=en) or [GitHub Releases](https://github.com/1zhiguo/manaka-dglab-control-center/releases/latest), then extract the complete ZIP.
 2. Run `ManakaQmlControlCenter.exe` and switch to **English** in **Settings** or the first-run agreement window.
 3. Select the folder that directly contains `SecretFlasherManaka.exe`, then choose **Install and Launch Game**. A clean game copy does not need BepInEx preinstalled.
-4. Choose V3 or V4 above the QR code in **Setup**. V3 uses the DG-LAB 3 App Socket page; V4 uses the DG-LAB 4 App for Coyote and/or Opossum. Scan, check hardware readiness and manually enable each device.
+4. Choose V3, V4 or direct BLE in **Setup**. For direct BLE, disconnect the phone App, scan and connect from the relevant device workbench, then enable manually. Belt Knight has its own workbench. For Socket: V3 uses the DG-LAB 3 App Socket page; V4 uses the DG-LAB 4 App for Coyote and/or Opossum. Scan, check hardware readiness and manually enable each device.
 5. Begin with **Low · 5–30**, keep the initial hard cap at 30, and use **Pause output** whenever you need to set A/B output to zero without disconnecting the device.
 
 The public build does **not** include the game. Read the full [English setup guide](QUICKSTART_EN.md) and [English FAQ](FAQ_EN.md) before first use.
@@ -74,7 +74,7 @@ python/.venv/Scripts/python.exe python/qml_dashboard_prototype/main.py
 
 构建 Windows 便携版还需要 `PyInstaller`，以及由官方来源取得的 BepInEx 6 IL2CPP x64 文件放在 `installer_payload/bepinex_v113`。
 
-本次 v1.1.0 由维护者手动上传 COS 和百度网盘；普通代码推送仅部署网站，不触发 COS 上传。`Publish prebuilt release` 保留为显式手动发布流程。详见 [RELEASING_CN.md](RELEASING_CN.md)。
+本次 v1.2.0 由维护者手动上传 COS 和百度网盘；普通代码推送仅部署网站，不触发 COS 上传。`Publish prebuilt release` 保留为显式手动发布流程。详见 [RELEASING_CN.md](RELEASING_CN.md)。
 
 ## 安全与责任
 

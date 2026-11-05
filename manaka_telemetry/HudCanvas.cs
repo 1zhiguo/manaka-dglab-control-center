@@ -19,12 +19,14 @@ namespace ManakaDGLab.Telemetry
         }
         private static GameObject _root, _panel;
         private static Image _background;
-        private static readonly Cell[] Cells = new Cell[4];
+        private static readonly Cell[] Cells = new Cell[6];
         private static float _nextDraw, _nextSample;
         private static bool _wasVisible;
         private static string _layout = "";
         private static readonly Color Pink = new Color(1f, .27f, .65f, .98f);
         private static readonly Color Lilac = new Color(.79f, .66f, 1f, .98f);
+        private static readonly Color Gold = new Color(1f, .75f, .47f, .98f);
+        private static Color CellColor(int i) { return i >= 4 ? Gold : i % 2 == 0 ? Pink : Lilac; }
 
         internal static void Tick()
         {
@@ -48,13 +50,13 @@ namespace ManakaDGLab.Telemetry
             if (_layout != layout) { Layout(status, canvas.rect.width, canvas.rect.height); _layout = layout; }
             bool sample = Time.unscaledTime >= _nextSample;
             if (sample) _nextSample = Time.unscaledTime + .1f;
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < Cells.Length; i++) {
                 Cell cell = Cells[i];
                 if (!cell.Root.activeSelf) continue;
-                int role = i < 2 ? 1 : 2;
+                int role = i < 2 ? 1 : i < 4 ? 2 : 4;
                 bool connected = (status.Connections & role) != 0;
                 bool active = connected && (status.Activities & role) != 0;
-                Color color = i % 2 == 0 ? Pink : Lilac;
+                Color color = CellColor(i);
                 Color inactive = new Color(.62f, .56f, .68f, .8f);
                 cell.Number.text = Mathf.RoundToInt(active ? status.Strengths[i] : 0).ToString(CultureInfo.InvariantCulture);
                 cell.Number.color = active ? Color.white : inactive;
@@ -76,8 +78,8 @@ namespace ManakaDGLab.Telemetry
         private static void Layout(HudStatus status, float viewWidth, float viewHeight)
         {
             int count = 0;
-            for (int i = 0; i < 4; i++) {
-                bool shown = Has(status, i < 2 ? 1 : 2) && Has(status, i % 2 == 0 ? 4 : 8);
+            for (int i = 0; i < Cells.Length; i++) {
+                bool shown = i >= 4 ? Has(status, 128) : Has(status, i < 2 ? 1 : 2) && Has(status, i % 2 == 0 ? 4 : 8);
                 Cells[i].Root.SetActive(shown);
                 if (shown) count++;
             }
@@ -100,11 +102,11 @@ namespace ManakaDGLab.Telemetry
             Set(_background.rectTransform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(left, -top), new Vector2(width, height));
             _background.color = new Color(.08f, .025f, .08f, status.Opacity / 100f);
             int index = 0;
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < Cells.Length; i++) {
                 Cell cell = Cells[i];
                 if (!cell.Root.activeSelf) continue;
                 Set(cell.Root.GetComponent<RectTransform>(), new Vector2(index / (float)count, 0), new Vector2((index + 1) / (float)count, 1), new Vector2(.5f, .5f), Vector2.zero, new Vector2(-10, -8));
-                cell.Title.fontSize = Mathf.Max(8, Mathf.RoundToInt(12 * scale));
+                cell.Title.fontSize = Mathf.Max(8, Mathf.RoundToInt(Mathf.Min(12 * scale, width / Mathf.Max(1, count) * .075f)));
                 cell.Number.fontSize = Mathf.Max(10, Mathf.RoundToInt(16 * scale));
                 cell.State.fontSize = Mathf.Max(7, Mathf.RoundToInt(8 * scale));
                 cell.Number.gameObject.SetActive(Has(status, 16));
@@ -136,14 +138,14 @@ namespace ManakaDGLab.Telemetry
                 Image bottom = Image("SilverRule", _panel.transform, new Color(.85f, .7f, .9f, .24f));
                 Set(bottom.rectTransform, Vector2.zero, new Vector2(1, 0), new Vector2(.5f, 0), Vector2.zero, new Vector2(0, 1));
                 Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < Cells.Length; i++) {
                     Cell cell = new Cell(); Cells[i] = cell;
-                    Color color = i % 2 == 0 ? Pink : Lilac;
+                    Color color = CellColor(i);
                     cell.Root = Image("Cell" + i, _panel.transform, Color.clear).gameObject;
                     Transform parent = cell.Root.transform;
                     Image rule = Image("ChannelRule", parent, color);
                     Set(rule.rectTransform, Vector2.zero, new Vector2(0, 1), new Vector2(0, .5f), Vector2.zero, new Vector2(2, 0));
-                    cell.Title = Text("Title", parent, (i % 2 == 0 ? "A" : "B") + (i < 2 ? " / PULSE" : " / OVC"), font, 12, color);
+                    cell.Title = Text("Title", parent, (i >= 4 ? (i == 4 ? "BELT / MOVE" : "BELT / VIBE") : (i % 2 == 0 ? "A" : "B") + (i < 2 ? " / PULSE" : " / OVC")), font, 12, color);
                     Set(cell.Title.rectTransform, new Vector2(.05f, .68f), new Vector2(.76f, 1), new Vector2(0, .5f), Vector2.zero, Vector2.zero);
                     cell.Number = Text("Strength", parent, "0", font, 16, Color.white);
                     cell.Number.alignment = TextAnchor.MiddleRight;

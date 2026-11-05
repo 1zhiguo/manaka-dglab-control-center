@@ -1,0 +1,1 @@
+from manaka_devices.ble_scan_validation import AutoConnectBleTests, AutoConnectBle2Tests

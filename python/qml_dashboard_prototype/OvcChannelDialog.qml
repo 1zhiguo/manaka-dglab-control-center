@@ -85,7 +85,24 @@ Dialog {
         }
         RowLayout {
             visible:page.policy.mode==="action";Layout.fillWidth:true;spacing:8
-            Label {text:page.tr("游戏动作","Game Action");color:dialog.theme.muted;Layout.preferredWidth:170;font.pixelSize:11}
+            WorkbenchButton {theme:dialog.theme;text:page.tr("全选","Select All");onClicked:page.selectAllActions()}
+            WorkbenchButton {theme:dialog.theme;text:page.tr("反选","Invert");onClicked:page.invertActionSelection()}
+            WorkbenchButton {theme:dialog.theme;text:page.tr("清空","Clear");onClicked:page.selectedActionKeys=[]}
+            Label {text:page.tr("已选：","Selected: ")+page.selectedActionKeys.length;color:dialog.theme.muted}
+            Item {Layout.fillWidth:true}
+            Label {text:page.tr("仅当前筛选 · 仅当前通道","Current filter · current channel");color:dialog.theme.muted;font.pixelSize:11}
+        }
+        RowLayout {
+            visible:page.policy.mode==="action";Layout.fillWidth:true;spacing:8
+            OvcWavePicker {id:batchOption;objectName:"ovcBatchWavePicker";theme:dialog.theme;Layout.fillWidth:true;model:page.actionOptions}
+            CheckBox {id:batchSetStrength;text:page.tr("同时设置强度","Set Intensity");checked:true}
+            WorkbenchSpinBox {id:batchStrength;theme:dialog.theme;Layout.preferredWidth:110;from:0;to:page.draft.hard_cap||0;stepSize:10;value:Math.min(20,page.draft.hard_cap||0);enabled:batchSetStrength.checked}
+            WorkbenchButton {theme:dialog.theme;text:page.tr("批量应用","Apply to Selected");highlighted:true;enabled:page.selectedActionKeys.length>0;onClicked:page.applyActionBatch(page.actionOptions[batchOption.currentIndex],batchStrength.value,batchSetStrength.checked)}
+        }
+        RowLayout {
+            visible:page.policy.mode==="action";Layout.fillWidth:true;spacing:8
+            Item {Layout.preferredWidth:32}
+            Label {text:page.tr("游戏动作","Game Action");color:dialog.theme.muted;Layout.preferredWidth:135;font.pixelSize:11}
             Label {text:page.tr("分类","Type");color:dialog.theme.muted;Layout.preferredWidth:76;font.pixelSize:11}
             Label {text:page.tr("波形预览","Envelope Preview");color:dialog.theme.muted;Layout.fillWidth:true;font.pixelSize:11}
             Label {text:page.tr("使用波形","Assignment");color:dialog.theme.muted;Layout.preferredWidth:250;font.pixelSize:11}
@@ -100,10 +117,12 @@ Dialog {
                 width:ListView.view.width;height:82;radius:13;color:dialog.theme.panel2;border.color:rule.mode!=="sync"?dialog.theme.violet:dialog.theme.border
                 HoverHandler{id:rowHover}
                 RowLayout {anchors.fill:parent;anchors.margins:10;spacing:8
-                    Label {Layout.preferredWidth:160;text:actionRow.modelData.name;color:dialog.theme.fg;elide:Text.ElideRight;font.pixelSize:12;ToolTip.text:actionRow.modelData.key;ToolTip.visible:rowHover.hovered}
+                    CheckBox {Layout.preferredWidth:32;checked:page.selectedActionKeys.indexOf(actionRow.modelData.key)>=0;onClicked:page.toggleActionSelection(actionRow.modelData.key)}
+                    Label {Layout.preferredWidth:135;text:actionRow.modelData.name;color:dialog.theme.fg;elide:Text.ElideRight;font.pixelSize:12;ToolTip.text:actionRow.modelData.key;ToolTip.visible:rowHover.hovered}
                     Label {Layout.preferredWidth:76;text:actionRow.modelData.styleLabel;color:dialog.theme.muted;font.pixelSize:11;elide:Text.ElideRight}
                     VibrationPreview {Layout.fillWidth:true;Layout.minimumWidth:50;Layout.preferredHeight:52;points:actionRow.selected.points;lineColor:actionRow.selected.color;cycles:3;animate:rowHover.hovered}
                     OvcWavePicker {objectName:"ovcActionPicker_"+actionRow.modelData.key;theme:dialog.theme;Layout.preferredWidth:250;model:page.actionOptions;currentIndex:page.actionOptionIndex(actionRow.rule);onActivated:page.chooseAction(actionRow.modelData.key,model[currentIndex])}
+                    WorkbenchButton {theme:dialog.theme;implicitWidth:80;text:page.tr("自定义","Edit");onClicked:page.editActionWave(actionRow.modelData.key,actionRow.rule.mode==="wave"?actionRow.rule.wave:"")}
                     WorkbenchSpinBox {theme:dialog.theme;Layout.preferredWidth:110;from:0;to:page.draft.hard_cap||0;stepSize:10;value:Math.min(actionRow.rule.strength,page.draft.hard_cap||0);enabled:actionRow.rule.mode==="wave"||actionRow.rule.mode==="random";onValueModified:page.setRule(actionRow.modelData.key,"strength",value)}
                 }
             }

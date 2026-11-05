@@ -38,3 +38,13 @@ NPC 语气包中的日文短语音是在开发阶段通过 Fish Audio API 生成
 
 模型页面可按 `https://fish.audio/app/m/<模型 ID>` 访问。相关音频属于 AI 生成内容，
 不应被描述为真人配音；使用与再分发仍须遵守 Fish Audio 条款及对应模型权利人的要求。
+
+
+## Coyote BLE protocol and Bleak
+
+Native BLE framing references the official protocol: https://github.com/dungeonlab-open/dglab-bluetooth-protocol . Retain its non-commercial notice. BLE transport uses Bleak 3.0.2 (MIT): https://github.com/hbldh/bleak . Native Windows dependencies retain their respective package licenses.
+
+
+## FN010-RX protocol research
+
+Independent Python implementation references the primary community HCI report: https://github.com/buttplugio/buttplug/issues/968 . The vendor-host integration and game mapping in https://github.com/LuMianJun/BooBoopControl and https://github.com/LuMianJun/SecretFlasherManaka-BooBoopBridge (MIT, Copyright 2026 Lu_Noodles) were reviewed as references; no source or binaries from those projects are bundled. This experimental BLE profile is not an official vendor SDK. See docs/FN010_RX_BLE_RESEARCH.md for capabilities and verification limits.

@@ -9,11 +9,14 @@ from __future__ import annotations
 
 
 EN: dict[str, str] = {
+    "腰带骑士工作台": "Belt Knight",
+    "游戏活塞联动与独立动作档位": "Game piston sync and action levels",
     "设置": "Settings",
     "外观、语言与通用偏好": "Appearance, language and general preferences",
     "负鼠工作台": "Opossum",
     "全部停止": "Stop All",
     "安装游戏插件，选择 V3 或 V4 连接": "Install the game plugin and choose V3 or V4",
+    "安装游戏插件，选择 Socket 或蓝牙直连": "Install the game plugin and choose Socket or direct Bluetooth",
     "跟随游戏振动器档位，独立控制负鼠": "Follow the game's vibrator mode with independent Opossum output",
     "V4 设备就绪 · 等待手动启用": "V4 device ready · enable output explicitly",
     "等待手动连接和启用": "Connect and enable output explicitly",

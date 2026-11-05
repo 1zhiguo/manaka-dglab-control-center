@@ -172,12 +172,15 @@ class Coyote2ScenarioTests(unittest.IsolatedAsyncioTestCase):
         await self.until(lambda: self.route._auto_enabled and self.ovc._auto_enabled, game=True)
         await self.until(lambda: bool(self.app.strengths()) and bool(self.app.strengths("ovc")), game=True)
 
-    def assert_no_nonzero(self, *, since, slot="coyote"):
-        self.assertFalse([r for r in self.app.strengths(slot, since=since) if r["data"]["v"] > 0])
-        self.assertFalse(self.app.pulses(slot, since=since))
+    def assert_no_nonzero(self, *, since, slot="coyote", first_record_index=0):
+        rows = [r for r in self.app.records[first_record_index:]
+                if r["at"] >= since and r.get("m") == "device.op"
+                and (r.get("data") or {}).get("s") == slot]
+        self.assertFalse([r for r in rows if r["data"]["t"] == 4 and r["data"]["v"] > 0])
+        self.assertFalse([r for r in rows if r["data"]["t"] == 0])
 
-    def assert_barrier_before_output(self, since=0):
-        rows = [r for r in self.app.records if r["at"] >= since and (r.get("data") or {}).get("s") == "coyote"]
+    def assert_barrier_before_output(self, since=0, *, first_record_index=0):
+        rows = [r for r in self.app.records[first_record_index:] if r["at"] >= since and (r.get("data") or {}).get("s") == "coyote"]
         first = next((i for i, r in enumerate(rows) if r["m"] == "device.op" and r["data"]["t"] in {0, 4}), len(rows))
         prefix = rows[:first]
         methods = [(r["m"], r.get("data", {}).get("t")) for r in prefix]
@@ -335,6 +338,9 @@ class Coyote2ScenarioTests(unittest.IsolatedAsyncioTestCase):
         await self.app.close()
         await self.until(lambda: not self.route.connected and not self.hub.app_connected)
         since = time.monotonic()
+        # The reader has been drained by close(). Windows monotonic timestamps
+        # can share a 15 ms tick across this boundary: retain receipt order too.
+        first_record_index = len(self.app.records)
         self.app.hold_output = False
         self.app.held.clear()
         await self.connect()
@@ -344,9 +350,9 @@ class Coyote2ScenarioTests(unittest.IsolatedAsyncioTestCase):
             await self.app.send({"t": "resp", "reqId": r["reqId"], "result": {"type": d["t"], "slotId": d["s"], "channel": d["c"], "reason": "completed"}})
         await self.drive(.12, game=True)
         self.assertFalse(self.route._auto_enabled or self.b.auto_output_enabled)
-        self.assert_no_nonzero(since=since)
+        self.assert_no_nonzero(since=since, first_record_index=first_record_index)
         await self.arm_wire()
-        self.assert_barrier_before_output(since)
+        self.assert_barrier_before_output(since, first_record_index=first_record_index)
         self.assertFalse(self.app.errors)
 
     async def test_08_manual_pause_estop_unlock_and_background_output(self):

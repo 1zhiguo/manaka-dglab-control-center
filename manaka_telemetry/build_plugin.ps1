@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)]
     [string]$GameDir,
     [switch]$Deploy
@@ -65,6 +65,7 @@ $response += $references | ForEach-Object { "/reference:`"$_`"" }
 $response += "`"$(Join-Path $scriptDir 'Plugin.cs')`""
 $response += "`"$(Join-Path $scriptDir 'HudCanvas.cs')`""
 $response += "`"$(Join-Path $scriptDir 'VibratorStateReader.cs')`""
+$response += "`"$(Join-Path $scriptDir 'PistonStateReader.cs')`""
 
 Set-Content -LiteralPath $responseFile -Value $response -Encoding UTF8
 & $compiler "/noconfig" "@$responseFile"

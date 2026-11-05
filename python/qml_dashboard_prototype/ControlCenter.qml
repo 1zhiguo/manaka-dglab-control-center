@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 
 ApplicationWindow {
     id: root
+    readonly property bool anyDeviceConnected: backend.deviceConnected || backend.ovcConnected || backend.booConnected
     width: 1320
     height: 840
     minimumWidth: 1120
@@ -26,10 +27,10 @@ ApplicationWindow {
         const languageDependency = backend.language
         return backend.translate(source)
     }
-    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("负鼠工作台"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("NPC 语音"), t("事件记录"), t("设置")]
+    property var pageTitles: [t("实时仪表盘"), t("设备与游戏"), t("个性化范围"), t("波形工作台"), t("负鼠工作台"), t("存档工具"), t("Mod 管理器"), t("创意工坊"), t("NPC 语音"), t("事件记录"), t("设置"), t("腰带骑士工作台")]
     property var pageSubtitles: [
         t("游戏状态、心率与设备输出总览"),
-        t("安装游戏插件，选择 V3 或 V4 连接"),
+        t("安装游戏插件，选择 Socket 或蓝牙直连"),
         t("设置心率映射范围与安全硬上限"),
         t("选择官方预设或创建自定义波形"),
         t("跟随游戏振动器档位，独立控制负鼠"),
@@ -38,7 +39,8 @@ ApplicationWindow {
         t("从原作者页面发现任务、插件与工具"),
         "",
         t("检查连接、安全归零和游戏事件"),
-        t("外观、语言与通用偏好")
+        t("外观、语言与通用偏好"),
+        t("游戏活塞联动与独立动作档位")
     ]
 
     // Cover-inspired: plum-gray surfaces, silver text, rose-magenta highlights.
@@ -414,6 +416,7 @@ ApplicationWindow {
                 NavItem { targetPage: 2; iconText: "◫"; label: root.t("个性化范围") }
                 NavItem { targetPage: 3; iconText: "〰"; label: root.t("波形工作台") }
                 NavItem { targetPage: 4; iconText: "≈"; label: root.t("负鼠工作台") }
+                NavItem { targetPage: 11; iconText: "↔"; label: root.t("腰带骑士工作台") }
                 Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; Layout.topMargin: 7; Layout.bottomMargin: 7; color: root.border }
                 NavItem { targetPage: 5; iconText: "✦"; label: root.t("存档工具") }
                 NavItem { targetPage: 6; iconText: "⬡"; label: root.t("Mod 管理器") }
@@ -457,9 +460,9 @@ ApplicationWindow {
                     }
                     Rectangle {
                         Layout.preferredWidth: 142; Layout.preferredHeight: 38; radius: 19
-                        color: Qt.rgba((backend.deviceConnected ? green : amber).r, (backend.deviceConnected ? green : amber).g, (backend.deviceConnected ? green : amber).b, darkMode ? 0.10 : 0.09)
-                        border.color: Qt.rgba((backend.deviceConnected ? green : amber).r, (backend.deviceConnected ? green : amber).g, (backend.deviceConnected ? green : amber).b, 0.26)
-                        Row { anchors.centerIn: parent; spacing: 7; Rectangle { width: 8; height: 8; radius: 4; color: backend.deviceConnected ? green : amber; anchors.verticalCenter: parent.verticalCenter } Text { text: backend.deviceConnected ? root.t("DG-LAB 已连接") : root.t("等待设备连接"); color: backend.deviceConnected ? green : amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; font.weight: Font.DemiBold } }
+                        color: Qt.rgba((root.anyDeviceConnected ? green : amber).r, (root.anyDeviceConnected ? green : amber).g, (root.anyDeviceConnected ? green : amber).b, darkMode ? 0.10 : 0.09)
+                        border.color: Qt.rgba((root.anyDeviceConnected ? green : amber).r, (root.anyDeviceConnected ? green : amber).g, (root.anyDeviceConnected ? green : amber).b, 0.26)
+                        Row { anchors.centerIn: parent; spacing: 7; Rectangle { width: 8; height: 8; radius: 4; color: root.anyDeviceConnected ? green : amber; anchors.verticalCenter: parent.verticalCenter } Text { text: root.anyDeviceConnected ? (backend.language==="en"?"Device connected":"设备已连接") : root.t("等待设备连接"); color: root.anyDeviceConnected ? green : amber; font.family: "Microsoft YaHei UI"; font.pixelSize: 10; font.weight: Font.DemiBold } }
                     }
                     AppButton { Layout.preferredWidth: 82; label: root.t("全部停止"); fillColor: Qt.rgba(red.r,red.g,red.b,0.16); labelColor: red; onClicked: backend.emergencyStopAll() }
                 }
@@ -547,7 +550,7 @@ ApplicationWindow {
                         ColumnLayout {
                             width: parent.width; spacing: 15
                             RowLayout {
-                                Layout.fillWidth: true; Layout.preferredHeight: 400; spacing: 15
+                                Layout.fillWidth: true; Layout.preferredHeight: backend.socketProtocol === "ble" ? 460 : 400; spacing: 15
                                 AppCard {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                     StatusGlow { active: !backend.demoMode && (backend.gameRunning || backend.telemetryOnline); tint: backend.telemetryOnline ? root.green : root.accent }
@@ -572,7 +575,7 @@ ApplicationWindow {
                                 }
                                 ConnectionPanel { Layout.preferredWidth: 435; Layout.fillHeight: true; theme: root; onHelpRequested: networkHelpDialog.open() }
                             }
-                            DeviceRoutes { visible: backend.socketProtocol === "v4"; Layout.fillWidth: true; theme: root; onWorkbenchRequested: page => root.pageIndex = page }
+                            DeviceRoutes { visible: backend.socketProtocol === "v4" || backend.socketProtocol === "ble"; Layout.fillWidth: true; theme: root; onWorkbenchRequested: page => root.pageIndex = page }
                             AppCard {
                                 visible: backend.socketProtocol === "v3"
                                 Layout.fillWidth: true; Layout.preferredHeight: 300
@@ -698,6 +701,13 @@ ApplicationWindow {
                             }
                             return values
                         }
+                        property var selectedActionKeys: []
+                        onActionSearchChanged:selectedActionKeys=[]
+                        onActionFilterChanged:selectedActionKeys=[]
+                        function selectAllActions() { selectedActionKeys=filteredActions.map(a=>a.action) }
+                        function invertActionSelection() { selectedActionKeys=filteredActions.map(a=>a.action).filter(k=>selectedActionKeys.indexOf(k)<0) }
+                        function toggleActionSelection(key) { let keys=selectedActionKeys.slice(),i=keys.indexOf(key);if(i<0)keys.push(key);else keys.splice(i,1);selectedActionKeys=keys }
+                        function applyActionBatch(key) { if(backend.setActionWaveforms(selectedActionKeys,key))selectedActionKeys=[] }
                         function presetIndex(key) { for (let i=0;i<backend.presets.length;i++) if (backend.presets[i].key===key) return i; return 0 }
                         function optionIndex(key) { for (let i=0;i<backend.assignableWaveforms.length;i++) if (backend.assignableWaveforms[i].key===key) return i; return 0 }
                         function waveOption(key) { for (let i=0;i<backend.assignableWaveforms.length;i++) if (backend.assignableWaveforms[i].key===key) return backend.assignableWaveforms[i]; return backend.assignableWaveforms[0] }
@@ -917,13 +927,27 @@ ApplicationWindow {
                                 anchors.fill: parent; anchors.margins: 20; spacing: 10
                                 RowLayout { Layout.fillWidth: true; ColumnLayout { spacing: 3; Text { text: wavePage.editingChannel+" · "+root.t("动作类型与波形"); color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 21; font.weight: Font.Bold } Text { text: backend.language==="en"?"Action channels share these rules. Changes apply immediately.":"动作通道共用这些分配；此处的动作波形修改即时保存。"; color: muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } } Item { Layout.fillWidth: true } AppButton { Layout.preferredWidth: 104; label: root.t("恢复推荐"); onClicked: backend.resetActionWaveforms() } AppButton { Layout.preferredWidth: 84; label: root.t("关闭"); onClicked: actionMappingDialog.close() } }
                                 RowLayout { Layout.fillWidth: true; TextField { Layout.fillWidth: true; Layout.preferredHeight: 40; placeholderText: root.t("搜索动作或波形"); text: wavePage.actionSearch; onTextEdited: wavePage.actionSearch=text; color: root.fg; font.family: "Microsoft YaHei UI"; background: Rectangle { radius: 11; color: panel2; border.color: parent.activeFocus?violet:border } } Repeater { model: [{key:"all",label:root.t("全部")},{key:"rhythmic",label:root.t("规律动作")},{key:"static",label:root.t("静态姿势")},{key:"off",label:root.t("普通交互")}]; delegate: AppButton { required property var modelData; Layout.preferredWidth: 92; Layout.preferredHeight: 36; label: modelData.label; fillColor: wavePage.actionFilter===modelData.key?violet:panel2; labelColor: wavePage.actionFilter===modelData.key?"#10151A":root.fg; onClicked: wavePage.actionFilter=modelData.key } } }
-                                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 34; radius: 9; color: panel2; RowLayout { anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14; spacing: 10; Text { Layout.preferredWidth: 220; text: root.t("游戏动作类型"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 82; text: root.t("分类"); color: muted; font.pixelSize: 9 } Text { Layout.fillWidth: true; text: root.t("波形预览"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 280; text: root.t("使用波形"); color: muted; font.pixelSize: 9 } } }
+                                RowLayout {
+                                    Layout.fillWidth:true;spacing:8
+                                    AppButton {label:backend.language==="en"?"Select All":"全选";onClicked:wavePage.selectAllActions()}
+                                    AppButton {label:backend.language==="en"?"Invert":"反选";onClicked:wavePage.invertActionSelection()}
+                                    AppButton {label:backend.language==="en"?"Clear":"清空";onClicked:wavePage.selectedActionKeys=[]}
+                                    Text {text:(backend.language==="en"?"Selected: ":"已选：")+wavePage.selectedActionKeys.length;color:muted;font.pixelSize:11}
+                                    Item {Layout.fillWidth:true}
+                                    Text {text:backend.language==="en"?"Current filter":"仅当前筛选";color:muted;font.pixelSize:10}
+                                }
+                                RowLayout {
+                                    Layout.fillWidth:true
+                                    WaveComboBox {id:pulseBatchWave;objectName:"pulseBatchWavePicker";Layout.fillWidth:true;model:backend.assignableWaveforms}
+                                    AppButton {label:backend.language==="en"?"Apply to Selected":"批量应用";fillColor:violet;labelColor:"#10151A";enabled:wavePage.selectedActionKeys.length>0;onClicked:wavePage.applyActionBatch(backend.assignableWaveforms[pulseBatchWave.currentIndex].key)}
+                                }
+                                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 34; radius: 9; color: panel2; RowLayout { anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14; spacing: 10; Item {Layout.preferredWidth:32} Text { Layout.preferredWidth: 185; text: root.t("游戏动作类型"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 82; text: root.t("分类"); color: muted; font.pixelSize: 9 } Text { Layout.fillWidth: true; text: root.t("波形预览"); color: muted; font.pixelSize: 9 } Text { Layout.preferredWidth: 280; text: root.t("使用波形"); color: muted; font.pixelSize: 9 } } }
                                 ListView {
                                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6; model: wavePage.filteredActions
                                     delegate: Rectangle {
                                         required property var modelData
                                         width: ListView.view.width; height: 70; radius: 12; color: panel2; border.color: modelData.isOverride?violet:border
-                                        RowLayout { anchors.fill: parent; anchors.margins: 10; spacing: 10; Text { Layout.preferredWidth: 220; text: modelData.actionLabel; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; elide: Text.ElideRight; ToolTip.visible: actionNameHover.hovered; ToolTip.text: modelData.actionLabel + "\n" + modelData.action; HoverHandler { id: actionNameHover } } Text { Layout.preferredWidth: 82; text: modelData.styleLabel; color: modelData.style==="rhythmic"?violet:modelData.style==="static"?cyan:muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } WaveView { Layout.fillWidth: true; Layout.preferredHeight: 46; points: modelData.points; waveColor: modelData.color; animated: actionRowHover.hovered } WaveComboBox { Layout.preferredWidth: 280; model: backend.assignableWaveforms; currentIndex: wavePage.optionIndex(modelData.waveKey); onActivated: backend.setActionWaveform(modelData.action,backend.assignableWaveforms[currentIndex].key) } }
+                                        RowLayout { anchors.fill: parent; anchors.margins: 10; spacing: 10; CheckBox {Layout.preferredWidth:32;checked:wavePage.selectedActionKeys.indexOf(modelData.action)>=0;onClicked:wavePage.toggleActionSelection(modelData.action)} Text { Layout.preferredWidth: 185; text: modelData.actionLabel; color: root.fg; font.family: "Microsoft YaHei UI"; font.pixelSize: 11; elide: Text.ElideRight; ToolTip.visible: actionNameHover.hovered; ToolTip.text: modelData.actionLabel + "\n" + modelData.action; HoverHandler { id: actionNameHover } } Text { Layout.preferredWidth: 82; text: modelData.styleLabel; color: modelData.style==="rhythmic"?violet:modelData.style==="static"?cyan:muted; font.family: "Microsoft YaHei UI"; font.pixelSize: 10 } WaveView { Layout.fillWidth: true; Layout.preferredHeight: 46; points: modelData.points; waveColor: modelData.color; animated: actionRowHover.hovered } WaveComboBox { Layout.preferredWidth: 280; model: backend.assignableWaveforms; currentIndex: wavePage.optionIndex(modelData.waveKey); onActivated: backend.setActionWaveform(modelData.action,backend.assignableWaveforms[currentIndex].key) } }
                                         HoverHandler { id: actionRowHover }
                                     }
                                     ScrollBar.vertical: ScrollBar { }
@@ -1692,6 +1716,7 @@ ApplicationWindow {
                     }
 
                     SettingsPage { theme: root; onHudSettingsRequested: hudSettingsDialog.openSettings(); onTutorialRequested: onboardingDialog.openFromStart() }
+                    BooBoopWorkbench { theme:root }
                 }
             }
         }

@@ -96,6 +96,8 @@ try {
         --clean `
         --windowed `
         --onedir `
+        --collect-submodules bleak `
+        --collect-submodules winrt `
         --name 'ManakaQmlControlCenter' `
         --icon $appIconIco `
         --distpath $DistPath `
@@ -106,6 +108,8 @@ try {
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcWorkbench.qml');qml" `
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\DeviceRoutes.qml');qml" `
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\ConnectionPanel.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\BleActivity.qml');qml" `
+        --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\BooBoopWorkbench.qml');qml" `
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\VibrationPreview.qml');qml" `
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\OvcWaveEditor.qml');qml" `
         --add-data "$(Join-Path $root 'python\qml_dashboard_prototype\ManakaHudPreview.qml');qml" `
@@ -181,6 +185,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'USER_AGREEMENT_CN.md') -Destination (Join-Path $portable 'USER_AGREEMENT_CN.md') -Force
     Copy-Item -LiteralPath (Join-Path $root 'MOD_CONTENT_NOTICE_CN.md') -Destination (Join-Path $portable 'MOD_CONTENT_NOTICE_CN.md') -Force
     Copy-Item -LiteralPath $releaseNotes -Destination (Join-Path $portable 'RELEASE_NOTES.md') -Force
+
+    Copy-Item -LiteralPath (Join-Path $root 'docs\COYOTE_BLE_LOCAL.md') -Destination (Join-Path $portable 'COYOTE_BLE_LOCAL.md') -Force
+    Copy-Item -LiteralPath (Join-Path $root 'docs\FN010_RX_BLE_RESEARCH.md') -Destination (Join-Path $portable 'FN010_RX_BLE_RESEARCH.md') -Force
 
     # Third-party plugins and missions are intentionally not redistributed.
     # Never copy the whole local Drop-in tree: ignored repository/archive files

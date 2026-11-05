@@ -29,7 +29,7 @@ from manaka_dglab_bridge import DEFAULT_PORT, DGLabBridge
 from manaka_game_process import find_game_process
 from manaka_pulse_routing import sanitize_sources, route_frame, heart_rate_bands
 from manaka_devices import audit as device_audit
-from manaka_devices.hud_settings import build_packet as build_hud_v2
+from manaka_devices.hud_settings import build_packet as build_hud_channels
 from manaka_dropin_importer import DropInModImporter
 from manaka_9527_importer import Pack9527Error, Pack9527Importer
 from manaka_mod_manager import ManakaModManager, ModManagerError
@@ -49,11 +49,11 @@ from manaka_waveforms import (
 try:
     from .i18n import translate
     from .mod_catalog import build_mod_catalog
-    from .v4_integration import V4DeviceBackend
+    from .booboop_integration import BooDeviceBackend
 except ImportError:  # Direct source/packaged entry point.
     from i18n import translate
     from mod_catalog import build_mod_catalog
-    from v4_integration import V4DeviceBackend
+    from booboop_integration import BooDeviceBackend
 
 
 def windows_network_repair_script(lan_ip: str, port: int) -> str:
@@ -951,7 +951,7 @@ class TelemetryWorker(threading.Thread):
                 pass
 
 
-class ControlCenterBackend(V4DeviceBackend):
+class ControlCenterBackend(BooDeviceBackend):
     gameProcessChanged = Signal()
     stateChanged = Signal()
     statusChanged = Signal()
@@ -2159,7 +2159,7 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Slot(int)
     def setActivePage(self, index: int) -> None:
-        self.ui_page_index = max(0, min(10, int(index)))
+        self.ui_page_index = max(0, min(11, int(index)))
         # Values continue updating while a page is hidden. Emit one snapshot on
         # entry so the newly visible page catches up without background churn.
         self.statusChanged.emit()
@@ -2728,9 +2728,9 @@ class ControlCenterBackend(V4DeviceBackend):
             self.device_status_value = "输出已暂停 · A/B 已归零 · 设备保持连接"
             self._log("手动暂停输出：A/B 已归零并清空队列")
         else:
-            if self.socket_protocol == "v4":
+            if self.socket_protocol in {"v4","ble"}:
                 self.bridge.clear_global_emergency_stop()
-            self.coyote_waiting_for_game = self.socket_protocol == "v4" and not bool(self.last_receive and time.monotonic() - self.last_receive < .5)
+            self.coyote_waiting_for_game = self.socket_protocol in {"v4","ble"} and not bool(self.last_receive and time.monotonic() - self.last_receive < .5)
             self.coyote_resume_after = time.monotonic() if self.coyote_waiting_for_game else 0.0
             self.auto_output_enabled = True
             if self.coyote_waiting_for_game:
@@ -2841,27 +2841,42 @@ class ControlCenterBackend(V4DeviceBackend):
 
     @Slot(str, str, result=bool)
     def setActionWaveform(self, action: str, wave_key: str) -> bool:
-        action = str(action).strip()
+        return self._set_action_waveforms([action], wave_key, batch=False)
+
+    @Slot("QVariantList", str, result=bool)
+    def setActionWaveforms(self, actions, wave_key: str) -> bool:
+        return self._set_action_waveforms(actions, wave_key, batch=True)
+
+    def _set_action_waveforms(self, actions, wave_key, *, batch):
         wave_key = str(wave_key).strip()
-        if not action or action == "None" or not self._is_assignable_wave_key(wave_key):
+        if (not isinstance(actions, (list, tuple)) or not 1 <= len(actions) <= 1024
+                or any(not isinstance(a,str) or not a.strip() or a.strip()=="None" or len(a)>128 for a in actions)
+                or not self._is_assignable_wave_key(wave_key)):
             self._toast("动作映射无效", "请选择有效的动作与波形")
             return False
-        recommended = recommended_wave_for_action(action)
-        if wave_key == recommended:
-            self.action_wave_map_value.pop(action, None)
-        else:
-            self.action_wave_map_value[action] = wave_key
-        if action not in self.known_actions_value:
-            self.known_actions_value.append(action)
+        selected = list(dict.fromkeys(a.strip() for a in actions))
+        mapping = dict(self.action_wave_map_value)
+        known = list(self.known_actions_value)
+        for action in selected:
+            if wave_key == recommended_wave_for_action(action):
+                mapping.pop(action, None)
+            else:
+                mapping[action] = wave_key
+            if action not in known:
+                known.append(action)
+        try:
+            if not self.demo_mode:
+                update_config({"action_wave_map":mapping,"known_actions":known})
+        except OSError as error:
+            self._toast("动作映射保存失败",str(error))
+            return False
+        self.action_wave_map_value, self.known_actions_value = mapping, known
         self.wave_selector.reset()
-        update_config(
-            {
-                "action_wave_map": self.action_wave_map_value,
-                "known_actions": self.known_actions_value,
-            }
-        )
         self.configChanged.emit()
-        self._log(f"动作波形：{action} → {wave_key}")
+        self._log(f"动作波形：{len(selected)} 个动作 → {wave_key}")
+        if batch:
+            self._toast(self._device_text("批量设置已保存","Batch Saved"),
+                        self._device_text(f"已更新 {len(selected)} 个动作",f"Updated {len(selected)} actions"))
         return True
 
     @Slot()
@@ -3302,11 +3317,19 @@ class ControlCenterBackend(V4DeviceBackend):
         for channel, value in zip(("A", "B"), strengths[2:]):
             frames = self.ovc_frame.get(channel, {}).get("frames", ())
             vibration_pulses.append(int(frames[int(now * 10) % len(frames)][8:10], 16) / 100 if frames and value else 0)
-        packet = build_hud_v2(self.hud_sequence, self.hud_settings,
+        boo_hud = None
+        if self.last_packet.get("hudProtocol") == 3:
+            boo_active = bool(self.booConnected and self.boo_enabled and fresh
+                              and not self.boo_waiting and not self.boo_frame.get("reason"))
+            boo_hud = {"connected":self.booConnected,"active":boo_active,
+                       "stretch":self.boo_frame.get("stretch",0),"vibration":self.boo_frame.get("vibration",0),
+                       "cap":self.boo_profile["hard_cap"]}
+        packet = build_hud_channels(self.hud_sequence, self.hud_settings,
             visible=self.game_hud_enabled_value and fresh and str(self.last_packet.get("stage", "None")) not in {"", "None"},
             connected=(self.device_connected_value, self.ovc_connected), active=(active, ovc_active),
             strengths=strengths, caps=(self.hard_cap_value, self.hard_cap_value, self.ovc_profile["hard_cap"], self.ovc_profile["hard_cap"]),
-            pulses=(self._wave_pulse(self.current_wave_a, strengths[0], now), self._wave_pulse(self.current_wave_b, strengths[1], now), *vibration_pulses))
+            pulses=(self._wave_pulse(self.current_wave_a, strengths[0], now), self._wave_pulse(self.current_wave_b, strengths[1], now), *vibration_pulses),
+            booboop=boo_hud)
         try:
             self.hud_socket.sendto(packet, (UDP_HOST, HUD_PORT))
         except OSError:
@@ -3328,13 +3351,13 @@ class ControlCenterBackend(V4DeviceBackend):
             self._log(f"DG-LAB Socket 已就绪：{address}")
         elif event == "connected":
             self.device_connected_value = True
-            self.auto_output_enabled = self.socket_protocol == "v3"
+            self.auto_output_enabled = self.socket_protocol == "v3" and not self._ports_require_manual_enable
             self.safety_wait_reason = self.current_frame.reason if self.current_frame.safe_cut else ""
             assert self.bridge is not None
             self.bridge.set_auto_enabled(self.auto_output_enabled)
-            if self.socket_protocol == "v4":
-                self.device_status_value = "V4 设备就绪 · 等待手动启用"
-                self._log("V4 郊狼已确认归零；请手动启用输出")
+            if self.socket_protocol != "v3" or self._ports_require_manual_enable:
+                self.device_status_value = "设备就绪 · 等待手动启用"
+                self._log("郊狼已确认归零；请手动启用输出")
             else:
                 self.device_status_value = "设备已连接 · 安全待机" if self.current_frame.safe_cut else "设备已连接 · A/B 通道输出中"
                 self._log("DG-LAB 手机端绑定成功；已自动启用 A/B 输出")
@@ -3350,7 +3373,7 @@ class ControlCenterBackend(V4DeviceBackend):
             if message.startswith("strength-"):
                 self._log(f"设备强度反馈：{message}")
         elif event == "error":
-            self.device_status_value = "Socket 连接不可用"
+            self.device_status_value = "蓝牙连接不可用" if self.socket_protocol == "ble" else "Socket 连接不可用"
             self._log(str(payload.get("detail", "未知 Socket 错误")))
 
     def _on_telemetry(self, packet: dict) -> None:
@@ -3383,6 +3406,7 @@ class ControlCenterBackend(V4DeviceBackend):
             self.known_actions_value.append(self.action_value)
             update_config({"known_actions": self.known_actions_value})
             self.configChanged.emit()
+            self.ovcCatalogChanged.emit()
         self.current_rp_value = float(packet.get("currentRp", self.current_rp_value) or 0)
         self.expose_exp_value = int(packet.get("exposeExp", self.expose_exp_value) or 0)
         self.current_save_slot_value = int(packet.get("currentSaveSlot", self.current_save_slot_value))
@@ -3397,6 +3421,7 @@ class ControlCenterBackend(V4DeviceBackend):
         else:
             self._leave_safety_idle()
         self._show_frame(frame)
+        self._sync_extra_devices(force=True)
         if self.action_value != self.last_action:
             action_title = "Action" if self.language_name == "en" else "动作"
             previous_label = action_label(self.last_action, self.language_name)
@@ -3428,7 +3453,7 @@ class ControlCenterBackend(V4DeviceBackend):
 
     def _show_frame(self, frame: TriggerFrame) -> None:
         self.current_source_frame = frame
-        if (self.socket_protocol == "v4" and not self.demo_mode
+        if (self.socket_protocol in {"v4","ble"} and not self.demo_mode
                 and (self.coyote_waiting_for_game or not self.last_receive or time.monotonic() - self.last_receive >= .5)):
             frame = self.engine.force_safe_cut("telemetry-stale")
         frame = route_frame(frame, self.pulse_channel_sources_value)
@@ -3481,7 +3506,7 @@ class ControlCenterBackend(V4DeviceBackend):
                 wave_key_b=wave_b.key if wave_b and self.current_output_b > 0 else "idle",
                 hard_cap=self.hard_cap_value,
             )
-            if self.socket_protocol == "v4" and not self.coyote_waiting_for_game:
+            if self.socket_protocol in {"v4","ble"} and not self.coyote_waiting_for_game:
                 self.bridge.set_auto_enabled(True)
 
     def _custom_waveform(self) -> WaveformPreset:
@@ -3499,7 +3524,7 @@ class ControlCenterBackend(V4DeviceBackend):
     def _enter_safety_idle(self, reason: str) -> None:
         if not self.auto_output_enabled:
             return
-        if reason == "telemetry-stale" and self.socket_protocol == "v4":
+        if reason == "telemetry-stale" and self.socket_protocol in {"v4","ble"}:
             self._enter_game_standby("coyote", reason)
             return
         if self.safety_wait_reason != reason:

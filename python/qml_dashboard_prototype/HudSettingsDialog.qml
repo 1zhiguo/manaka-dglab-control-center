@@ -8,7 +8,7 @@ Dialog {
     popupType: Popup.Item
     required property var theme
     parent:Overlay.overlay;anchors.centerIn:parent;width:Math.min(850,parent.width-48);height:Math.min(740,parent.height-40);padding:24;modal:true
-    property var draft: ({scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true})
+    property var draft: ({scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true,show_booboop:true})
     readonly property var anchorsList: [tr("游戏安全区域 · 底部靠左","Game Safe Area"),tr("左上","Top Left"),tr("顶部居中","Top Center"),tr("右上","Top Right"),tr("左下","Bottom Left"),tr("底部居中","Bottom Center"),tr("右下","Bottom Right"),tr("自定义位置","Custom Position")]
     readonly property var anchorKeys:["game_safe","top_left","top_center","top_right","bottom_left","bottom_center","bottom_right","custom"]
     function tr(zh,en){return backend.language==="en"?en:zh}
@@ -43,7 +43,7 @@ Dialog {
                 Label{Layout.fillWidth:true;text:backend.hudPluginHint;color:dialog.theme.amber;wrapMode:Text.Wrap;font.pixelSize:12}
                 Rectangle {
                     Layout.fillWidth:true;Layout.preferredHeight:125;radius:14;color:"#24182E";border.color:dialog.theme.border;clip:true
-                    ManakaHudPreview{anchors.centerIn:parent;width:Math.min(parent.width-20,696*(dialog.draft.scale||100)/100);height:Math.min(108,72*(dialog.draft.scale||100)/100);options:dialog.draft}
+                    ManakaHudPreview{anchors.centerIn:parent;width:Math.min(parent.width-20,((dialog.draft.show_booboop?1044:696)*(dialog.draft.scale||100)/100));height:Math.min(108,72*(dialog.draft.scale||100)/100);options:dialog.draft}
                 }
                 Setting{optionKey:"scale";label:dialog.tr("HUD 大小","HUD Size");minimum:60;maximum:180;step:10}
                 Setting{optionKey:"opacity";label:dialog.tr("背景不透明度","Background Opacity");minimum:0;maximum:100;step:5}
@@ -54,9 +54,10 @@ Dialog {
                 GridLayout{columns:2;Layout.fillWidth:true;columnSpacing:28
                     Option{optionKey:"show_pulse";text:dialog.tr("郊狼 Pulse","Coyote Pulse")}
                     Option{optionKey:"show_ovc";text:dialog.tr("负鼠振动","Opossum Vibration")}
+                    Option{objectName:"hudShowBoo";optionKey:"show_booboop";text:dialog.tr("腰带骑士 · 伸缩 / 振动","Belt Knight · Move / Vibe");Layout.columnSpan:2}
                     Option{optionKey:"show_a";text:dialog.tr("A 通道","Channel A")}
                     Option{optionKey:"show_b";text:dialog.tr("B 通道","Channel B")}
-                    Option{optionKey:"show_numbers";text:dialog.tr("数字强度","Intensity Numbers")}
+                    Option{optionKey:"show_numbers";text:dialog.tr("数字强度 / 档位","Intensity / Level Numbers")}
                     Option{optionKey:"show_status";text:dialog.tr("连接与输出状态","Connection / Output Status")}
                     Option{optionKey:"show_waveforms";text:dialog.tr("郊狼波形","Pulse Waveforms")}
                 }
@@ -64,10 +65,10 @@ Dialog {
             }
         }
         RowLayout{Layout.fillWidth:true
-            Button{text:dialog.tr("恢复默认","Defaults");onClicked:dialog.draft={scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true}}
+            Button{text:dialog.tr("恢复默认","Defaults");onClicked:dialog.draft={scale:100,opacity:35,anchor:"game_safe",x:30,y:96,show_pulse:true,show_ovc:true,show_a:true,show_b:true,show_numbers:true,show_status:true,show_waveforms:true,show_booboop:true}}
             Item{Layout.fillWidth:true}
             Button{text:dialog.tr("取消","Cancel");onClicked:dialog.close()}
-            Button{text:dialog.tr("应用并保存","Apply & Save");enabled:(dialog.draft.show_pulse||dialog.draft.show_ovc)&&(dialog.draft.show_a||dialog.draft.show_b);onClicked:if(backend.saveHudSettings(dialog.draft))dialog.close()}
+            Button{text:dialog.tr("应用并保存","Apply & Save");enabled:dialog.draft.show_booboop||((dialog.draft.show_pulse||dialog.draft.show_ovc)&&(dialog.draft.show_a||dialog.draft.show_b));onClicked:if(backend.saveHudSettings(dialog.draft))dialog.close()}
         }
     }
 }

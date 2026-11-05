@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
-from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl
+from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, QUrl, qInstallMessageHandler
 from PySide6.QtGui import QGuiApplication, QIcon, QFont
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem  # noqa: F401 - registers QQuickItem converters
@@ -34,6 +34,7 @@ PAGE_SCREENSHOT_NAMES = (
     "voice-studio",
     "event-log",
     "settings",
+    "booboop",
 )
 
 
@@ -51,11 +52,23 @@ def main() -> int:
     # Isolated, explicit loopback validation. Dispatch before the normal single-
     # instance lock/backend so this mode cannot start physical device services,
     # load personal settings, or interfere with an existing controller window.
+    ble_report=option_value("--validate-ble=")
+    if ble_report:
+        from manaka_devices.ble_validation import run_validation
+        return run_validation(Path(ble_report).expanduser().resolve())
     validation_report = option_value("--validate-coyote2=")
     if validation_report:
         from manaka_devices.coyote2_validation import run_validation
         return run_validation(Path(validation_report).expanduser().resolve())
 
+    qml_log = option_value("--qml-log=")
+    if qml_log:
+        log_path=Path(qml_log).expanduser().resolve()
+        log_path.parent.mkdir(parents=True,exist_ok=True)
+        def record_qt_message(kind,context,message):
+            with log_path.open("a",encoding="utf-8") as output:
+                output.write(message+"\n")
+        qInstallMessageHandler(record_qt_message)
     capture_dir = screenshot_output_dir()
     capture_page_value = option_value("--capture-page=")
     capture_file_value = option_value("--capture-file=")
@@ -82,7 +95,8 @@ def main() -> int:
     lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation)) / "manaka-dglab-control-center.lock"
     instance_lock = QLockFile(str(lock_path))
     instance_lock.setStaleLockTime(3000)
-    if not instance_lock.tryLock(0):
+    isolated_preview = "--demo" in sys.argv and ("--smoke-test" in sys.argv or capture_file is not None)
+    if not isolated_preview and not instance_lock.tryLock(0):
         if sys.platform == "win32":
             ctypes.windll.user32.MessageBoxW(
                 0,
