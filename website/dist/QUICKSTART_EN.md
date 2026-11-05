@@ -1,13 +1,13 @@
 # Manaka × DG-LAB Control Center — English Quick Start
 
-This community-made Windows tool connects **Secret Flasher Manaka** to **DG-LAB Pulse and/or Opossum** devices via V3/V4. It can synchronize in-game heart rate, actions, and Climax events to channels A/B. The public build does **not** include the game.
+This community-made Windows tool connects **Secret Flasher Manaka** to **DG-LAB Pulse and/or Opossum** devices via V3/V4 or direct PC BLE. Version 1.2.0 also adds experimental FN010-RX Belt Knight support. It can synchronize in-game heart rate, actions, and Climax events to channels A/B. The public build does **not** include the game.
 
 ## 1. Before you start
 
 - Windows 10 or 11, 64-bit
 - A legally obtained copy of Secret Flasher Manaka v1.1.1, v1.1.2, or v1.1.3
-- A supported DG-LAB device and matching mobile app; Opossum requires the DG-LAB 4 App
-- The PC and phone connected to the same local network
+- A supported device; Socket needs a matching phone App, while direct BLE needs a BLE-capable Windows adapter
+- For Socket: PC and phone on the same local network. For direct BLE: disconnect the device from the phone App first.
 
 Electrical stimulation can cause pain, skin irritation, involuntary muscle contraction, or other injury. Start at low strength, keep the physical controller within reach, and stop immediately if you feel unwell. Read the in-app agreement before use.
 
@@ -57,7 +57,7 @@ Pausing the game with Esc should also place output in safety idle. If the teleme
 ## 6. Waveforms
 
 - Pulse A/B sources are independent. Channels using the same source share its waveform assignments. Heart-rate settings show actual low/mid/high BPM boundaries at 30% and 70% of the configured trigger-to-full interval.
-- The **Opossum** workbench requires V4. Choose direct game-vibrator sync or independent A/B action, random, fixed and off policies. Game Random follows the game's actual selected level.
+- The **Opossum** workbench requires V4 or direct BLE. Choose direct game-vibrator sync or independent A/B action, random, fixed and off policies. Game Random follows the game's actual selected level.
 - Use built-in vibration envelopes or your own curves. Previews never send output. Saving Opossum settings stops that device until manually re-enabled.
 - The HUD group in the top bar controls visibility and opens content, size, opacity and position settings. **Settings** also contains language and day/night preferences. Hiding the HUD does not stop devices.
 
@@ -114,3 +114,13 @@ After changing EXP, complete any mission and return home to trigger settlement b
 - GitHub issues: https://github.com/1zhiguo/manaka-dglab-control-center/issues
 - QQ technical group: `1129729751`
 
+
+## v1.2.0 direct BLE and Belt Knight
+
+Choose direct BLE for all devices in Setup. Switch Coyote to blue Bluetooth mode, or press Opossum power five times to enter its Bluetooth mode, then scan/connect and manually enable. Do not mix Socket and BLE.
+
+For FN010-RX, open Belt Knight, Scan & Connect, wait for handshake readiness, then Enable. Return to a playable game scene and switch on the game piston. Defaults map slow/medium/fast to protocol indices 1/2/3, capped at 4. Saving stops sync; enable again afterwards. Random follows the game's current effective speed and requires bundled telemetry 0.5.2 plus a game restart.
+
+The HUD settings have an independent Belt Knight visibility toggle. Hiding the HUD never stops hardware. Pulse and Opossum action mappings support current-filter Select All, Invert and batch assignment; Opossum edits affect only the selected channel. Socket ports can be edited in Setup.
+
+Read RELEASE_NOTES.md and the included BLE/FN010-RX notes for experimental hardware verification limits.

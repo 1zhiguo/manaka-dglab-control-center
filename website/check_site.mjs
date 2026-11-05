@@ -26,13 +26,13 @@ for(const name of ['index.html','guide.html']) {
 }
 assert.match(read('index.html'),/id="credits"/);
 assert.match(read('index.html'),/G-MKGQEE5V97/);
-assert.match(read('index.html'),/data-release-pending="v1\.1\.0"/);
+assert.match(read('index.html'),/data-release-pending="v1\.2\.0"/);
 for (const version of ['v1.0.5','v1.1.0','v1.1.1','v1.2.0']) {
-  const pendingNode={dataset:{releasePending:'v1.1.0'},hidden:false};
+  const pendingNode={dataset:{releasePending:'v1.2.0'},hidden:false};
   const versionNode={textContent:''};
   const document={querySelectorAll:selector=>selector==='[data-release-pending]'?[pendingNode]:selector==='[data-version]'?[versionNode]:[]};
   vm.runInNewContext(read('site.js'),{document,window:{MANAKA_DOWNLOADS:{version}}});
-  assert.equal(pendingNode.hidden,version!=='v1.0.5');
+  assert.equal(pendingNode.hidden,version==='v1.2.0');
   assert.equal(versionNode.textContent,version);
 }
 for (const githubUrl of ['', 'https://example.com/release.zip']) {
@@ -68,8 +68,8 @@ for(const language of ['zh','en','ja']) {
   assert.equal(f.values.get('manaka-site-language'),language);
   assert.ok(!f.window.ManakaI18n.t('guide.source',{file:'QUICKSTART_JA.md'}).includes('{file}'));
 }
-assert.equal(fixture('https://example.com/guide.html','ja').window.ManakaI18n.language,'ja');
-assert.equal(fixture('https://example.com/?lang=invalid','ja').window.ManakaI18n.language,'ja');
+assert.equal(fixture('https://example.com/guide.html','ja').window.ManakaI18n.language,'zh');
+assert.equal(fixture('https://example.com/?lang=invalid','ja').window.ManakaI18n.language,'zh');
 
 // Fast language changes must not allow a stale fetch to replace the selected document.
 const pending=[],handlers={};
@@ -87,3 +87,5 @@ pending[0].resolve({ok:true,text:async()=> '# Japanese stale'});await new Promis
 assert.match(elements.docContent.innerHTML,/English current/);assert.doesNotMatch(elements.docContent.innerHTML,/Japanese stale/);
 guideWindow.ManakaI18n.language='ja';tabs[1].click();assert.equal(pending[2].file,'FAQ_JA.md');
 console.log(`Manaka website checks passed: ${keys.length} keys in 3 languages, unified dropdowns, persisted locale, attribution, Japanese guide/FAQ and stale-fetch protection.`);
+
+const manifestContext={window:{}};vm.runInNewContext(read("download-config.js"),manifestContext);const download=manifestContext.window.MANAKA_DOWNLOADS;assert.equal(download.version,"v1.2.0");assert.equal(download.baiduCode,"sdu4");assert.match(download.baiduUrl,/1zpcmwMcTEa4B7aLkw6iRBg/);for(const key of ["cosUrl","githubUrl"])assert.ok(download[key].endsWith("/v1.2.0/ManakaQmlControlCenter-v1.2.0-win64.zip"));assert.equal(download.sha256,"D85E0A7AE742DE2C5C71B47257F2595C3BFE4985A7C335C4780B2199625327C3");
